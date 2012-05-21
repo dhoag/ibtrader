@@ -7,6 +7,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.CommissionReport;
@@ -20,32 +22,32 @@ import com.ib.client.OrderState;
 import com.ib.client.UnderComp;
 
 public class ResponseHandler implements EWrapper {
-	
+
 	IBClientRequestExecutor requester;
-	
+
+	public void setRequestor(final IBClientRequestExecutor req) {
+		requester = req;
+	}
 
 	@Override
 	public void error(Exception e) {
-		// TODO Auto-generated method stub
-
+		e.printStackTrace();
 	}
 
 	@Override
 	public void error(String str) {
-		// TODO Auto-generated method stub
-
+		Logger.getLogger("ResponseHandler").log(Level.WARNING, str);
 	}
 
 	@Override
 	public void error(int id, int errorCode, String errorMsg) {
-		// TODO Auto-generated method stub
-
+		Logger.getLogger("ResponseHandler").log(Level.WARNING, "REQ:" + id + " ERROR:" + errorCode + " '" + errorMsg + "'");
+		if(id > 0)	requester.endRequest(id);
 	}
 
 	@Override
 	public void connectionClosed() {
-		// TODO Auto-generated method stub
-
+		requester.forcedClose();
 	}
 
 	@Override
@@ -207,25 +209,26 @@ public class ResponseHandler implements EWrapper {
 
 	}
 
-	
 	/**
 	 * Called from a thread started by the EClientSocket to handle replies
 	 */
 	@Override
-	public void historicalData(final int reqId, final String dateStr, final double open,
-			final double high, final double low, final double close, final int volume, final int count,
+	public void historicalData(final int reqId, final String dateStr,
+			final double open, final double high, final double low,
+			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGaps) {
 
-		//end of data
-		if(open < 0 && high < 0 ){
+		// end of data
+		if (open < 0 && high < 0) {
 			requester.endRequest(reqId);
 			return;
 		}
-		DecimalFormat df = new DecimalFormat("#.##");		
-		System.out.print( "Req: " + reqId + " " + dateStr);
-		System.out.print( " O:" + df.format( open ) + " C:" + df.format( close ));
-		System.out.print( " H:" + df.format( high ) + " W:" + df.format(WAP) + " L:" + df.format( low ));
-		System.out.println( " V:" + volume + " #:" + count + " gaps?" + hasGaps);
+		DecimalFormat df = new DecimalFormat("#.##");
+		System.out.println("His Data for - Req: " + reqId + " " + dateStr + " O:"
+				+ df.format(open) + " C:" + df.format(close) + " H:"
+				+ df.format(high) + " W:" + df.format(WAP) + " L:"
+				+ df.format(low) + " V:" + volume + " #:" + count + " gaps?"
+				+ hasGaps);
 	}
 
 	@Override

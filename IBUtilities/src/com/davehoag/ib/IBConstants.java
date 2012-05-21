@@ -4,7 +4,8 @@ public interface IBConstants {
 	final String userId = "hoagda195";
 	final String passwd = "buffy6x";
 	final int port = 7496;
-	final int clientId = 777;
+	//Not sure what clientId means, but zero seems to support repeat connections
+	final int clientId = 0;
 	final String host = "";
 	
 	//http://www.interactivebrokers.com/php/apiUsersGuide/apiguide/excel/historical_data_page_query_specification_fields.htm

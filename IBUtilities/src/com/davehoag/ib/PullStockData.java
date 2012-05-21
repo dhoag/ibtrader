@@ -1,5 +1,9 @@
 package com.davehoag.ib;
 
+import java.text.ParseException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.EClientSocket;
 /**
@@ -20,10 +24,18 @@ public class PullStockData {
 		
 		ResponseHandler rh = new ResponseHandler();
 		EClientSocket  m_client = new EClientSocket( rh );
-		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client);
+		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
-
-        
+		try {
+			clientInterface.reqHistoricalData(symbol, startDateStr);
+			clientInterface.waitForCompletion();
+		} catch (ParseException e) {
+			Logger.getLogger("PullStockData").log(Level.SEVERE, "Parse Exception!! " + startDateStr, e);
+		}
+		finally { 
+			clientInterface.close();
+		}
+        System.exit(0);
 	}
 
 }

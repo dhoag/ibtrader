@@ -13,6 +13,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -24,7 +26,7 @@ import com.ib.client.EClientSocket;
  * @author dhoag
  * 
  */
-public class IBClientRequestExecutor  {
+public class IBClientRequestExecutor {
 
 	final EClientSocket client;
 	final Queue<Runnable> tasks = new ArrayDeque<Runnable>();
@@ -35,24 +37,44 @@ public class IBClientRequestExecutor  {
 	/**
 	 * Only want one thread sending the requests.
 	 */
-	IBClientRequestExecutor(final EClientSocket socket) {
+	IBClientRequestExecutor(final EClientSocket socket, final ResponseHandler rh) {
 		client = socket;
 		this.executor = Executors.newSingleThreadExecutor();
+		rh.setRequestor(this);
 	}
+
 	/**
-	 * Connect to the default host/ports through the TWS client
+	 * Got a disconnect from the TWS and I'm responding as best I can
+	 */
+	protected void forcedClose() {
+		executor.shutdownNow();
+		Logger.getLogger("RequestManager").log(Level.SEVERE, "Forced Exit");
+		client.eDisconnect();
+		requests = 0;
+	}
+
+	/**
+	 * Gracefully exit
+	 */
+	public void close() {
+		Logger.getLogger("RequestManager").log(Level.INFO, "Shutting down");
+		executor.shutdown();
+		client.eDisconnect();
+	}
+
+	/**
+	 * Connect to the default host/ports through the TWS client. It doesn't
+	 * actually validate the clientId until the first request is made
 	 */
 	public void connect() {
-		client.eConnect(IBConstants.host, IBConstants.port,
-				IBConstants.clientId);
+		client.eConnect(IBConstants.host, IBConstants.port, IBConstants.clientId);
 		if (client.isConnected()) {
-			System.out.println("Connected to Tws server version "
-					+ client.serverVersion() + " at "
+			System.out.println("Connected to Tws server version " + client.serverVersion() + " at "
 					+ client.TwsConnectionTime());
 
 		} else {
-			System.out.println("Failed to connect " + IBConstants.host + " "
-					+ IBConstants.port);
+			Logger.getLogger("RequestManager").log(Level.SEVERE,
+					"Failed to connect " + IBConstants.host + " " + IBConstants.port);
 			System.exit(1);
 		}
 	}
@@ -60,7 +82,9 @@ public class IBClientRequestExecutor  {
 	/**
 	 * Find a unique request id. They are reused and I can only have 31
 	 * concurrent
-	 * @return int An id that should be used to mark a request has been fulfilled
+	 * 
+	 * @return int An id that should be used to mark a request has been
+	 *         fulfilled
 	 */
 	final synchronized int pushRequest() {
 		int shifts = 0;
@@ -77,13 +101,16 @@ public class IBClientRequestExecutor  {
 	/**
 	 * Mark the request id as available for reuse
 	 * 
-	 * @param reqId The ID of the request that has completed
+	 * @param reqId
+	 *            The ID of the request that has completed
 	 */
 	final synchronized void endRequest(final int reqId) {
+		Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId);
 		int mask = 0xFFFFFFFF;
 		mask = mask ^ reqId;
 		requests = requests & mask;
 		if (requests == 0) {
+			Logger.getLogger("RequestManager").log(Level.INFO, "All submitted requests are complete");
 			this.notifyAll();
 		}
 
@@ -93,21 +120,24 @@ public class IBClientRequestExecutor  {
 	 * Wait until all requests have been completed
 	 */
 	public synchronized void waitForCompletion() {
-		while(requests != 0)
-			try{
-				wait();
-			}
-		catch(Exception e){
-			e.printStackTrace();
-		}
-	}
+		while (requests != 0 || !tasks.isEmpty())
+			try {
+				Logger.getLogger("RequestManager").log(Level.INFO, "Waiting " + requests + " " + tasks.isEmpty());
 
+				wait();
+			} catch (InterruptedException e) {
+				Logger.getLogger("RequestManager").log(Level.SEVERE, "Interrupted!!", e);
+			}
+	}
+	
 	/**
-	 * Run the scheduled tasks every 10 seconds. Ensure no more than 60 requests
-	 * in a 10 minute period (a limit set by IB)
-	 * @param seconds The amount of time to wait *after* the runnable is executed before moving on
+	 * 
+	 * @param seconds
+	 *            The amount of time to wait *after* the runnable is executed
+	 *            before moving on
 	 */
 	public synchronized void execute(final Runnable r, final int seconds) {
+		Logger.getLogger("RequestManager").log(Level.FINEST, "Enqueing request");
 		tasks.offer(new Runnable() {
 			public void run() {
 				try {
@@ -118,7 +148,7 @@ public class IBClientRequestExecutor  {
 							try {
 								wait(1000 * seconds);
 							} catch (InterruptedException e) {
-								e.printStackTrace();
+								Logger.getLogger("RequestManager").log(Level.SEVERE, "Interrupted!!", e);
 							}
 						}
 					}
@@ -140,6 +170,10 @@ public class IBClientRequestExecutor  {
 		if ((active = tasks.poll()) != null) {
 			executor.execute(active);
 		}
+		else {
+			Logger.getLogger("RequestManager").log(Level.INFO, "All queued requests are complete");
+			this.notifyAll();
+		}
 	}
 
 	/**
@@ -151,41 +185,39 @@ public class IBClientRequestExecutor  {
 	 *            First day for which we want historical data Format like
 	 *            "YYYYMMDD HH:MM:SS"
 	 */
-	public void reqHistoricalData(final String symbol, final String date)
-			throws ParseException {
+	public void reqHistoricalData(final String symbol, final String date) throws ParseException {
 		final StockContract stock = new StockContract(symbol);
-		final int reqId = pushRequest();
-		reqHisData(date, stock, reqId);
+		Logger.getLogger("HistoricalData").log(Level.INFO, "History data request(s) starting " + date + " " + symbol);
+		reqHisData(date, stock );
 	}
 
 	/**
-	 * 
+	 * Run the scheduled tasks every 10 seconds. Ensure no more than 60 requests
+	 * in a 10 minute period (a limit set by IB).
 	 * @param date
 	 * @param stock
-	 * @param reqId
 	 * @throws ParseException
 	 */
-	protected void reqHisData(final String startingDate,
-			final StockContract stock, final int reqId) throws ParseException {
+	protected void reqHisData(final String startingDate, final StockContract stock)
+			throws ParseException {
 
 		// Get dates one week apart that will retrieve the historical data
-		ArrayList<String> dates = HistoricalDateManipulation
-				.getDates(startingDate);
+		ArrayList<String> dates = HistoricalDateManipulation.getDates(startingDate);
 
 		for (final String date : dates) {
 			final Runnable r = new Runnable() {
 				public void run() {
-					System.out.println(date);
-					/*
-					 * client.reqHistoricalData( reqId , stock, date, IBConstants.dur1week,
-					 * IBConstants.bar15min, IBConstants.showTrades, IBConstants.rthOnly,
-					 * IBConstants.datesAsStrings );
-					 */
+					final int reqId = pushRequest();
+					Logger.getLogger("HistoricalData").log(Level.INFO,
+							"Submitting request for historical data " + reqId + " " + date + " " + stock.m_symbol);
+
+					client.reqHistoricalData(reqId, stock, date, IBConstants.dur1week, IBConstants.bar15min,
+							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsStrings);
+
 				}
 			};
 			this.execute(r, 10);
 		}
-		
 
 	}
 }
