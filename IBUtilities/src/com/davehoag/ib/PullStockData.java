@@ -4,7 +4,6 @@ import java.text.ParseException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.EClientSocket;
 /**
  * http://individuals.interactivebrokers.com/php/apiguide/interoperability/dde_excel/tabhistorical.htm
@@ -27,7 +26,8 @@ public class PullStockData {
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		try {
-			clientInterface.reqHistoricalData(symbol, startDateStr);
+			StoreHistoricalData sh = new StoreHistoricalData(symbol);
+			clientInterface.reqHistoricalData(symbol, startDateStr, sh);
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {
 			Logger.getLogger("PullStockData").log(Level.SEVERE, "Parse Exception!! " + startDateStr, e);

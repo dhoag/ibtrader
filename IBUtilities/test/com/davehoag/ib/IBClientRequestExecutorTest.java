@@ -58,7 +58,7 @@ public class IBClientRequestExecutorTest  {
 	public void testReqHistoricalData() throws ParseException {
 		DateFormat df = new SimpleDateFormat( "yyyyMMdd HH:mm:ss");
 		String date = df.format(Calendar.getInstance().getTime() );
-		executor.reqHistoricalData("IBM", date);
+		executor.reqHistoricalData("IBM", date, new StoreHistoricalData("IBM"));
 		executor.waitForCompletion();
 	}
 

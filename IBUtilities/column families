@@ -1,0 +1,19 @@
+create keyspace tradedata;
+
+drop column family 15sec_candles;
+create column family 15sec_candles with comparator = UTF8Type
+and key_validation_class = LongType
+and gc_grace = 0
+ and compression_options = {sstable_compression:SnappyCompressor, chunk_length_kb:64}; 
+update column family 15sec_candles with column_metadata =
+[
+{ column_name: symbol, validation_class: 'UTF8Type', index_type: KEYS},
+{ column_name: open, validation_class: 'UTF8Type' },
+{ column_name: high, validation_class: 'UTF8Type' },
+{ column_name: low, validation_class: 'UTF8Type' },
+{ column_name: close, validation_class: 'UTF8Type' },
+{ column_name: wap, validation_class: 'UTF8Type' },
+{ column_name: volume, validation_class: 'LongType' },
+{ column_name: tradeCount, validation_class: 'LongType' },
+{ column_name: hasGaps, validation_class: 'BytesType' }
+];

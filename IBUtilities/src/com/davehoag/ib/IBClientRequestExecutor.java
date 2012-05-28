@@ -7,6 +7,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -19,6 +20,7 @@ import java.util.logging.Logger;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.EClientSocket;
+import com.ib.client.EWrapper;
 
 /**
  * Control all IB client requests
@@ -33,7 +35,7 @@ public class IBClientRequestExecutor {
 	final ExecutorService executor;
 	Runnable active;
 	int requests = 0;
-
+	final HashMap<Integer, EWrapper> map = new HashMap<Integer, EWrapper>();
 	/**
 	 * Only want one thread sending the requests.
 	 */
@@ -113,7 +115,7 @@ public class IBClientRequestExecutor {
 			Logger.getLogger("RequestManager").log(Level.INFO, "All submitted requests are complete");
 			this.notifyAll();
 		}
-
+		map.remove(Integer.valueOf(reqId));
 	}
 
 	/**
@@ -185,10 +187,10 @@ public class IBClientRequestExecutor {
 	 *            First day for which we want historical data Format like
 	 *            "YYYYMMDD HH:MM:SS"
 	 */
-	public void reqHistoricalData(final String symbol, final String date) throws ParseException {
+	public void reqHistoricalData(final String symbol, final String date, final EWrapper rh) throws ParseException {
 		final StockContract stock = new StockContract(symbol);
 		Logger.getLogger("HistoricalData").log(Level.INFO, "History data request(s) starting " + date + " " + symbol);
-		reqHisData(date, stock );
+		reqHisData(date, stock, rh );
 	}
 
 	/**
@@ -198,7 +200,7 @@ public class IBClientRequestExecutor {
 	 * @param stock
 	 * @throws ParseException
 	 */
-	protected void reqHisData(final String startingDate, final StockContract stock)
+	protected void reqHisData(final String startingDate, final StockContract stock, final EWrapper rh)
 			throws ParseException {
 
 		// Get dates one week apart that will retrieve the historical data
@@ -208,16 +210,33 @@ public class IBClientRequestExecutor {
 			final Runnable r = new Runnable() {
 				public void run() {
 					final int reqId = pushRequest();
+					pushResponseHandler(reqId, rh);
 					Logger.getLogger("HistoricalData").log(Level.INFO,
 							"Submitting request for historical data " + reqId + " " + date + " " + stock.m_symbol);
 
 					client.reqHistoricalData(reqId, stock, date, IBConstants.dur1week, IBConstants.bar15min,
-							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsStrings);
+							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);
 
 				}
 			};
 			this.execute(r, 10);
 		}
 
+	}
+	/**
+	 * Associate an implementation of AbstractResponseHandler with the request ID
+	 * @param reqId
+	 * @param rh
+	 */
+	protected synchronized void pushResponseHandler(final int reqId, final EWrapper rh){
+		map.put(Integer.valueOf(reqId), rh);
+	}
+	/**
+	 * 
+	 * @param reqId
+	 * @return
+	 */
+	public EWrapper getResponseHandler(int reqId){
+		return map.get(Integer.valueOf(reqId));
 	}
 }
