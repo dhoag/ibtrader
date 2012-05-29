@@ -17,7 +17,7 @@ public class IBClientRequestExecutorTest  {
 	@Before
 	public void setUp() throws Exception {
 		ResponseHandler rh = new ResponseHandler();
-		TestClient client = new TestClient(rh);
+		TestClientMock client = new TestClientMock(rh);
 		executor = new IBClientRequestExecutor(client, rh);
 		rh.setRequestor( executor );
 	}
@@ -58,8 +58,11 @@ public class IBClientRequestExecutorTest  {
 	public void testReqHistoricalData() throws ParseException {
 		DateFormat df = new SimpleDateFormat( "yyyyMMdd HH:mm:ss");
 		String date = df.format(Calendar.getInstance().getTime() );
-		executor.reqHistoricalData("IBM", date, new StoreHistoricalData("IBM"));
+		CaptureHistoricalDataMock mock = new CaptureHistoricalDataMock();
+		executor.reqHistoricalData("IBM", date, mock);
 		executor.waitForCompletion();
+		System.out.println("T1 " + mock.dateVal);
+		assertNotNull(mock.dateVal);
 	}
 
 }

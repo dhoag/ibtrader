@@ -1,26 +1,24 @@
 package com.davehoag.ib;
 
-import java.text.DateFormat;
-import java.text.DecimalFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
-import com.ib.client.EClientSocket;
 import com.ib.client.EWrapper;
 import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
 import com.ib.client.UnderComp;
-
+/**
+ * The one and only response handler registered with the client. Requests will 
+ * register their own "response handler" (EWrapper interface) to which calls will
+ * delegate.
+ * 
+ * @author dhoag
+ *
+ */
 public class ResponseHandler implements EWrapper {
 
 	IBClientRequestExecutor requester;
@@ -219,14 +217,16 @@ public class ResponseHandler implements EWrapper {
 			final double open, final double high, final double low,
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGaps) {
-
+System.out.println("T2 Open"  +open);
 		// end of data
 		if (open < 0 && high < 0) {
 			requester.endRequest(reqId);
 			return;
 		}
 		//delegate to the registered handler
-		requester.getResponseHandler(reqId).historicalData(reqId, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
+		final EWrapper ew = requester.getResponseHandler(reqId);
+		System.out.println("T2 " + ew);
+		ew.historicalData(reqId, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
 	}
 
 	@Override

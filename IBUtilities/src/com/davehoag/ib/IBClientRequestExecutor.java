@@ -107,6 +107,8 @@ public class IBClientRequestExecutor {
 	 *            The ID of the request that has completed
 	 */
 	final synchronized void endRequest(final int reqId) {
+		System.out.println("T2 ending request " + reqId);
+		
 		Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId);
 		int mask = 0xFFFFFFFF;
 		mask = mask ^ reqId;
@@ -119,31 +121,32 @@ public class IBClientRequestExecutor {
 	}
 
 	/**
-	 * Wait until all requests have been completed
+	 * Wait until all requests have been completed.
 	 */
 	public synchronized void waitForCompletion() {
-		while (requests != 0 || !tasks.isEmpty())
+		while (requests != 0 || !tasks.isEmpty() || active != null)
 			try {
 				Logger.getLogger("RequestManager").log(Level.INFO, "Waiting " + requests + " " + tasks.isEmpty());
-
+System.out.println("T1 Waiting");
 				wait();
 			} catch (InterruptedException e) {
 				Logger.getLogger("RequestManager").log(Level.SEVERE, "Interrupted!!", e);
 			}
+System.out.println("T1 released");
 	}
 	
 	/**
-	 * 
+	 * Wait before - no need to penalize the request after the historical data request.
 	 * @param seconds
-	 *            The amount of time to wait *after* the runnable is executed
-	 *            before moving on
+	 *            The amount of time to wait *before* the runnable is executed
+	 *            
 	 */
 	public synchronized void execute(final Runnable r, final int seconds) {
 		Logger.getLogger("RequestManager").log(Level.FINEST, "Enqueing request");
-		tasks.offer(new Runnable() {
+		
+		boolean result = tasks.offer(new Runnable() {
 			public void run() {
 				try {
-					r.run();
 					if (seconds > 0) {
 						// Send the request then wait for 10 seconds
 						synchronized (this) {
@@ -154,11 +157,15 @@ public class IBClientRequestExecutor {
 							}
 						}
 					}
+					r.run();
 				} finally {
 					scheduleNext();
 				}
 			}
 		});
+		if (! result){
+			throw new RuntimeException("Never expected my runnable to not enque!");
+		}
 		// Active is null on the first request so automatically kick it off
 		if (active == null) {
 			scheduleNext();
@@ -170,6 +177,7 @@ public class IBClientRequestExecutor {
 	 */
 	protected synchronized void scheduleNext() {
 		if ((active = tasks.poll()) != null) {
+			//tell the thread pool to actually run the active item
 			executor.execute(active);
 		}
 		else {
@@ -205,7 +213,8 @@ public class IBClientRequestExecutor {
 
 		// Get dates one week apart that will retrieve the historical data
 		ArrayList<String> dates = HistoricalDateManipulation.getDates(startingDate);
-
+		final int markerRequestId = pushRequest();
+		boolean first = true;
 		for (final String date : dates) {
 			final Runnable r = new Runnable() {
 				public void run() {
@@ -219,9 +228,29 @@ public class IBClientRequestExecutor {
 
 				}
 			};
-			this.execute(r, 10);
+			if(first)
+				execute(r,0);
+			else //wait 10 seconds for the next request.
+				execute(r, 10);
 		}
-
+		scheduleClosingRequest(markerRequestId);
+	}
+	/**
+	 * Since the "Push of a request occurs within a thread asynchronously started this means
+	 * that this current thread could see zero work in the "tasks" queue and no request
+	 * thus causing the "waitForCompletion" method to erroneously not block. So, this nows 
+	 * requires any request to push a "request" on the queue in the current thread and then schedule
+	 * a runnable to release that request after all of the other work has completed.
+	 * 
+	 * @param reqId
+	 */
+	protected void scheduleClosingRequest(final int reqId){
+		final Runnable r = new Runnable() {
+			public void run() {
+				endRequest(reqId);
+			};	
+		};
+		execute(r,0);
 	}
 	/**
 	 * Associate an implementation of AbstractResponseHandler with the request ID
