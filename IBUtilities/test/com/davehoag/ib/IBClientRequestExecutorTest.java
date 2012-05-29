@@ -61,7 +61,6 @@ public class IBClientRequestExecutorTest  {
 		CaptureHistoricalDataMock mock = new CaptureHistoricalDataMock();
 		executor.reqHistoricalData("IBM", date, mock);
 		executor.waitForCompletion();
-		System.out.println("T1 " + mock.dateVal);
 		assertNotNull(mock.dateVal);
 	}
 

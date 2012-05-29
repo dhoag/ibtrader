@@ -1,19 +1,12 @@
 package com.davehoag.ib;
 
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Queue;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -107,7 +100,6 @@ public class IBClientRequestExecutor {
 	 *            The ID of the request that has completed
 	 */
 	final synchronized void endRequest(final int reqId) {
-		System.out.println("T2 ending request " + reqId);
 		
 		Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId);
 		int mask = 0xFFFFFFFF;
@@ -127,12 +119,10 @@ public class IBClientRequestExecutor {
 		while (requests != 0 || !tasks.isEmpty() || active != null)
 			try {
 				Logger.getLogger("RequestManager").log(Level.INFO, "Waiting " + requests + " " + tasks.isEmpty());
-System.out.println("T1 Waiting");
 				wait();
 			} catch (InterruptedException e) {
 				Logger.getLogger("RequestManager").log(Level.SEVERE, "Interrupted!!", e);
 			}
-System.out.println("T1 released");
 	}
 	
 	/**

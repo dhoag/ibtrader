@@ -15,7 +15,7 @@ import me.prettyprint.hector.api.Keyspace;
  * @author dhoag
  *
  */
-public class CassandraStore {
+public class CassandraDao {
 	private final Cluster cluster = HFactory.getOrCreateCluster("Test Cluster", "localhost:9160");
 	private final StringSerializer stringSerializer = StringSerializer.get();
 	private final LongSerializer longSerializer = LongSerializer.get();
@@ -23,7 +23,7 @@ public class CassandraStore {
 	private final Keyspace keyspace = HFactory.createKeyspace("tradedata", cluster);
 	
 	public static void main(String [] args){
-		new CassandraStore().insertHistoricalData( "IBM", "23423422", 12.3d, 14,15,12,23,2312,33,true);
+		new CassandraDao().insertHistoricalData( "IBM", "23423422", 12.3d, 14,15,12,23,2312,33,true);
 	}
 	protected void insertHistoricalData(final String symbol, final String dateSeconds,
 			final double open, final double high, final double low,

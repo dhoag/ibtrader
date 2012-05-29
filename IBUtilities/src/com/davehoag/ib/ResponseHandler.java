@@ -217,7 +217,7 @@ public class ResponseHandler implements EWrapper {
 			final double open, final double high, final double low,
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGaps) {
-System.out.println("T2 Open"  +open);
+
 		// end of data
 		if (open < 0 && high < 0) {
 			requester.endRequest(reqId);
@@ -225,7 +225,6 @@ System.out.println("T2 Open"  +open);
 		}
 		//delegate to the registered handler
 		final EWrapper ew = requester.getResponseHandler(reqId);
-		System.out.println("T2 " + ew);
 		ew.historicalData(reqId, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
 	}
 

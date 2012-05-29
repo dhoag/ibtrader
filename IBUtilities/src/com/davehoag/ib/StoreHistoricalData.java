@@ -5,6 +5,7 @@ import java.text.DecimalFormat;
 
 public class StoreHistoricalData extends AbstractResponseHandler {
 	final String sym; 
+	CassandraDao dao = new CassandraDao();
 	public StoreHistoricalData(final String symbol){
 		sym = symbol;
 		
@@ -25,5 +26,6 @@ public class StoreHistoricalData extends AbstractResponseHandler {
 				+ df.format(high) + " W:" + df.format(WAP) + " L:"
 				+ df.format(low) + " V:" + volume + " #:" + count + " gaps?"
 				+ hasGaps);
+		dao.insertHistoricalData(sym, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
 	}
 }
