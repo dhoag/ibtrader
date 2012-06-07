@@ -5,6 +5,7 @@ create column family 15sec_candles with comparator = UTF8Type
 and key_validation_class = LongType
 and gc_grace = 0
  and compression_options = {sstable_compression:SnappyCompressor, chunk_length_kb:64}; 
+ 
 update column family 15sec_candles with column_metadata =
 [
 { column_name: symbol, validation_class: 'UTF8Type', index_type: KEYS},
@@ -17,3 +18,15 @@ update column family 15sec_candles with column_metadata =
 { column_name: tradeCount, validation_class: 'LongType' },
 { column_name: hasGaps, validation_class: 'BytesType' }
 ];
+
+drop column family bar15min;
+drop column family bar5min;
+
+create column family bar5min with comparator = LongType
+and key_validation_class = UTF8Type
+and gc_grace = 0; 
+
+create column family bar15min with comparator = LongType
+and key_validation_class = UTF8Type
+and gc_grace = 0; 
+ 
