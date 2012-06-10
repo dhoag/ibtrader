@@ -10,6 +10,7 @@ public interface IBConstants {
 	
 	//http://www.interactivebrokers.com/php/apiUsersGuide/apiguide/excel/historical_data_page_query_specification_fields.htm
 	//Bar size
+	final String bar5sec = "5 secs";
 	final String bar1min = "1 min";
 	final String bar5min = "5 mins";
 	final String bar15min = "15 mins";

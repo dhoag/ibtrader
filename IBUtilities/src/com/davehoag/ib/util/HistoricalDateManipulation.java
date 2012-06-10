@@ -6,7 +6,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-
+/**
+ * used to conform with the limitations placed by IB. 
+ * 
+ * @author dhoag
+ *
+ */
 public class HistoricalDateManipulation {
 	/**
 	 * Get a list of Dates for which we want data.
@@ -20,15 +25,16 @@ public class HistoricalDateManipulation {
 		return getDates(startingDateStr, today);
 	}
 	/**
+	 * Break the dates down into 1 hour increments between 8 and 5. 
 	 * @param startingDateStr
 	 * @param today
 	 * @return
 	 * @throws ParseException
 	 */
 	public static ArrayList<String> getDates(final String startingDateStr, final Calendar today) throws ParseException {
-		DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-		ArrayList<String> result = new ArrayList<String>();
-		final Date d = df.parse(startingDateStr);
+		final DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+		final ArrayList<String> result = new ArrayList<String>();
+		final Date d = df.parse(startingDateStr + " 00:00:00");
 		Calendar startingDate = Calendar.getInstance();
 		startingDate.setMinimalDaysInFirstWeek(4);
 		today.setMinimalDaysInFirstWeek(4);
@@ -41,13 +47,21 @@ public class HistoricalDateManipulation {
 		if( yearDelta == 1){
 			dayDelta = dayDelta + daysInYear;
 		}
-		int count = dayDelta / 7;
+		int count = dayDelta;
 		
-		for(int j=0; j < count; j++){
-			startingDate.add( Calendar.DAY_OF_WEEK, 7);
-			result.add(df.format(startingDate.getTime()));
+		for(int j=0; j <= count; j++){
+			Calendar topDay = (Calendar)startingDate.clone();
+			final int dayOfWeek = topDay.get(Calendar.DAY_OF_WEEK); 
+			if( dayOfWeek != Calendar.SUNDAY && dayOfWeek != Calendar.SATURDAY)
+			{
+				topDay.add( Calendar.HOUR, 7);
+				for(int i = 0; i < 10; i++){
+					topDay.add( Calendar.HOUR, 1);
+					result.add(df.format(topDay.getTime()));
+				}
+			}
+			startingDate.add( Calendar.DAY_OF_WEEK, 1);
 		}
-		result.add( df.format(today.getTime()));
 		return result;
 	}
 

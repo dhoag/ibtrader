@@ -28,7 +28,7 @@ public class IBClientRequestExecutor {
 	final ExecutorService executor;
 	Runnable active;
 	int requests = 0;
-	final HashMap<Integer, EWrapper> map = new HashMap<Integer, EWrapper>();
+	final HashMap<Integer, ResponseHandlerDelegate> map = new HashMap<Integer, ResponseHandlerDelegate>();
 	/**
 	 * Only want one thread sending the requests.
 	 */
@@ -100,16 +100,26 @@ public class IBClientRequestExecutor {
 	 *            The ID of the request that has completed
 	 */
 	final synchronized void endRequest(final int reqId) {
-		
-		Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId);
+		final Integer id = Integer.valueOf(reqId);
+		final ResponseHandlerDelegate rd = map.get(id);
+		if(rd != null) {
+			rd.log(Level.INFO, "Ending request " + reqId);
+		}
+		else
+			Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId);
 		int mask = 0xFFFFFFFF;
 		mask = mask ^ reqId;
 		requests = requests & mask;
+		
 		if (requests == 0) {
-			Logger.getLogger("RequestManager").log(Level.INFO, "All submitted requests are complete");
+			if(rd != null) {
+				rd.log(Level.INFO, "All submitted requests are complete");
+			}
+			else
+				Logger.getLogger("RequestManager").log(Level.INFO, "All submitted requests are complete");
 			this.notifyAll();
 		}
-		map.remove(Integer.valueOf(reqId));
+		map.remove(id);
 	}
 
 	/**
@@ -183,14 +193,13 @@ public class IBClientRequestExecutor {
 	 *            Simple stock symbol
 	 * @param date
 	 *            First day for which we want historical data Format like
-	 *            "YYYYMMDD HH:MM:SS"
+	 *            "YYYYMMDD"
 	 */
-	public void reqHistoricalData(final String symbol, final String date, final EWrapper rh) throws ParseException {
+	public void reqHistoricalData(final String symbol, final String date, final ResponseHandlerDelegate rh) throws ParseException {
 		final StockContract stock = new StockContract(symbol);
-		Logger.getLogger("HistoricalData").log(Level.INFO, "History data request(s) starting " + date + " " + symbol);
 		reqHisData(date, stock, rh );
+		rh.log(Level.INFO, "History data request(s) starting " + date + " " + symbol);
 	}
-
 	/**
 	 * Run the scheduled tasks every 10 seconds. Ensure no more than 60 requests
 	 * in a 10 minute period (a limit set by IB).
@@ -198,10 +207,10 @@ public class IBClientRequestExecutor {
 	 * @param stock
 	 * @throws ParseException
 	 */
-	protected void reqHisData(final String startingDate, final StockContract stock, final EWrapper rh)
+	protected void reqHisData(final String startingDate, final StockContract stock, final ResponseHandlerDelegate rh)
 			throws ParseException {
 
-		// Get dates one week apart that will retrieve the historical data
+		// Get dates one hour apart that will retrieve the historical data
 		ArrayList<String> dates = HistoricalDateManipulation.getDates(startingDate);
 		final int markerRequestId = pushRequest();
 		boolean first = true;
@@ -210,20 +219,43 @@ public class IBClientRequestExecutor {
 				public void run() {
 					final int reqId = pushRequest();
 					pushResponseHandler(reqId, rh);
-					Logger.getLogger("HistoricalData").log(Level.INFO,
+					rh.log(Level.INFO,
 							"Submitting request for historical data " + reqId + " " + date + " " + stock.m_symbol);
 
-					client.reqHistoricalData(reqId, stock, date, IBConstants.dur1week, IBConstants.bar15min,
+					client.reqHistoricalData(reqId, stock, date, IBConstants.dur1hour, IBConstants.bar5sec,
 							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);
 
 				}
 			};
-			if(first)
+			if(first) {
 				execute(r,0);
+				first = false;
+			}
 			else //wait 10 seconds for the next request.
 				execute(r, 10);
 		}
 		scheduleClosingRequest(markerRequestId);
+	}
+	/**
+	 * Get 5 second bars and route to the request.
+	 * @param symbol
+	 * @param rh
+	 */
+	public void reqRealTimeBars(final String symbol, final ResponseHandlerDelegate rh){
+		final Runnable r = new Runnable() {
+			public void run() {
+				StockContract stock = new StockContract(symbol);
+				final int reqId = pushRequest();
+				rh.setReqId(reqId);
+				pushResponseHandler(reqId, rh);
+				Logger.getLogger("RealTimeBars").log(Level.INFO,
+						"Submitting request for market data " + reqId + " " + stock.m_symbol);
+				//true means RTH only
+				//5 is the only legal value for realTimeBars - resulting in 5 second bars
+				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
+
+			}
+		};
 	}
 	/**
 	 * Since the "Push of a request occurs within a thread asynchronously started this means
@@ -247,7 +279,7 @@ public class IBClientRequestExecutor {
 	 * @param reqId
 	 * @param rh
 	 */
-	protected synchronized void pushResponseHandler(final int reqId, final EWrapper rh){
+	protected synchronized void pushResponseHandler(final int reqId, final ResponseHandlerDelegate rh){
 		map.put(Integer.valueOf(reqId), rh);
 	}
 	/**
@@ -255,7 +287,7 @@ public class IBClientRequestExecutor {
 	 * @param reqId
 	 * @return
 	 */
-	public EWrapper getResponseHandler(int reqId){
+	public ResponseHandlerDelegate getResponseHandler(int reqId){
 		return map.get(Integer.valueOf(reqId));
 	}
 }

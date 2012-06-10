@@ -4,7 +4,7 @@ package com.davehoag.ib;
  * @author dhoag
  *
  */
-public class CaptureHistoricalDataMock extends AbstractResponseHandler {
+public class CaptureHistoricalDataMock extends ResponseHandlerDelegate {
 	public String dateVal;
 	@Override
 	public void historicalData(final int reqId, final String dateStr,

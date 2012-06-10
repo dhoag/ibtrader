@@ -29,4 +29,8 @@ and gc_grace = 0;
 create column family bar15min with comparator = LongType
 and key_validation_class = UTF8Type
 and gc_grace = 0; 
+
+create column family bar5sec with comparator = LongType
+and key_validation_class = UTF8Type
+and gc_grace = 0; 
  

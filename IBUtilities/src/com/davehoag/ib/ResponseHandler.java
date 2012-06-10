@@ -29,7 +29,7 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void error(Exception e) {
-		Logger.getLogger("ResponseHandler").log(Level.WARNING, "unknown", e);
+		Logger.getLogger("ResponseHandler").log(Level.WARNING, "unknown source", e);
 	}
 
 	@Override
@@ -38,9 +38,14 @@ public class ResponseHandler implements EWrapper {
 	}
 
 	@Override
-	public void error(int id, int errorCode, String errorMsg) {
-		Logger.getLogger("ResponseHandler").log(Level.WARNING, "REQ:" + id + " ERROR:" + errorCode + " '" + errorMsg + "'");
-		if(id > 0)	requester.endRequest(id);
+	public void error(final int id, final int errorCode, final String errorMsg) {
+		Logger.getLogger("ResponseHandler").log(Level.SEVERE, "REQ:" + id + " ERROR:" + errorCode + " '" + errorMsg + "'");
+		
+		if(id > 0){//TODO figure out if I should move the "endRequest" to the delegate. 
+			final ResponseHandlerDelegate ew = requester.getResponseHandler(id);
+			if(ew != null) ew.error(id, errorCode, errorMsg);
+			requester.endRequest(id);
+		}
 	}
 	/**
 	 * Told by client that we are closed
@@ -217,14 +222,15 @@ public class ResponseHandler implements EWrapper {
 			final double open, final double high, final double low,
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGaps) {
-
+		//delegate to the registered handler
+		final ResponseHandlerDelegate ew = requester.getResponseHandler(reqId);
 		// end of data
 		if (open < 0 && high < 0) {
 			requester.endRequest(reqId);
+			Logger.getLogger("HistoricalData").log(Level.INFO, "Completed historical data request "+ reqId + " having written: " + ew.getCountOfRecords());
 			return;
 		}
-		//delegate to the registered handler
-		final EWrapper ew = requester.getResponseHandler(reqId);
+
 		ew.historicalData(reqId, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
 	}
 
@@ -251,8 +257,10 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void realtimeBar(int reqId, long time, double open, double high,
 			double low, double close, long volume, double wap, int count) {
-		// TODO Auto-generated method stub
-
+		//delegate to the registered handler
+		final EWrapper ew = requester.getResponseHandler(reqId);
+		if(ew != null) ew.realtimeBar(reqId, time, open, high, low, close, volume, wap, count);
+		else Logger.getLogger("RealTimeBar").log(Level.WARNING, "Reveived realtime bar but no delegate registered: " + reqId);
 	}
 
 	@Override

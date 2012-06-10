@@ -24,8 +24,8 @@ public class TestDateManipulator {
 	Calendar today;
 	@Before
 	public void setUp() throws Exception {
-		String endDate = "20120130 16:45:00";
-		DateFormat df = new SimpleDateFormat( "yyyyMMdd HH:mm:ss");
+		String endDate = "20120130";
+		DateFormat df = new SimpleDateFormat( "yyyyMMdd");
 		Date d = df.parse( endDate );
 		today = Calendar.getInstance();
 		today.setTime( d);		
@@ -42,34 +42,37 @@ public class TestDateManipulator {
 	}
 	@Test
 	public void testGetDatesStringCalendar() throws Exception{
-		ArrayList<String> res = HistoricalDateManipulation.getDates( "20120101 01:01:01", today);
-		Assert.assertEquals(5, res.size());
+		ArrayList<String> res = HistoricalDateManipulation.getDates( "20120101", today);
+		Assert.assertEquals(300, res.size());
 
 	}
 	@Test
 	public void testGetDatesYearBoundary() throws Exception {
-		ArrayList<String> res = HistoricalDateManipulation.getDates( "20111230 01:01:01", today);
+		ArrayList<String> res = HistoricalDateManipulation.getDates( "20111230", today);
 		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
 			String string = (String) iterator.next();
 		}
-		Assert.assertEquals(5, res.size());		
+		Assert.assertEquals(320, res.size());		
 	}
 	@Test
 	public void testGetDatesMoreThan52() throws Exception{
 		
-		ArrayList<String> res = HistoricalDateManipulation.getDates( "20110130 01:01:01", today);
+		ArrayList<String> res = HistoricalDateManipulation.getDates( "20110130", today);
 
-		Assert.assertEquals(53, res.size());		
+		Assert.assertEquals(3660, res.size());		
 	}
 	@Test
 	public void testGetDatesGoofyYear() throws Exception {
-		String endDate = "20110101 16:45:00";
-		DateFormat df = new SimpleDateFormat( "yyyyMMdd HH:mm:ss");
+		String endDate = "20110101";
+		DateFormat df = new SimpleDateFormat( "yyyyMMdd");
 		Date d = df.parse( endDate );
 		Calendar day = Calendar.getInstance();
 		day.setTime( d);	
-		ArrayList<String> res = HistoricalDateManipulation.getDates("20101228 01:01:01", day);
-		Assert.assertEquals(1, res.size() );
+		ArrayList<String> res = HistoricalDateManipulation.getDates("20101228", day);
+		for(String val: res){
+			System.out.println(val);
+		}
+		Assert.assertEquals(50, res.size() );
 	}
 
 }

@@ -1,5 +1,8 @@
 package com.davehoag.ib;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
@@ -9,9 +12,29 @@ import com.ib.client.Order;
 import com.ib.client.OrderState;
 import com.ib.client.UnderComp;
 
-abstract class AbstractResponseHandler implements EWrapper {
+abstract class ResponseHandlerDelegate implements EWrapper {
 	IBClientRequestExecutor requester;
-
+	protected int countOfRecords;
+	int reqId;
+	//Not really used by the singleton delegator, but is useful for the subclasses.
+	public void setReqId(int val){
+		reqId = val;
+	}
+	/**
+	 * Determine how many times records were stored by this object.
+	 * @return
+	 */
+	public int getCountOfRecords(){
+		return countOfRecords;
+	}
+	/**
+	 * Expect this to be overriden to provide a meaningful logger context.
+	 * @param logLevel
+	 * @param message
+	 */
+	public void log( final Level logLevel, final String message) {
+		Logger.getGlobal().log(logLevel, message);
+	}
 	public void setRequestor(final IBClientRequestExecutor req) {
 		requester = req;
 	}

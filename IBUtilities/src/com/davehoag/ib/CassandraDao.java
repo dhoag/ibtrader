@@ -56,7 +56,7 @@ public class CassandraDao {
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGap)
 	{
-		final String barSize = "bar15min";
+		final String barSize = "bar5sec";
 		final DecimalFormat df = new DecimalFormat("#.##");
 		Long dateSeconds = Long.valueOf(dateSecondsStr);
 		
