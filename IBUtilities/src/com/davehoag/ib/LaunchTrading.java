@@ -1,10 +1,7 @@
 package com.davehoag.ib;
 
-import java.text.ParseException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.davehoag.ib.util.HistoricalDataClient;
 import com.ib.client.EClientSocket;
 
 public class LaunchTrading {
@@ -15,13 +12,15 @@ public class LaunchTrading {
 	public static void main(String[] args) {
 		String symbol = "SPY";
 		ResponseHandler rh = new ResponseHandler();
-		EClientSocket  m_client = new EClientSocket( rh );
+		//EClientSocket  m_client = new EClientSocket( rh );
+		//simulate trading
+		HistoricalDataClient m_client = new HistoricalDataClient(rh);
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		Portfolio port = new Portfolio();
 		clientInterface.initializePortfolio( port );
 		try{
-			MACDStrategy strat = new MACDStrategy(symbol, null);
+			MACDStrategy strat = new MACDStrategy(symbol, null, clientInterface);
 			strat.setPortfolio( port );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();

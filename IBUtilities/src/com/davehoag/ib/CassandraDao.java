@@ -6,8 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+
+import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.util.HistoricalDateManipulation;
 
 import me.prettyprint.cassandra.model.CqlQuery;
 import me.prettyprint.cassandra.model.CqlRows;
@@ -46,11 +52,17 @@ public class CassandraDao {
 	private final DoubleSerializer doubleSerializer = DoubleSerializer.get();
 	private final Keyspace keyspace = HFactory.createKeyspace("tradedata", cluster);
 	
+	private final String [] priceKeys = { ":open", ":close", ":high", ":low", ":wap" };
+	private final String [] longKeys = { ":vol", ":tradeCount" };
 	public static void main(String [] args){
-		CassandraDao dao = new CassandraDao();
-		//new CassandraDao().insertHistoricalData( "IBM", "23423422", 12.3d, 14,15,12,23,2312,33,true);
-
-		dao.query2();		
+		try{
+			CassandraDao dao = new CassandraDao();
+			//new CassandraDao().insertHistoricalData( "IBM", "23423422", 12.3d, 14,15,12,23,2312,33,true);
+	
+			dao.query3();		
+		} catch(Throwable t){
+			t.printStackTrace();
+		}
 	}
 	protected void insertHistoricalData(final String symbol, final String dateSecondsStr,
 			final double open, final double high, final double low,
@@ -169,6 +181,12 @@ public class CassandraDao {
         printColumns( closeRows.getByKey("QQQ:close"), wapRows.getByKey("QQQ:wap"));
 
     }
+    public void query3() throws ParseException{
+    	Iterator<Bar> bars = getData("QQQ");
+    	while(bars.hasNext()){
+    		System.out.println(bars.next());
+    	}
+    }
     
     < V> void printFirstRow(Rows<String, Long, V> rows ){
     	
@@ -181,7 +199,92 @@ public class CassandraDao {
     		}            
         }    	
     }
-	/**
+    /**
+     * 
+     * @param symbol
+     * @return
+     * @throws ParseException 
+     */
+    public Iterator<Bar> getData(final String symbol) throws ParseException{
+
+    	return new Iterator<Bar>(){
+    		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol);
+    		final HashMap<String, List<HColumn<Long, Long>>> volData = getHistoricalData(symbol);
+    		int count = 0;
+			@Override
+			public boolean hasNext() {
+				return count < volData.get(symbol + ":vol" ).size();
+			}
+
+			@Override
+			public Bar next() {
+				final Bar bar = new Bar();
+				bar.symbol = symbol;
+				bar.close = priceData.get(symbol + ":close").get(count).getValue().doubleValue();
+				bar.open = priceData.get(symbol + ":open").get(count).getValue().doubleValue();
+				bar.high = priceData.get(symbol + ":high").get(count).getValue().doubleValue();
+				bar.low  = priceData.get(symbol + ":low").get(count).getValue().doubleValue();
+				bar.wap = priceData.get(symbol + ":wap").get(count).getValue().doubleValue();
+				bar.tradeCount = volData.get(symbol + ":tradeCount").get(count).getValue().intValue();
+				bar.volume = volData.get(symbol + ":vol").get(count).getValue().longValue();
+				bar.originalTime = volData.get(symbol + ":vol").get(count).getName().longValue();
+				count++;
+				return bar;
+			}
+
+			@Override
+			public void remove() {
+				// TODO Auto-generated method stub
+				
+			}
+    		
+    	};
+    }
+    /**
+     * Get the price data 
+     * @param symbol
+     * @return
+     * @throws ParseException
+     */
+    public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol) throws ParseException{
+    	final HashMap<String, List<HColumn<Long, Double>>> result = new HashMap<String, List<HColumn<Long, Double>>>();
+        RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
+        priceQuery.setColumnFamily("bar5sec");
+        final Long start = Long.valueOf(HistoricalDateManipulation.getTime("20111101 07:00:00"));
+        final Long finish = Long.valueOf(HistoricalDateManipulation.getTime("20111101 16:00:00"));
+        priceQuery.setRange(start, finish, false, 12*60*8);
+        
+        for(String key: priceKeys){
+        	String rowKey = symbol + key;
+            priceQuery.setKeys(rowKey, rowKey);
+            List<HColumn<Long, Double>> column = priceQuery.execute().get().getByKey(rowKey).getColumnSlice().getColumns();
+            result.put(rowKey, column);
+        }
+    	return result;
+    }
+    /**
+     * Get the volume & tradeCount data
+     * @param symbol
+     * @return
+     * @throws ParseException
+     */
+    public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol) throws ParseException{
+    	final HashMap<String, List<HColumn<Long, Long>>> result = new HashMap<String, List<HColumn<Long, Long>>>();
+        RangeSlicesQuery<String, Long, Long> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, longSerializer);
+        priceQuery.setColumnFamily("bar5sec");
+        final Long start = Long.valueOf(HistoricalDateManipulation.getTime("20111101 07:00:00"));
+        final Long finish = Long.valueOf(HistoricalDateManipulation.getTime("20111101 16:00:00"));
+        priceQuery.setRange(start, finish, false, 12*60*8);
+        
+        for(String key: longKeys ){
+        	String rowKey = symbol + key;
+            priceQuery.setKeys(rowKey, rowKey);
+            List<HColumn<Long, Long>> column = priceQuery.execute().get().getByKey(rowKey).getColumnSlice().getColumns();
+            result.put(rowKey, column);
+        }
+    	return result;
+    }
+    /**
 	 * @param sym
 	 * @param row2
 	 */

@@ -12,7 +12,8 @@ import java.util.logging.Logger;
 public class StoreHistoricalData extends ResponseHandlerDelegate {
 	final String sym; 
 	CassandraDao dao = new CassandraDao();
-	public StoreHistoricalData(final String symbol){
+	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
+		super(ibInterface);
 		sym = symbol;
 		
 	}

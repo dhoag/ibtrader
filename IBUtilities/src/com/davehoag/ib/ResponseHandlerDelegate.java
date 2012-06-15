@@ -18,6 +18,14 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	int reqId;
 	long startTime;
 	/**
+	 * Force one to be set
+	 * @param ibInterface
+	 */
+	public ResponseHandlerDelegate(IBClientRequestExecutor ibInterface){
+		requester = ibInterface;
+		
+	}
+	/**
 	 * 
 	 * @param millis
 	 */

@@ -38,7 +38,7 @@ public class HistoricalDataClient extends EClientSocket {
 		if(barSize != 5 ) throw new IllegalArgumentException("Only 5 second bars are supproted");
 		final Runnable r = new Runnable() {
 			public void run(){
-				new HistoricalDataSender(reqId, stock, rh);
+				new HistoricalDataSender(reqId, stock, rh).sendData();
 			}
 		};
 		new Thread(r).start();

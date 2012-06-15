@@ -21,12 +21,16 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 	SimpleMovingAvg sma;
 	int qty = 100;
 	
-	public void log( final Level logLevel, final String message) {
-		Logger.getLogger("Strategy").log(logLevel, message);
-	}
-	public MACDStrategy(final String sym, final double [] seeds){
+	
+
+	public MACDStrategy(final String sym, final double [] seeds, IBClientRequestExecutor ibInterface){
+		super(ibInterface);
 		symbol = sym;
 		init(seeds);
+		log(Level.INFO, "Initializing MACD Strategy for "+ sym);
+	}
+	public void log( final Level logLevel, final String message) {
+		Logger.getLogger("Strategy").log(logLevel, message);
 	}
 	/**
 	 * 
@@ -39,16 +43,18 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 	 * Called when my execution is filled
 	 */
 	@Override
-	public void execDetails(int reqId, Contract contract, Execution execution) {
+	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		if(contract.m_symbol.equals(symbol)){
 			
 			//TODO need some logic to account for all orders not actually trading or trading at different prices
 		//	portfolio.confirm(execution.m_execId, execution.m_price, execution.m_side);
+			Logger.getLogger("Trading").log(Level.INFO, "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares );
 		}
 		else{
 			log(Level.SEVERE, "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
 		}
-
+		//TODO for now assuming full fills, not partials
+		requester.endRequest(reqId);
 	}
 	/**
 	 * This method is called once all executions have been sent to a client in response to reqExecutions().
@@ -85,6 +91,9 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 				final int orderId = requester.executeSellOrder(symbol, qty, close + .05, this);
 				portfolio.sold(orderId, symbol, reqId, close - .05);
 			}
+			System.out.println("Cash " +  portfolio.getCash());
+			System.out.println("Value " + portfolio.getValue(symbol, close));
+					
 		}
 		catch(Exception ex){
 			ex.printStackTrace();

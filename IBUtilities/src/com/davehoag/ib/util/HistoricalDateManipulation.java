@@ -24,6 +24,17 @@ public class HistoricalDateManipulation {
 		return getDatesBrokenIntoHours(startingDateStr, today);
 	}
 	/**
+	 * Convert string value into a starting time 
+	 * @param dateStr
+	 * @return
+	 * @throws ParseException
+	 */
+	public static long getTime(String dateStr) throws ParseException{
+		final DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+		final Date d = df.parse(dateStr );
+		return d.getTime() / 1000;
+	}
+	/**
 	 * From the starting date figure out how how many discrete entries are required to request
 	 * historical data from the given start date.
 	 * 

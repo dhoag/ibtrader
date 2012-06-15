@@ -173,7 +173,7 @@ public class IBClientRequestExecutor {
 			rd.log(Level.INFO, "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
 		}
 		else
-			Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId );
+			Logger.getLogger("RequestManager").log(Level.INFO, "[" + reqId + "] Ending request " );
 		
 		int mask = 0xFFFFFFFF;
 		mask = mask ^ reqId;
@@ -309,13 +309,14 @@ public class IBClientRequestExecutor {
 	 * @param rh
 	 */
 	public void reqRealTimeBars(final String symbol, final ResponseHandlerDelegate rh){
+		Logger.getLogger("MarketData").log(Level.INFO, "Requesting realtime bars for " + symbol);
 		final Runnable r = new Runnable() {
 			public void run() {
 				StockContract stock = new StockContract(symbol);
 				final int reqId = pushRequest();
 				rh.setReqId(reqId);
 				pushResponseHandler(reqId, rh);
-				Logger.getLogger("RealTimeBars").log(Level.INFO,
+				Logger.getLogger("MarketData").log(Level.INFO,
 						"Submitting request for market data " + reqId + " " + stock.m_symbol);
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
@@ -323,6 +324,7 @@ public class IBClientRequestExecutor {
 
 			}
 		};
+		execute(r, 0);
 	}
 	/**
 	 * Since the "Push of a request occurs within a thread asynchronously started this means

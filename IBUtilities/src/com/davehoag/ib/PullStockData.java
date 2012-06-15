@@ -26,7 +26,7 @@ public class PullStockData {
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		try {
-			StoreHistoricalData sh = new StoreHistoricalData(symbol);
+			StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
 			clientInterface.reqHistoricalData(symbol, startDateStr, sh);
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {

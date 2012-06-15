@@ -11,6 +11,12 @@ import com.ib.client.Execution;
 public class CaptureHistoricalDataMock extends ResponseHandlerDelegate {
 	public String dateVal;
 	public Execution exec;
+	/**
+	 * Don't need the IBClient interface for this
+	 */
+	public CaptureHistoricalDataMock(){
+		super(null);
+	}
 	@Override
 	public void historicalData(final int reqId, final String dateStr,
 			final double open, final double high, final double low,
