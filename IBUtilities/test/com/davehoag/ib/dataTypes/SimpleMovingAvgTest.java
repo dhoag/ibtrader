@@ -53,4 +53,32 @@ public class SimpleMovingAvgTest {
 		assertEquals(3.0, sma.getSlowAvg(), .0001);
 		assertEquals(2.0, sma.getFastAvg(), .0001);
 	}
+	@Test
+	public void testNoSeeds(){
+		sma = new SimpleMovingAvg(3, 5);
+		generateException();
+		sma.newTick(1.0);
+		generateException();
+		sma.newTick(2.0);
+		generateException();
+		sma.newTick(3.0);
+		generateException();
+		sma.newTick(4.0);
+		generateException();
+		assertFalse(sma.newTick(5.0));
+		assert(sma.isTrendingUp());
+	}
+
+	/**
+	 * 
+	 */
+	protected void generateException() {
+		try{
+			sma.isTrendingUp();
+			assertTrue("Exception not generated despite not being initialized.", false);
+		}
+		catch(Throwable t){
+			//should throw an exception!
+		}
+	}
 }

@@ -45,7 +45,7 @@ public class SimpleMovingAvg {
 		}
 	}
 	/**
-	 * 
+	 * Until this is initialized it will always return false;
 	 * @param price
 	 * @return boolean true if the trend was reversed
 	 */
@@ -75,7 +75,8 @@ public class SimpleMovingAvg {
 		}
 		return false;		
 	}
-	protected final boolean isTrendingUp(){
+	public final boolean isTrendingUp(){
+		if(!initialized) throw new IllegalStateException("SMA not yet initialized, need more data");
 		return getFastAvg() > getSlowAvg();
 	}
 	public double getFastAvg(){

@@ -10,10 +10,12 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.EClientSocket;
 import com.ib.client.EWrapper;
+import com.ib.client.Order;
 
 /**
  * Control all IB client requests
@@ -73,10 +75,75 @@ public class IBClientRequestExecutor {
 			System.exit(1);
 		}
 	}
+	/**
+	 * 
+	 * @param contract
+	 * @param qty
+	 * @param price
+	 * @param rh
+	 */
+	public int executeBuyOrder(final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
+		final int id = pushRequest();
+		pushResponseHandler(id, rh);
+		Order order = new Order();
+		order.m_clientId = IBConstants.clientId;
+		order.m_orderType = "LMT";
+		order.m_action = "BUY";
+		order.m_lmtPrice = price;
+		order.m_totalQuantity = qty;
 
+		order.m_clientId = IBConstants.clientId;
+		order.m_orderId = id;
+		order.m_permId = (int)(System.currentTimeMillis() / 1000);
+		//TODO  sure if IOC and allOrNone are not compatible
+		order.m_orderType = "IOC";
+		order.m_allOrNone = true;
+		order.m_transmit = true;
+		final StockContract contract = new StockContract(symbol);
+		client.placeOrder(id, contract, order);
+		return order.m_orderId;
+	}
+	/**
+	 * Can only be used to sell a long position, I think I need to use 
+	 * action as SSHORT for a short position
+	 * @param contract
+	 * @param qty
+	 * @param price
+	 * @param rh
+	 * @return
+	 */
+	public int executeSellOrder(final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
+		final int id = pushRequest();
+		pushResponseHandler(id, rh);
+		Order order = new Order();
+		order.m_clientId = id;
+		order.m_orderType = "LMT";
+		order.m_action = "SELL";
+		order.m_lmtPrice = price;
+		order.m_totalQuantity = qty;
+
+		order.m_clientId = IBConstants.clientId;
+		order.m_orderId = id;
+		order.m_permId = (int)(System.currentTimeMillis() / 1000);
+		//TODO  sure if IOC and allOrNone are not compatible
+		order.m_orderType = "IOC";
+		order.m_transmit = true;
+		
+		final StockContract contract = new StockContract(symbol);
+		client.placeOrder(id, contract, order);
+		return order.m_orderId;
+	}
+	/**
+	 * Populate the portfolio with existing positions
+	 * @param port
+	 */
+	final void initializePortfolio( final Portfolio port ){
+		//TODO actually pull in portfolio data
+	}
 	/**
 	 * Find a unique request id. They are reused and I can only have 31
-	 * concurrent
+	 * concurrent. I reuse the IDs in this strategy, but I'm unsure if this
+	 * works for executions. TODO test it with test connection
 	 * 
 	 * @return int An id that should be used to mark a request has been
 	 *         fulfilled
@@ -103,10 +170,11 @@ public class IBClientRequestExecutor {
 		final Integer id = Integer.valueOf(reqId);
 		final ResponseHandlerDelegate rd = map.get(id);
 		if(rd != null) {
-			rd.log(Level.INFO, "Ending request " + reqId);
+			rd.log(Level.INFO, "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
 		}
 		else
-			Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId);
+			Logger.getLogger("RequestManager").log(Level.INFO, "Ending request " + reqId );
+		
 		int mask = 0xFFFFFFFF;
 		mask = mask ^ reqId;
 		requests = requests & mask;
@@ -134,14 +202,13 @@ public class IBClientRequestExecutor {
 				Logger.getLogger("RequestManager").log(Level.SEVERE, "Interrupted!!", e);
 			}
 	}
-	
 	/**
 	 * Wait before - no need to penalize the request after the historical data request.
 	 * @param seconds
 	 *            The amount of time to wait *before* the runnable is executed
 	 *            
 	 */
-	public synchronized void execute(final Runnable r, final int seconds) {
+	protected synchronized void execute(final Runnable r, final int seconds) {
 		Logger.getLogger("RequestManager").log(Level.FINEST, "Enqueing request");
 		
 		boolean result = tasks.offer(new Runnable() {
@@ -211,7 +278,7 @@ public class IBClientRequestExecutor {
 			throws ParseException {
 
 		// Get dates one hour apart that will retrieve the historical data
-		ArrayList<String> dates = HistoricalDateManipulation.getDates(startingDate);
+		ArrayList<String> dates = HistoricalDateManipulation.getDatesBrokenIntoHours(startingDate);
 		final int markerRequestId = pushRequest();
 		boolean first = true;
 		for (final String date : dates) {
@@ -232,7 +299,7 @@ public class IBClientRequestExecutor {
 				first = false;
 			}
 			else //wait 10 seconds for the next request.
-				execute(r, 10);
+				execute(r, 11);
 		}
 		scheduleClosingRequest(markerRequestId);
 	}
@@ -280,6 +347,8 @@ public class IBClientRequestExecutor {
 	 * @param rh
 	 */
 	protected synchronized void pushResponseHandler(final int reqId, final ResponseHandlerDelegate rh){
+		rh.setStartTime(System.currentTimeMillis());
+		
 		map.put(Integer.valueOf(reqId), rh);
 	}
 	/**

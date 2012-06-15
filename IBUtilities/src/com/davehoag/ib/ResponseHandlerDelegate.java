@@ -16,7 +16,21 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	IBClientRequestExecutor requester;
 	protected int countOfRecords;
 	int reqId;
-	//Not really used by the singleton delegator, but is useful for the subclasses.
+	long startTime;
+	/**
+	 * 
+	 * @param millis
+	 */
+	public void setStartTime(long millis){
+		startTime = millis;
+	}
+	public long getStartTime(){
+		return startTime;
+	}
+	/**
+	 * Could be useful for the subclasses.
+	 * @param val
+	 */
 	public void setReqId(int val){
 		reqId = val;
 	}
@@ -28,7 +42,7 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 		return countOfRecords;
 	}
 	/**
-	 * Expect this to be overriden to provide a meaningful logger context.
+	 * Expect this to be overridden to provide a meaningful logger context.
 	 * @param logLevel
 	 * @param message
 	 */
@@ -40,20 +54,19 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	}
 	@Override
 	public void error(Exception e) {
-		// TODO Auto-generated method stub
-
+		Logger.getLogger("Delegate"). log( Level.WARNING, "RH Delegate error: " + e);
+		e.printStackTrace();
 	}
 
 	@Override
 	public void error(String str) {
-		// TODO Auto-generated method stub
+		Logger.getLogger("Delegate"). log( Level.WARNING, "RH Delegate error: " + str );
 
 	}
 
 	@Override
 	public void error(int id, int errorCode, String errorMsg) {
-		// TODO Auto-generated method stub
-
+		Logger.getLogger("Delegate").log(Level.SEVERE, "Order failed or realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
 	}
 
 	@Override

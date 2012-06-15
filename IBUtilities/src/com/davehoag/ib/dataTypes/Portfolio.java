@@ -8,14 +8,16 @@ public class Portfolio {
 	ArrayList<String> history = new ArrayList<String>();
 	double cash = 0;
 	
-	public synchronized void bought(final StockContract contract, final int qty, final double price){
+	public synchronized void bought(final int orderId, final String symbol, final int qty, final double price){
+		StockContract contract = new StockContract(symbol);
 		final Integer originalQty = portfolio.get(contract);
 		final Integer newQty = (originalQty.intValue() + qty);
 		portfolio.put(contract, newQty);
 		history.add("Buy " + qty + " of " + contract.getIdentifier() + " @ " + price);
 		cash -= qty * price;
 	}
-	public synchronized void sold(final StockContract contract, final int qty, final double price){
+	public synchronized void sold(final int orderId, final String symbol, final int qty, final double price){
+		StockContract contract = new StockContract(symbol);
 		final Integer originalQty = portfolio.get(contract);
 		final Integer newQty = (originalQty.intValue() - qty);
 		portfolio.put(contract, newQty);

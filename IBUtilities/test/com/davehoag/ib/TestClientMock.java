@@ -1,25 +1,20 @@
 package com.davehoag.ib;
 
+import com.davehoag.ib.util.HistoricalDataClient;
 import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
+import com.ib.client.Execution;
+import com.ib.client.Order;
 /**
  * 
  * @author Dave Hoag
  *
  */
-public class TestClientMock extends EClientSocket {
-	boolean connected;
-	ResponseHandler rh;
+public class TestClientMock extends HistoricalDataClient {
 	public TestClientMock(ResponseHandler anyWrapper) {
 		super(anyWrapper);
 		rh = anyWrapper;
 	}
-	@Override
-    public void eConnect( String host, int port, int clientId) {
-		connected = true;
-    }
-	@Override
-    public boolean isConnected() { return connected; }
 	@Override
     public void reqHistoricalData( int tickerId, Contract contract,
             String endDateTime, String durationStr,

@@ -1,4 +1,8 @@
 package com.davehoag.ib;
+
+import com.ib.client.Contract;
+import com.ib.client.Execution;
+
 /**
  * Capture the historical data values - used to test the RequestHandler -> EWrapper delegation
  * @author dhoag
@@ -6,6 +10,7 @@ package com.davehoag.ib;
  */
 public class CaptureHistoricalDataMock extends ResponseHandlerDelegate {
 	public String dateVal;
+	public Execution exec;
 	@Override
 	public void historicalData(final int reqId, final String dateStr,
 			final double open, final double high, final double low,
@@ -14,5 +19,10 @@ public class CaptureHistoricalDataMock extends ResponseHandlerDelegate {
 	
 		dateVal = dateStr;
 		
+	}
+	@Override
+	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
+		//Filled!
+		exec = execution;
 	}
 }

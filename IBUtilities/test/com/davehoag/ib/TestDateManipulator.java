@@ -41,14 +41,48 @@ public class TestDateManipulator {
 	//	rh.reqHisData("20120501 01:01:01", stock, 12);
 	}
 	@Test
-	public void testGetDatesStringCalendar() throws Exception{
-		ArrayList<String> res = HistoricalDateManipulation.getDates( "20120101", today);
+	public void testGetDatesStringCalendarHours() throws Exception{
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20120101", today);
 		Assert.assertEquals(300, res.size());
 
 	}
 	@Test
+	public void testGetDatesYearBoundaryHours() throws Exception {
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20111230", today);
+		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
+			String string = (String) iterator.next();
+		}
+		Assert.assertEquals(320, res.size());		
+	}
+	@Test
+	public void testGetDatesMoreThan52Hours() throws Exception{
+		
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20110130", today);
+
+		Assert.assertEquals(3660, res.size());		
+	}
+	@Test
+	public void testGetDatesGoofyYearHours() throws Exception {
+		String endDate = "20110101";
+		DateFormat df = new SimpleDateFormat( "yyyyMMdd");
+		Date d = df.parse( endDate );
+		Calendar day = Calendar.getInstance();
+		day.setTime( d);	
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours("20101228", day);
+		for(String val: res){
+			System.out.println(val);
+		}
+		Assert.assertEquals(50, res.size() );
+	}
+	@Test
+	public void testGetDatesStringCalendar() throws Exception{
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoWeeks( "20120101", today);
+		Assert.assertEquals(5, res.size());
+
+	}
+	@Test
 	public void testGetDatesYearBoundary() throws Exception {
-		ArrayList<String> res = HistoricalDateManipulation.getDates( "20111230", today);
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoWeeks( "20111230", today);
 		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
 			String string = (String) iterator.next();
 		}
@@ -57,7 +91,7 @@ public class TestDateManipulator {
 	@Test
 	public void testGetDatesMoreThan52() throws Exception{
 		
-		ArrayList<String> res = HistoricalDateManipulation.getDates( "20110130", today);
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoWeeks("20110130", today);
 
 		Assert.assertEquals(3660, res.size());		
 	}
@@ -68,7 +102,7 @@ public class TestDateManipulator {
 		Date d = df.parse( endDate );
 		Calendar day = Calendar.getInstance();
 		day.setTime( d);	
-		ArrayList<String> res = HistoricalDateManipulation.getDates("20101228", day);
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoWeeks("20101228", day);
 		for(String val: res){
 			System.out.println(val);
 		}

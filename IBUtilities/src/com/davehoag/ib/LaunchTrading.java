@@ -4,6 +4,7 @@ import java.text.ParseException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.davehoag.ib.dataTypes.Portfolio;
 import com.ib.client.EClientSocket;
 
 public class LaunchTrading {
@@ -17,8 +18,11 @@ public class LaunchTrading {
 		EClientSocket  m_client = new EClientSocket( rh );
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
+		Portfolio port = new Portfolio();
+		clientInterface.initializePortfolio( port );
 		try{
 			MACDStrategy strat = new MACDStrategy(symbol, null);
+			strat.setPortfolio( port );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
 		}

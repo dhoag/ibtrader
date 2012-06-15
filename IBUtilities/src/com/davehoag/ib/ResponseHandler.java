@@ -39,7 +39,7 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {
-		Logger.getLogger("ResponseHandler").log(Level.SEVERE, "REQ:" + id + " ERROR:" + errorCode + " '" + errorMsg + "'");
+		Logger.getLogger("ResponseHandler").log(Level.SEVERE, "[" + id + "]  ERROR:" + errorCode + " '" + errorMsg + "'");
 		
 		if(id > 0){//TODO figure out if I should move the "endRequest" to the delegate. 
 			final ResponseHandlerDelegate ew = requester.getResponseHandler(id);
@@ -170,15 +170,17 @@ public class ResponseHandler implements EWrapper {
 	}
 
 	@Override
-	public void execDetails(int reqId, Contract contract, Execution execution) {
-		// TODO Auto-generated method stub
-
+	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
+		final EWrapper ew = requester.getResponseHandler(reqId);
+		if(ew != null) ew.execDetails(reqId, contract, execution);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + reqId + "] Received execDetails but no delegate registered");
 	}
 
 	@Override
-	public void execDetailsEnd(int reqId) {
-		// TODO Auto-generated method stub
-
+	public void execDetailsEnd(final int reqId) {
+		final EWrapper ew = requester.getResponseHandler(reqId);
+		if(ew != null) ew.execDetailsEnd(reqId);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + reqId + "] Received execEnd but no delegate registered");
 	}
 
 	@Override
@@ -227,7 +229,7 @@ public class ResponseHandler implements EWrapper {
 		// end of data
 		if (open < 0 && high < 0) {
 			requester.endRequest(reqId);
-			Logger.getLogger("HistoricalData").log(Level.INFO, "Completed historical data request "+ reqId + " having written: " + ew.getCountOfRecords());
+			Logger.getLogger("HistoricalData").log(Level.INFO, "[" + reqId + "] Completed historical data request having written: " + ew.getCountOfRecords());
 			return;
 		}
 
@@ -260,7 +262,7 @@ public class ResponseHandler implements EWrapper {
 		//delegate to the registered handler
 		final EWrapper ew = requester.getResponseHandler(reqId);
 		if(ew != null) ew.realtimeBar(reqId, time, open, high, low, close, volume, wap, count);
-		else Logger.getLogger("RealTimeBar").log(Level.WARNING, "Reveived realtime bar but no delegate registered: " + reqId);
+		else Logger.getLogger("RealTimeBar").log(Level.WARNING, "[" + reqId + "] Reveived realtime bar but no delegate registered " );
 	}
 
 	@Override

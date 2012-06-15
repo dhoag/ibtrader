@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.text.DecimalFormat;
 import java.util.Date;
+import java.util.List;
 
 import me.prettyprint.cassandra.model.CqlQuery;
 import me.prettyprint.cassandra.model.CqlRows;
@@ -143,24 +144,59 @@ public class CassandraDao {
 	    }	    
 	}
     public void query2(){
-        RangeSlicesQuery<String, Long, Double> rangeSlicesQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
-        rangeSlicesQuery.setColumnFamily("bar15min");
-        rangeSlicesQuery.setKeys("IBM:wap", "");
-	    long start = (new Date().getTime() / 1000) - (120*24*60*60);
+        RangeSlicesQuery<String, Long, Boolean> rangeSlicesQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, booleanSerializer);
+        rangeSlicesQuery.setColumnFamily("bar5sec");
+        rangeSlicesQuery.setKeys("SPY:hasGap", "SPY:hasGap");
+	    long start = (new Date().getTime() / 1000) - (4*24*60*60);
 	    long end = new Date().getTime() / 1000;
         rangeSlicesQuery.setRange(end, start, true, 20);
-        QueryResult<OrderedRows<String, Long, Double>> result = rangeSlicesQuery.execute();
-        Rows<String, Long, Double> rows = result.get();
-        for (Row<String, Long, Double> row2 : rows) {
-            
-            ColumnSlice<Long, Double> slice = row2.getColumnSlice();
+        QueryResult<OrderedRows<String, Long, Boolean>> result = rangeSlicesQuery.execute();
+        Rows<String, Long, Boolean> rows = result.get();
+        printFirstRow(rows);
 
-            for (HColumn<Long, Double> column : slice.getColumns()) {
-              System.out.println(column.getName() + " " + column.getValue());
-            }
-
-          }
+        RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
+        priceQuery.setKeys("QQQ:close", "QQQ:close");
+        priceQuery.setColumnFamily("bar5sec");
+        priceQuery.setRange(end, start, true, 2);
+        QueryResult<OrderedRows<String, Long, Double>> priceResults = priceQuery.execute();
+        Rows<String, Long, Double> closeRows = priceResults.get();
+        priceQuery.setKeys("QQQ:wap", "QQQ:wap");
+        priceResults = priceQuery.execute();
+        Rows<String, Long, Double> wapRows = priceResults.get();
+        printFirstRow(closeRows);
+        printFirstRow(wapRows);
+        
+        printColumns( closeRows.getByKey("QQQ:close"), wapRows.getByKey("QQQ:wap"));
 
     }
+    
+    < V> void printFirstRow(Rows<String, Long, V> rows ){
+    	
+        for (Row<String, Long, V> row2 : rows) {
+    		ColumnSlice<Long, V> slice = row2.getColumnSlice();
+    		for (HColumn<Long, V> column : slice.getColumns()) {
+    			Long secs = column.getName();
+    			Date d = new Date(secs.longValue()*1000);
+    		    System.out.println(d + " " + column.getValue());
+    		}            
+        }    	
+    }
+	/**
+	 * @param sym
+	 * @param row2
+	 */
+	protected <V> void printColumns( Row<String, Long, V> closeRow, Row<String, Long, V> wapRow ) {
+		if(closeRow == null || wapRow == null) return;
+		System.out.println("Columns for :" + closeRow.getKey() + " " + wapRow.getKey());
+		
+		ColumnSlice<Long, V> closeSlice = closeRow.getColumnSlice();
+		ColumnSlice<Long, V> wapSlice = wapRow.getColumnSlice();
+		List<HColumn<Long, V>> closeVals = closeSlice.getColumns();
+		List<HColumn<Long, V>> wapVals = wapSlice.getColumns();
+		int size = closeVals.size();
+		for(int i = 0; i < size; i++){
+			System.out.println("Close: " + closeVals.get(i) + " Wap: " + wapVals.get(i)); 
+		}
+	}
    
 }
