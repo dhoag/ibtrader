@@ -23,6 +23,10 @@ public class Portfolio {
 		history.add("Sell " + qty + " of " + symbol + " @ " + price);
 		cash += qty * price;
 	}
+	public int getShares(final String symbol){
+		final Integer originalQty = portfolio.get(symbol);
+		return originalQty != null ? originalQty.intValue() : 0;
+	}
 	public double getCash(){
 		return cash;
 	}

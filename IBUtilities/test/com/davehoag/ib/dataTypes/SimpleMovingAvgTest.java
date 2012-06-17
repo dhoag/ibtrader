@@ -18,7 +18,11 @@ public class SimpleMovingAvgTest {
 	@After
 	public void tearDown() throws Exception {
 	}
-
+	@Test
+	public void tetEma(){
+		double val = sma.calcEma(22.15, 22.22, 10);
+		assertEquals( 22.207,val, .001);
+	}
 	@Test
 	public void testGetAvg() {
 		double fast = sma.getFastAvg();
@@ -32,10 +36,10 @@ public class SimpleMovingAvgTest {
 	}
 	@Test
 	public void testInitTrend(){
-		assert(!sma.initTrend(true));
-		assert( sma.initTrend(false));
-		assert(!sma.initTrend(false));
-		assert(sma.initTrend(true));
+		assert(!sma.updateTrend(true));
+		assert( sma.updateTrend(false));
+		assert(!sma.updateTrend(false));
+		assert(sma.updateTrend(true));
 	}
 	@Test
 	public void testNewTick(){
@@ -67,6 +71,22 @@ public class SimpleMovingAvgTest {
 		generateException();
 		assertFalse(sma.newTick(5.0));
 		assert(sma.isTrendingUp());
+	}
+	@Test
+	public void testRest(){
+		assert(sma.isTrendingUp());
+		sma.reset();
+		generateException();
+		sma.newTick(1.0);
+		generateException();
+		sma.newTick(2.0);
+		generateException();
+		sma.newTick(3.0);
+		generateException();
+		sma.newTick(4.0);
+		generateException();
+		assertFalse(sma.newTick(5.0));
+		assert(sma.isTrendingUp());		
 	}
 
 	/**

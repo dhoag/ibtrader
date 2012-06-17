@@ -2,10 +2,11 @@ package com.davehoag.ib;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.Calendar;
+import java.util.Date;
 
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
-import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
 
@@ -19,9 +20,12 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 	Portfolio portfolio;
 	final String symbol;
 	SimpleMovingAvg sma;
+	SimpleMovingAvg smaTrades;
 	int qty = 100;
-	
-	
+	int fastMovingAvg = 12;
+	int slowMovingAvg = 25;
+	boolean useEma = false;
+	boolean requireTradeConfirmation = true;
 
 	public MACDStrategy(final String sym, final double [] seeds, IBClientRequestExecutor ibInterface){
 		super(ibInterface);
@@ -37,7 +41,10 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 	 * @param seeds
 	 */
 	public void init( final double [] seeds){
-		sma = new SimpleMovingAvg(12, 65, seeds);
+		sma = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg, seeds);
+		sma.setUseEmaForCrossOvers(useEma);
+		smaTrades = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg);
+		smaTrades.setUseEmaForCrossOvers(true);
 	}
 	/**
 	 * Called when my execution is filled
@@ -48,7 +55,7 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 			
 			//TODO need some logic to account for all orders not actually trading or trading at different prices
 		//	portfolio.confirm(execution.m_execId, execution.m_price, execution.m_side);
-			Logger.getLogger("Trading").log(Level.INFO, "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares );
+			Logger.getLogger("Trading").log(Level.INFO, "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares + " @ " + execution.m_price );
 		}
 		else{
 			log(Level.SEVERE, "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
@@ -76,28 +83,64 @@ public class MACDStrategy extends ResponseHandlerDelegate {
 		}
 		
 	}
+	/**
+	 * determine if this strategy likes this time of day for trading
+	 * @return
+	 */
+	protected boolean inTradeWindow(final long time){
+		final int hour = getHour(time);
+		//don't trade the open or close
+		return hour > 8 & hour < 14;
+	}
+	/**
+	 * @param time
+	 * @return
+	 */
+	protected int getHour(final long time) {
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		cal.setTime(d);
+		final int hour = cal.get(cal.HOUR_OF_DAY);
+		return hour;
+	}
 	@Override
-	public void realtimeBar(int reqId, long time, double open, double high,
-			double low, double close, long volume, double wap, int count) {
+	public void realtimeBar(final int reqId, final long time, final double open, double high,
+			double low, double close, final long volume, final double wap, final int count) {
+		
+		if( ! inTradeWindow(time)) {
+			final int holdings = portfolio.getShares(symbol);
+			if(holdings > 0){
+				final int orderId = requester.executeSellOrder(symbol, holdings, close + .05, this);
+				portfolio.sold(orderId, symbol, holdings, close - .05);
+				log(Level.INFO,"Cash " +  portfolio.getCash() + " Value " + portfolio.getValue(symbol, close));
+			}
+			sma.reset();
+
+		}
 		//Simple cross over strategy
-		if(sma.newTick(close) )
+		else
 		try{
-			//TRADE!!
-			if(sma.isTrendingUp()){
-				final int orderId = requester.executeBuyOrder(symbol, qty, close + .05, this);
-				portfolio.bought(orderId, symbol, qty, close + .05);
+			smaTrades.newTick(count);
+			//only trade if the # of trades is rising with the cross over
+			if(sma.newTick(wap) && smaTrades.isTrendingUp() ){
+				//TRADE!!
+				if(sma.isTrendingUp()){
+					final int orderId = requester.executeBuyOrder(symbol, qty, close + .05, this);
+					portfolio.bought(orderId, symbol, qty, close + .05);
+				}
+				else {
+					if(portfolio.getShares(symbol) >= qty) {
+						final int orderId = requester.executeSellOrder(symbol, qty, close + .05, this);
+						portfolio.sold(orderId, symbol, qty, close - .05);
+					}
+				}
+				log(Level.INFO,"Cash " +  portfolio.getCash() + " Value " + portfolio.getValue(symbol, close));	
 			}
-			else {
-				final int orderId = requester.executeSellOrder(symbol, qty, close + .05, this);
-				portfolio.sold(orderId, symbol, reqId, close - .05);
-			}
-			System.out.println("Cash " +  portfolio.getCash());
-			System.out.println("Value " + portfolio.getValue(symbol, close));
-					
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
 		}
+		
 	}
 	/**
 	 * should only be set during initialization, no? 

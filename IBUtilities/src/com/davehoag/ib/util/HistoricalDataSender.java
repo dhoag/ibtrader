@@ -28,7 +28,7 @@ public class HistoricalDataSender {
 			Iterator<Bar> data = dao.getData(contract.m_symbol);
 			while(data.hasNext()){
 				Bar bar = data.next();
-				handler.realtimeBar(reqId, System.currentTimeMillis() / 1000, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
+				handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
 			}
 		}
 		catch(Throwable t){

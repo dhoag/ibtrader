@@ -37,6 +37,7 @@ import me.prettyprint.hector.api.mutation.Mutator;
 import me.prettyprint.hector.api.query.ColumnQuery;
 import me.prettyprint.hector.api.query.QueryResult;
 import me.prettyprint.hector.api.query.RangeSlicesQuery;
+import me.prettyprint.hector.api.query.SliceQuery;
 import me.prettyprint.hector.api.Cluster;
 import me.prettyprint.hector.api.Keyspace;
 /**
@@ -270,7 +271,7 @@ public class CassandraDao {
      */
     public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol) throws ParseException{
     	final HashMap<String, List<HColumn<Long, Long>>> result = new HashMap<String, List<HColumn<Long, Long>>>();
-        RangeSlicesQuery<String, Long, Long> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, longSerializer);
+        SliceQuery<String, Long, Long> priceQuery = HFactory.createSliceQuery(keyspace, stringSerializer, longSerializer, longSerializer);
         priceQuery.setColumnFamily("bar5sec");
         final Long start = Long.valueOf(HistoricalDateManipulation.getTime("20111101 07:00:00"));
         final Long finish = Long.valueOf(HistoricalDateManipulation.getTime("20111101 16:00:00"));
@@ -278,8 +279,8 @@ public class CassandraDao {
         
         for(String key: longKeys ){
         	String rowKey = symbol + key;
-            priceQuery.setKeys(rowKey, rowKey);
-            List<HColumn<Long, Long>> column = priceQuery.execute().get().getByKey(rowKey).getColumnSlice().getColumns();
+            priceQuery.setKey(rowKey);
+            List<HColumn<Long, Long>> column = priceQuery.execute().get().getColumns();
             result.put(rowKey, column);
         }
     	return result;

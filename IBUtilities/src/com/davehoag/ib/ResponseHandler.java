@@ -260,7 +260,7 @@ public class ResponseHandler implements EWrapper {
 	public void realtimeBar(int reqId, long time, double open, double high,
 			double low, double close, long volume, double wap, int count) {
 		//delegate to the registered handler
-		final EWrapper ew = requester.getResponseHandler(reqId);
+		final ResponseHandlerDelegate ew = requester.getResponseHandler(reqId);
 		if(ew != null) ew.realtimeBar(reqId, time, open, high, low, close, volume, wap, count);
 		else Logger.getLogger("RealTimeBar").log(Level.WARNING, "[" + reqId + "] Reveived realtime bar but no delegate registered " );
 	}

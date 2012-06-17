@@ -3,10 +3,16 @@ package com.davehoag.ib.dataTypes;
 public class SimpleMovingAvg {
 	final double [] fastLeg;
 	final double [] slowLeg;
+	double fastEma;
+	double slowEma;
 	int lastFast = 0;
 	int lastSlow = 0;
 	boolean trendingUp;
 	boolean initialized;
+	boolean useEmaForCrossOvers;
+	public void setUseEmaForCrossOvers(boolean option){
+		useEmaForCrossOvers = option;
+	}
 	/**
 	 * 
 	 * @param fastSize take the last N values from the seeds 
@@ -27,22 +33,29 @@ public class SimpleMovingAvg {
 		fastLeg = new double[fastSize];
 		slowLeg = new double[slowSize];
 		if( seeds != null ) {
-			final int slowdiff = seeds.length - slowSize;
+			final int slowdiff = seeds.length - slowLeg.length;
 			if(slowdiff != 0) throw new IllegalArgumentException("Slow size can not be different than seeds size");
-			final int diff = slowSize - fastSize;
-			for(int i = 0; i  < slowSize; i++){
+			final int diff = slowLeg.length - fastLeg.length;
+			for(int i = 0; i  < slowLeg.length; i++){
 				slowLeg[i] = seeds[i];
 				//slow = 2, fast = 1, diff = 1, i = 0 dont add, i = 1 add
 				if(i >= diff){
 					fastLeg[i-diff] = seeds[i];
 				}
 			}
-			initialized = true;
-			trendingUp = isTrendingUp();
+			init();
 		}
 		else {
 			initialized = false;
 		}
+	}
+	/**
+	 * Clear out the data, set counters to zero. 
+	 */
+	public void reset(){
+		lastSlow = 0;
+		lastFast = 0;
+		initialized = false;
 	}
 	/**
 	 * Until this is initialized it will always return false;
@@ -56,17 +69,34 @@ public class SimpleMovingAvg {
 		if(lastFast == fastLeg.length) lastFast = 0;
 		if(lastSlow == slowLeg.length) lastSlow = 0;
 		if(initialized){
+			slowEma= calcEma(price,slowEma, slowLeg.length);
+			fastEma = calcEma(price, fastEma, fastLeg.length);
 			final boolean newTrend = isTrendingUp();
-			return initTrend(newTrend);
+			return updateTrend(newTrend);
 		}
-		if(lastSlow == 0) // we wrapped
+		if(lastSlow == 0 && !initialized) // we wrapped
 		{
-			initialized = true;
-			trendingUp = isTrendingUp();
+			init();
 		}
 		return false;
 	}
-	protected final boolean initTrend(final boolean newTrend){
+	/**
+	 * 
+	 */
+	protected void init() {
+		initialized = true;
+		trendingUp = isTrendingUp();
+		slowEma = getSlowAvg();
+		fastEma = getFastAvg();
+	}
+	/**
+	 * @param price
+	 */
+	protected double calcEma(final double price, final double priorEma, final int numOfElements) {
+		double emaMultiplier =  2.0 / (numOfElements + 1) ;
+		return (price - priorEma)*emaMultiplier + priorEma;
+	}
+	protected final boolean updateTrend(final boolean newTrend){
 		//if the old and new trend are not the same
 		if( newTrend ^ trendingUp){
 			//change the trend direction
@@ -75,8 +105,14 @@ public class SimpleMovingAvg {
 		}
 		return false;		
 	}
+	/**
+	 * Decide if the fast avg if greater than the slow avg.
+	 * This will either key of ema or sma calculations
+	 * @return
+	 */
 	public final boolean isTrendingUp(){
 		if(!initialized) throw new IllegalStateException("SMA not yet initialized, need more data");
+		if(useEmaForCrossOvers) return fastEma > slowEma;
 		return getFastAvg() > getSlowAvg();
 	}
 	public double getFastAvg(){
@@ -84,6 +120,12 @@ public class SimpleMovingAvg {
 	}
 	public double getSlowAvg(){
 		return getAvg(slowLeg);
+	}
+	public double getFastEma(){
+		return fastEma;
+	}
+	public double getSlowEma(){
+		return slowEma;
 	}
 	protected double getAvg(final double [] list){
 		double sum = 0;
