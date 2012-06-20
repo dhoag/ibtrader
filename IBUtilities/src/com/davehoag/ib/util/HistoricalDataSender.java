@@ -21,14 +21,15 @@ public class HistoricalDataSender {
 	final int reqId;
 	final Contract contract;
 	final ResponseHandler handler;
-	EClientSocket client;
+	HistoricalDataClient client;
 	ArrayList<LimitOrder> restingOrders = new ArrayList<LimitOrder>();
 	Bar lastBar;
 	
-	public HistoricalDataSender(final int id, final Contract stock, final ResponseHandler rh){
+	public HistoricalDataSender(final int id, final Contract stock, final ResponseHandler rh, HistoricalDataClient sock){
 		reqId = id;
 		contract = stock;
 		handler = rh;
+		client = sock;
 	}
 	public void sendData() {
 		CassandraDao dao = new CassandraDao();
@@ -47,26 +48,29 @@ public class HistoricalDataSender {
 		}
 	}
 	protected void checkRestingOrders(final Bar bar){
+		ArrayList<LimitOrder> executed = new ArrayList<LimitOrder>();
 		for(LimitOrder order: restingOrders){
-			if(isExecutable(order.getPrice(), order.lmtOrder.m_action, bar)){
-				restingOrders.remove(order);
-				handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
+			double mktPrice = order.lmtOrder.m_action.equals("BUY") ? bar.low : bar.high;
+			if(isExecutable(order.getPrice(), order.lmtOrder.m_action, mktPrice)){
+				executed.add(order);
+				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 			}
 		}
+		restingOrders.removeAll(executed);
 	}
 	/**
 	 * Allow fake clients to be plugged in
 	 * @param socket
 	 */
-	public void setClient(EClientSocket socket){
+	public void setClient(HistoricalDataClient socket){
 		client = socket;
 	}
 	public boolean isExecutable(final double price, final String action){
-		return isExecutable(price, action, lastBar);
+		return isExecutable(price, action, lastBar.close);
 	}
-	public boolean isExecutable(final double price, final String action, final Bar tradeWindow){
-		if(price> tradeWindow.close && action.equals("BUY")) return true;
-		if(price < tradeWindow.close && action.equals("SELL")) return true;
+	public boolean isExecutable(final double price, final String action, final double mktPrice){
+		if(price >= mktPrice && action.equals("BUY")) return true;
+		if(price <= mktPrice && action.equals("SELL")) return true;
 		return false;
 	}
 	public void addLimitOrder(final int id, final Order order){

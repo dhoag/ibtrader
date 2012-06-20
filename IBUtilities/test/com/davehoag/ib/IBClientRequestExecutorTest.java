@@ -19,7 +19,6 @@ public class IBClientRequestExecutorTest  {
 		ResponseHandler rh = new ResponseHandler();
 		TestClientMock client = new TestClientMock(rh);
 		executor = new IBClientRequestExecutor(client, rh);
-		rh.setRequestor( executor );
 	}
 
 	@After

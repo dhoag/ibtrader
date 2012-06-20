@@ -41,8 +41,7 @@ public class HistoricalDataClient extends EClientSocket {
 		if(barSize != 5 ) throw new IllegalArgumentException("Only 5 second bars are supproted");
 		final Runnable r = new Runnable() {
 			public void run(){
-				HistoricalDataSender sender = new HistoricalDataSender(reqId, stock, rh);
-				sender.setClient(HistoricalDataClient.this);
+				HistoricalDataSender sender = new HistoricalDataSender(reqId, stock, rh, HistoricalDataClient.this);
 				mktDataFeed.put(stock.m_symbol, sender);
 				sender.sendData();
 			}

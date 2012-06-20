@@ -34,7 +34,7 @@ public class IBClientRequestExecutor {
 	/**
 	 * Only want one thread sending the requests.
 	 */
-	IBClientRequestExecutor(final EClientSocket socket, final ResponseHandler rh) {
+	public IBClientRequestExecutor(final EClientSocket socket, final ResponseHandler rh) {
 		client = socket;
 		this.executor = Executors.newSingleThreadExecutor();
 		rh.setRequestor(this);
@@ -348,7 +348,7 @@ public class IBClientRequestExecutor {
 	 * @param reqId
 	 * @param rh
 	 */
-	protected synchronized void pushResponseHandler(final int reqId, final ResponseHandlerDelegate rh){
+	public synchronized void pushResponseHandler(final int reqId, final ResponseHandlerDelegate rh){
 		rh.setStartTime(System.currentTimeMillis());
 		
 		map.put(Integer.valueOf(reqId), rh);
