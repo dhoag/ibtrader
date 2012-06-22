@@ -23,6 +23,28 @@ public class HistoricalDateManipulation {
 		
 		return getDatesBrokenIntoHours(startingDateStr, today);
 	}
+
+	/**
+	 * @param time
+	 * @return
+	 */
+	public static int getHour(final long time) {
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		cal.setTime(d);
+		final int hour = cal.get(cal.HOUR_OF_DAY);
+		return hour;
+	}
+	
+	public static boolean isEndOfDay(final long time){
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		cal.setTime(d);
+		final int hour = cal.get(cal.HOUR_OF_DAY);
+		final int minutes = cal.get(cal.MINUTE);
+		final int seconds = cal.get(cal.SECOND);
+		return(hour == 14 && minutes == 59 && seconds == 55);
+	}
 	/**
 	 * Convert string value into a starting time 
 	 * @param dateStr

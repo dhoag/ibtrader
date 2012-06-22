@@ -11,8 +11,7 @@ import com.ib.client.Execution;
 
 public class TradingStrategy extends ResponseHandlerDelegate {
 	boolean positionOnTheBooks = false;
-	Strategy entryStrategy;
-	Strategy exitStrategy;
+	Strategy strategy;
 	final String symbol;
 	public int defaultQty = 100;
 	Portfolio portfolio;
@@ -20,16 +19,12 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	public void setPortfolio(Portfolio p){
 		portfolio = p;
 	}
-	public TradingStrategy(String sym, IBClientRequestExecutor exec){
+	public TradingStrategy(final String sym,final IBClientRequestExecutor exec){
 		super(exec);
 		symbol = sym;
 	}
-	public void setEntryStrategy(Strategy strat){
-		entryStrategy = strat;
-		
-	}
-	public void setExitStrategy(Strategy strat){
-		exitStrategy = strat;
+	public void setStrategy(Strategy strat){
+		strategy = strat;
 	}
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
@@ -60,15 +55,17 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	@Override
 	public void realtimeBar(final int reqId, final long time, final double open, double high,
 			double low, double close, final long volume, final double wap, final int count) {
-		
+
+
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
 		portfolio.setTime(time);
-
+		if( time % 60 == 0) Logger.getLogger("MarketData").log(Level.INFO, "Realtime bar : " + reqId + " " + bar);
 	
-		final LimitOrder order = exitStrategy.newBar(bar, portfolio);
+		final LimitOrder order = strategy.newBar(bar, portfolio);
 		if(order != null){
+			if(order.getSymbol() == null ) order.setSymbol(symbol);
+			portfolio.placedOrder(order.isBuy(), 0, order.getSymbol(), order.getShares(), order.getPrice() );
 			final int orderId = requester.executeOrder(order.isBuy(), order.getSymbol(), order.getShares(), order.getPrice(), this);
-			portfolio.placedOrder(order.isBuy(), orderId, order.getSymbol(), order.getShares(), order.getPrice() );
 		}
 
 	}

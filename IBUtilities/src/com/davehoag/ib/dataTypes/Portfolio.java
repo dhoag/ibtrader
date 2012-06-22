@@ -1,22 +1,30 @@
 package com.davehoag.ib.dataTypes;
 
+import java.text.NumberFormat;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.davehoag.ib.util.HistoricalDateManipulation;
+
 public class Portfolio {
 	HashMap<String, Integer> portfolio = new HashMap<String, Integer>();
 	ArrayList<String> history = new ArrayList<String>();
 	double cash = 0;
 	long currentTime;
+	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	
 	public void setTime(final long time){
 		currentTime = time;
+		if(HistoricalDateManipulation.isEndOfDay(time)){
+			dumpLog();
+		}
 	}
 	public void confirm(final int orderId, final String symbol, final double price, final int qty){
-		history.add("[" + orderId + "] " + new Date(currentTime) + " Confirm transaction of " + qty + " Cash: " + getCash() + " " + getValue(symbol, price));
+		
+		history.add("[" + orderId + "] " + new Date(currentTime) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
 	}
 	public void placedOrder(final boolean isBuy, final int orderId, final String symbol, final int qty, final double price){
 		if(isBuy){
@@ -30,7 +38,7 @@ public class Portfolio {
 		final Integer originalQty = portfolio.get(symbol);
 		final Integer newQty = originalQty != null ? (originalQty.intValue() + qty) : qty;
 		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + new Date(currentTime) + "Buy " + qty + " of " + symbol + " @ " + price);
+		history.add("[" + orderId + "]" + new Date(currentTime) + " Buy " + qty + " of " + symbol + " @ " + price);
 		cash -= qty * price;
 	}
 	public synchronized void sold(final int orderId, final String symbol, final int qty, final double price){
@@ -38,7 +46,7 @@ public class Portfolio {
 		final Integer originalQty = portfolio.get(symbol);
 		final Integer newQty = originalQty != null ? (originalQty.intValue() - qty) : -qty;
 		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + new Date(currentTime) + "Sell " + qty + " of " + symbol + " @ " + price);
+		history.add("[" + orderId + "]" + new Date(currentTime) + " Sell " + qty + " of " + symbol + " @ " + price);
 		cash += qty * price;
 	}
 	public int getShares(final String symbol){

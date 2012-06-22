@@ -1,6 +1,8 @@
 package com.davehoag.ib.util;
 
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.davehoag.ib.IBConstants;
 import com.davehoag.ib.ResponseHandler;
@@ -68,6 +70,7 @@ public class HistoricalDataClient extends EClientSocket {
 				fillOrder(id, contract, order);
 			}
 			else{
+				Logger.getLogger("Trading").log(Level.INFO, "booking order!" );
 				sender.addLimitOrder(id, contract, order);
 			}
 		}

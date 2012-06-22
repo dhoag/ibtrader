@@ -1,20 +1,25 @@
 package com.davehoag.ib;
 
+
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.ib.client.EClientSocket;
 
-public class LaunchTrading {
 
+public class LaunchTrading {
+static boolean simulateTrading = false;
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		String symbol = "SPY";
+
+		final String symbol = "SPY";
 		ResponseHandler rh = new ResponseHandler();
-		//EClientSocket  m_client = new EClientSocket( rh );
-		//simulate trading
-		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		
+		EClientSocket  m_client;
+		if( simulateTrading ) m_client = new HistoricalDataClient(rh);
+		else  m_client = new EClientSocket( rh );
+		
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		Portfolio port = new Portfolio();
@@ -22,8 +27,7 @@ public class LaunchTrading {
 		try{
 			TradingStrategy strat = new TradingStrategy(symbol, clientInterface);
 			MACDStrategy macd = new MACDStrategy();
-			strat.setEntryStrategy(macd);
-			strat.setExitStrategy(macd);
+			strat.setStrategy(macd);
 			strat.setPortfolio( port );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();

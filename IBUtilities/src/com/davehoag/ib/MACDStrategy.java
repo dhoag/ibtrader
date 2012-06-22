@@ -10,6 +10,7 @@ import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
 import com.davehoag.ib.dataTypes.StockContract;
+import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
 
@@ -28,7 +29,9 @@ public class MACDStrategy implements Strategy {
 	boolean useEma = false;
 	boolean requireTradeConfirmation = true;
 
-	public MACDStrategy(){	}
+	public MACDStrategy(){	
+		init(null);
+	}
 	/**
 	 * 
 	 * @param seeds
@@ -44,20 +47,9 @@ public class MACDStrategy implements Strategy {
 	 * @return
 	 */
 	protected boolean inTradeWindow(final long time){
-		final int hour = getHour(time);
+		final int hour = HistoricalDateManipulation.getHour(time);
 		//don't trade the open or close
 		return hour > 8 & hour < 14;
-	}
-	/**
-	 * @param time
-	 * @return
-	 */
-	protected int getHour(final long time) {
-		final Date d = new Date(time*1000);
-		final Calendar cal = Calendar.getInstance();
-		cal.setTime(d);
-		final int hour = cal.get(cal.HOUR_OF_DAY);
-		return hour;
 	}
 	public LimitOrder newBar(final Bar bar ,final Portfolio port){		
 		smaTrades.newTick(bar.tradeCount);
@@ -71,7 +63,7 @@ public class MACDStrategy implements Strategy {
 				if( smaTrades.isTrendingUp() && sma.isTrendingUp()){
 					order = new LimitOrder(qty, bar.close + .05, true);
 				}
-				else if(!sma.isTrendingUp()){
+				else if(holdings > 0 && !sma.isTrendingUp()){
 					order = new LimitOrder(qty, bar.close -.05, false);
 				}
 			}
