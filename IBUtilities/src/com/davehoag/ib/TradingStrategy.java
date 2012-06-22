@@ -1,5 +1,6 @@
 package com.davehoag.ib;
 
+import java.text.NumberFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -40,7 +41,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		
 		//TODO for now assuming full fills, not partials
 		requester.endRequest(reqId);
-		portfolio.confirm(reqId, contract.m_symbol ,execution.m_price, execution.m_shares);
+		portfolio.confirm(execution.m_orderId, contract.m_symbol ,execution.m_price, execution.m_shares);
 		
 	}
 	/**
@@ -59,7 +60,11 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
 		portfolio.setTime(time);
-		if( time % 60 == 0) Logger.getLogger("MarketData").log(Level.INFO, "Realtime bar : " + reqId + " " + bar);
+		if( time % 60 == 0) { 
+			NumberFormat nf = NumberFormat.getCurrencyInstance();
+			Logger.getLogger("MarketData").log(Level.INFO, "Realtime bar : " + reqId + " " + bar);
+			Logger.getLogger("Portfolio").log(Level.INFO, "Time: " + time + " C: " + nf.format(portfolio.getCash()) + " value " + nf.format( portfolio.getValue(symbol, close)));
+		}
 	
 		final LimitOrder order = strategy.newBar(bar, portfolio);
 		if(order != null){
@@ -79,7 +84,6 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		else{
 			Logger.getLogger("Trading").log(Level.SEVERE, "Order failed failed: " + id+ " " + errorCode + " "+ errorMsg);
 		}
-		
 	}
 	/**
 	 * @param open

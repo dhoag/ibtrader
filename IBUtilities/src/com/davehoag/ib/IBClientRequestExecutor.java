@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.junit.experimental.theories.PotentialAssignment;
+
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -83,24 +85,23 @@ public class IBClientRequestExecutor {
 	 * @param rh
 	 */
 	public int executeOrder(final boolean buy, final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
-		final int id = pushRequest();
-		pushResponseHandler(id, rh);
 		Order order = new Order();
-		order.m_orderType = "LMT";
+		order.m_permId = (((int)(System.currentTimeMillis() / 1000)) << 2);
+		order.m_permId += 2;
+		order.m_orderId = order.m_permId;
 		
+		pushResponseHandler(order.m_orderId, rh);
+
 		order.m_action = buy ? "BUY" : "SELL";
+		order.m_orderType = "LMT";
 		order.m_lmtPrice = price;
 		order.m_totalQuantity = qty;
 
 		order.m_clientId = IBConstants.clientId;
-		order.m_orderId = id;
-		order.m_permId = (int)(System.currentTimeMillis() / 1000);
-		//TODO  sure if IOC and allOrNone are not compatible
-		order.m_orderType = "IOC";
 		order.m_allOrNone = true;
 		order.m_transmit = true;
 		final StockContract contract = new StockContract(symbol);
-		client.placeOrder(id, contract, order);
+		client.placeOrder(order.m_orderId, contract, order);
 		return order.m_orderId;
 	}
 	
@@ -108,8 +109,11 @@ public class IBClientRequestExecutor {
 	 * Populate the portfolio with existing positions
 	 * @param port
 	 */
-	final void initializePortfolio( final Portfolio port ){
-		//TODO actually pull in portfolio data
+	final void initializePortfolio( ){
+		String testAccountName = "DU132661";
+		int reqId = pushRequest();
+		client.reqAccountUpdates(true, testAccountName);
+		
 	}
 	/**
 	 * Find a unique request id. They are reused and I can only have 31
@@ -146,17 +150,20 @@ public class IBClientRequestExecutor {
 		else
 			Logger.getLogger("RequestManager").log(Level.INFO, "[" + reqId + "] Ending request " );
 		
-		int mask = 0xFFFFFFFF;
-		mask = mask ^ reqId;
-		requests = requests & mask;
-		
-		if (requests == 0) {
-			if(rd != null) {
-				rd.log(Level.INFO, "All submitted requests are complete");
+		//A tracked request
+		if(reqId < 1066544174) { 
+			int mask = 0xFFFFFFFF;
+			mask = mask ^ reqId;
+			requests = requests & mask;
+			
+			if (requests == 0) {
+				if(rd != null) {
+					rd.log(Level.INFO, "All submitted requests are complete");
+				}
+				else
+					Logger.getLogger("RequestManager").log(Level.INFO, "All submitted requests are complete");
+				this.notifyAll();
 			}
-			else
-				Logger.getLogger("RequestManager").log(Level.INFO, "All submitted requests are complete");
-			this.notifyAll();
 		}
 		map.remove(id);
 	}
@@ -321,7 +328,6 @@ public class IBClientRequestExecutor {
 	 */
 	public synchronized void pushResponseHandler(final int reqId, final ResponseHandlerDelegate rh){
 		rh.setStartTime(System.currentTimeMillis());
-		
 		map.put(Integer.valueOf(reqId), rh);
 	}
 	/**

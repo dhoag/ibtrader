@@ -24,10 +24,10 @@ public class MACDStrategy implements Strategy {
 	SimpleMovingAvg sma;
 	SimpleMovingAvg smaTrades;
 	int qty = 100;
-	int fastMovingAvg = 12;
-	int slowMovingAvg = 25;
-	boolean useEma = false;
-	boolean requireTradeConfirmation = true;
+	int fastMovingAvg = 5;
+	int slowMovingAvg = 10;
+	boolean useEma = true;
+	boolean requireTradeConfirmation = false;
 
 	public MACDStrategy(){	
 		init(null);
@@ -49,7 +49,7 @@ public class MACDStrategy implements Strategy {
 	protected boolean inTradeWindow(final long time){
 		final int hour = HistoricalDateManipulation.getHour(time);
 		//don't trade the open or close
-		return hour > 8 & hour < 14;
+		return hour > 8 & hour <= 14;
 	}
 	public LimitOrder newBar(final Bar bar ,final Portfolio port){		
 		smaTrades.newTick(bar.tradeCount);
@@ -60,7 +60,7 @@ public class MACDStrategy implements Strategy {
 		if( inTradeWindow(bar.originalTime) ) {
 			//only trade if the # of trades is rising with the cross over
 			if(crossOverEvent){
-				if( smaTrades.isTrendingUp() && sma.isTrendingUp()){
+				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp()){
 					order = new LimitOrder(qty, bar.close + .05, true);
 				}
 				else if(holdings > 0 && !sma.isTrendingUp()){

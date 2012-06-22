@@ -1,8 +1,10 @@
 package com.davehoag.ib;
 
+import java.lang.reflect.Array;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import com.davehoag.ib.dataTypes.Portfolio;
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
@@ -22,7 +24,12 @@ import com.ib.client.UnderComp;
 public class ResponseHandler implements EWrapper {
 
 	IBClientRequestExecutor requester;
+	//There is only one per account
+	Portfolio portfolio = new Portfolio();
 
+	public Portfolio getPortfolio(){
+		return portfolio;
+	}
 	public void setRequestor(final IBClientRequestExecutor req) {
 		requester = req;
 	}
@@ -39,7 +46,18 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {
-		Logger.getLogger("ResponseHandler").log(Level.SEVERE, "[" + id + "]  ERROR:" + errorCode + " '" + errorMsg + "'");
+		int [] informationalCodes = { 2104 ,2106 };
+		boolean inf = false;
+		for(int code: informationalCodes){
+			if(code == errorCode){
+				inf = true;
+				break;
+			}
+		}
+		if(inf)
+			Logger.getLogger("ResponseHandler").log(Level.INFO, "[" + id + "]  "+ errorCode + " '" + errorMsg + "'");
+		else
+			Logger.getLogger("ResponseHandler").log(Level.SEVERE, "[" + id + "]  ERROR:" + errorCode + " '" + errorMsg + "'");
 		
 		if(id > 0){//TODO figure out if I should move the "endRequest" to the delegate. 
 			final ResponseHandlerDelegate ew = requester.getResponseHandler(id);
@@ -129,8 +147,8 @@ public class ResponseHandler implements EWrapper {
 	public void updatePortfolio(Contract contract, int position,
 			double marketPrice, double marketValue, double averageCost,
 			double unrealizedPNL, double realizedPNL, String accountName) {
-		// TODO Auto-generated method stub
-
+		
+		portfolio.update(contract.m_symbol, position);
 	}
 
 	@Override
@@ -171,9 +189,13 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
-		final EWrapper ew = requester.getResponseHandler(reqId);
-		if(ew != null) ew.execDetails(reqId, contract, execution);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + reqId + "] Received execDetails but no delegate registered");
+		EWrapper ew = requester.getResponseHandler(reqId);
+		
+		if(ew == null && execution != null){
+			ew = requester.getResponseHandler(execution.m_orderId);
+		}
+		if(ew != null) ew.execDetails(execution.m_orderId, contract, execution);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + reqId + "] Received execDetails " + contract.m_symbol + " " + execution.m_shares + "@" + execution.m_price + " but no delegate registered");
 	}
 
 	@Override

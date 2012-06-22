@@ -22,13 +22,12 @@ static boolean simulateTrading = false;
 		
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
-		Portfolio port = new Portfolio();
-		clientInterface.initializePortfolio( port );
+		clientInterface.initializePortfolio( );
 		try{
 			TradingStrategy strat = new TradingStrategy(symbol, clientInterface);
 			MACDStrategy macd = new MACDStrategy();
 			strat.setStrategy(macd);
-			strat.setPortfolio( port );
+			strat.setPortfolio( rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
 		}

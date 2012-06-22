@@ -15,7 +15,15 @@ public class Portfolio {
 	double cash = 0;
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
-	
+	/**
+	 * Called at start time when we are initializing the portfolio
+	 * @param symbol
+	 * @param qty
+	 */
+	public void update(final String symbol, final int qty){
+		Logger.getLogger("AccountManagement").log(Level.INFO, "Updating account " + symbol + " " + qty);
+		portfolio.put(symbol, qty);
+	}
 	public void setTime(final long time){
 		currentTime = time;
 		if(HistoricalDateManipulation.isEndOfDay(time)){
