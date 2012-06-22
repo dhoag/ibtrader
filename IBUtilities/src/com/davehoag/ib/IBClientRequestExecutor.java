@@ -82,13 +82,13 @@ public class IBClientRequestExecutor {
 	 * @param price
 	 * @param rh
 	 */
-	public int executeBuyOrder(final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
+	public int executeOrder(final boolean buy, final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
 		final int id = pushRequest();
 		pushResponseHandler(id, rh);
 		Order order = new Order();
-		order.m_clientId = IBConstants.clientId;
 		order.m_orderType = "LMT";
-		order.m_action = "BUY";
+		
+		order.m_action = buy ? "BUY" : "SELL";
 		order.m_lmtPrice = price;
 		order.m_totalQuantity = qty;
 
@@ -103,36 +103,7 @@ public class IBClientRequestExecutor {
 		client.placeOrder(id, contract, order);
 		return order.m_orderId;
 	}
-	/**
-	 * Can only be used to sell a long position, I think I need to use 
-	 * action as SSHORT for a short position
-	 * @param contract
-	 * @param qty
-	 * @param price
-	 * @param rh
-	 * @return
-	 */
-	public int executeSellOrder(final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
-		final int id = pushRequest();
-		pushResponseHandler(id, rh);
-		Order order = new Order();
-		order.m_clientId = id;
-		order.m_orderType = "LMT";
-		order.m_action = "SELL";
-		order.m_lmtPrice = price;
-		order.m_totalQuantity = qty;
-
-		order.m_clientId = IBConstants.clientId;
-		order.m_orderId = id;
-		order.m_permId = (int)(System.currentTimeMillis() / 1000);
-		//TODO  sure if IOC and allOrNone are not compatible
-		order.m_orderType = "IOC";
-		order.m_transmit = true;
-		
-		final StockContract contract = new StockContract(symbol);
-		client.placeOrder(id, contract, order);
-		return order.m_orderId;
-	}
+	
 	/**
 	 * Populate the portfolio with existing positions
 	 * @param port

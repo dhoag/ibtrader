@@ -1,0 +1,112 @@
+package com.davehoag.ib;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.LimitOrder;
+import com.davehoag.ib.dataTypes.Portfolio;
+import com.ib.client.Contract;
+import com.ib.client.Execution;
+
+public class TradingStrategy extends ResponseHandlerDelegate {
+	boolean positionOnTheBooks = false;
+	Strategy entryStrategy;
+	Strategy exitStrategy;
+	final String symbol;
+	public int defaultQty = 100;
+	Portfolio portfolio;
+	
+	public void setPortfolio(Portfolio p){
+		portfolio = p;
+	}
+	public TradingStrategy(String sym, IBClientRequestExecutor exec){
+		super(exec);
+		symbol = sym;
+	}
+	public void setEntryStrategy(Strategy strat){
+		entryStrategy = strat;
+		
+	}
+	public void setExitStrategy(Strategy strat){
+		exitStrategy = strat;
+	}
+	@Override
+	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
+		if(contract.m_symbol.equals(symbol)){
+			
+			//TODO need some logic to account for all orders not actually trading or trading at different prices
+		//	portfolio.confirm(execution.m_execId, execution.m_price, execution.m_side);
+			Logger.getLogger("Trading").log(Level.INFO, "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares + " @ " + execution.m_price );
+		}
+		else{
+			log(Level.SEVERE, "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
+		}
+		
+		//TODO for now assuming full fills, not partials
+		requester.endRequest(reqId);
+		portfolio.confirm(reqId, contract.m_symbol ,execution.m_price, execution.m_shares);
+		
+	}
+	/**
+	 * This method is called once all executions have been sent to a client in response to reqExecutions().
+	 * Shouldn't be called in this case.
+	 */
+	@Override
+	public void execDetailsEnd(int id) {
+		log(Level.SEVERE, "Didn't expect execDetailsEnd " + reqId + " my id is " + reqId + " passed Id is " + id);
+	}
+
+	@Override
+	public void realtimeBar(final int reqId, final long time, final double open, double high,
+			double low, double close, final long volume, final double wap, final int count) {
+		
+		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
+		portfolio.setTime(time);
+
+	
+		final LimitOrder order = exitStrategy.newBar(bar, portfolio);
+		if(order != null){
+			final int orderId = requester.executeOrder(order.isBuy(), order.getSymbol(), order.getShares(), order.getPrice(), this);
+			portfolio.placedOrder(order.isBuy(), orderId, order.getSymbol(), order.getShares(), order.getPrice() );
+		}
+
+	}
+	@Override
+	public void error(int id, int errorCode, String errorMsg) {
+		// TODO need to figure out how to map to my buy or sell so that I can undo it.
+		if( id == reqId) {
+			Logger.getLogger("MarketData").log(Level.SEVERE, "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
+			
+		}
+		else{
+			Logger.getLogger("Trading").log(Level.SEVERE, "Order failed failed: " + id+ " " + errorCode + " "+ errorMsg);
+		}
+		
+	}
+	/**
+	 * @param open
+	 * @param high
+	 * @param low
+	 * @param close
+	 * @param volume
+	 * @param wap
+	 * @param count
+	 * @return
+	 */
+	final protected Bar getBar(final long time, final double open, final double high, final double low, final double close, final long volume,
+			final double wap, final int count) {
+		final Bar bar = new Bar(); 
+		bar.originalTime = time;
+		bar.symbol = symbol;
+		bar.close = close;
+		bar.open = open;
+		bar.high = high;
+		bar.low = low;
+		bar.volume = volume;
+		bar.wap = wap;
+		bar.tradeCount = count;
+		return bar;
+	}
+
+}

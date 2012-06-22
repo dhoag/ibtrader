@@ -20,7 +20,10 @@ public class LaunchTrading {
 		Portfolio port = new Portfolio();
 		clientInterface.initializePortfolio( port );
 		try{
-			MACDStrategy strat = new MACDStrategy(symbol, null, clientInterface);
+			TradingStrategy strat = new TradingStrategy(symbol, clientInterface);
+			MACDStrategy macd = new MACDStrategy();
+			strat.setEntryStrategy(macd);
+			strat.setExitStrategy(macd);
 			strat.setPortfolio( port );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();

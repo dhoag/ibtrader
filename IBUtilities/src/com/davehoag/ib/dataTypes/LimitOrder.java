@@ -4,19 +4,27 @@ import com.ib.client.Contract;
 import com.ib.client.Order;
 
 public class LimitOrder{
-		final public int orderId;
-		final public Contract lmtContract;
-		final public Order lmtOrder;
+		String sym;
+		int shares;
+		double orderPrice;
+		boolean buyOrder;
  
-		public LimitOrder(final int id, final Contract contract, final Order order)
-		{
-			orderId = id;
-			lmtContract = contract;
-			lmtOrder = order;
+		public LimitOrder( final int qty, final double price, final boolean buy ){
+			this(null, qty, price, buy);
+		}
+		public LimitOrder( final String symbol, final int qty, final double price, final boolean buy ){
+			sym = symbol;
+			shares = qty;
+			orderPrice = price;
+			buyOrder = buy;
+		}
+		public void setSymbol(final String symbol){
+			sym = symbol;
 		}
 		public double getPrice(){
-			return lmtOrder.m_lmtPrice;
+			return orderPrice;
 		}
-		public String getSymbol(){ return lmtContract.m_symbol; }
-		public boolean isBuy(){ return lmtOrder.m_action.equals("BUY"); }
+		public String getSymbol(){ return sym; }
+		public boolean isBuy(){ return buyOrder; }
+		public int getShares(){ return shares; }
 }

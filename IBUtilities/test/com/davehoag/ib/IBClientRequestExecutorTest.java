@@ -65,7 +65,7 @@ public class IBClientRequestExecutorTest  {
 	@Test
 	public void sumbitBuyOrder() {
 		CaptureHistoricalDataMock mock = new CaptureHistoricalDataMock();
-		executor.executeBuyOrder("IBM", 100, 203.83, mock);
+		executor.executeOrder(true, "IBM", 100, 203.83, mock);
 		assertNotNull(mock.exec);
 	}
 

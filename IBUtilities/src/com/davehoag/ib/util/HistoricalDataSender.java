@@ -22,7 +22,7 @@ public class HistoricalDataSender {
 	final Contract contract;
 	final ResponseHandler handler;
 	HistoricalDataClient client;
-	ArrayList<LimitOrder> restingOrders = new ArrayList<LimitOrder>();
+	ArrayList<OrderOnBook> restingOrders = new ArrayList<OrderOnBook>();
 	Bar lastBar;
 	
 	public HistoricalDataSender(final int id, final Contract stock, final ResponseHandler rh, HistoricalDataClient sock){
@@ -48,10 +48,10 @@ public class HistoricalDataSender {
 		}
 	}
 	protected void checkRestingOrders(final Bar bar){
-		ArrayList<LimitOrder> executed = new ArrayList<LimitOrder>();
-		for(LimitOrder order: restingOrders){
-			double mktPrice = order.lmtOrder.m_action.equals("BUY") ? bar.low : bar.high;
-			if(isExecutable(order.getPrice(), order.lmtOrder.m_action, mktPrice)){
+		final ArrayList<OrderOnBook> executed = new ArrayList<OrderOnBook>();
+		for(OrderOnBook order: restingOrders){
+			final double mktPrice = order.lmtOrder.m_action.equals("BUY") ? bar.low : bar.high;
+			if(isExecutable(order.lmtOrder.m_lmtPrice, order.lmtOrder.m_action, mktPrice)){
 				executed.add(order);
 				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 			}
@@ -62,7 +62,7 @@ public class HistoricalDataSender {
 	 * Allow fake clients to be plugged in
 	 * @param socket
 	 */
-	public void setClient(HistoricalDataClient socket){
+	public void setClient(final HistoricalDataClient socket){
 		client = socket;
 	}
 	public boolean isExecutable(final double price, final String action){
@@ -77,8 +77,18 @@ public class HistoricalDataSender {
 		addLimitOrder(id, contract, order);
 	}
 	public void addLimitOrder(final int id, final Contract lmtContract, final Order order){
-		LimitOrder lmtOrder = new LimitOrder(id, lmtContract, order);
+		final OrderOnBook lmtOrder = new OrderOnBook(id, lmtContract, order);
 		restingOrders.add(lmtOrder);
+	}
+	class OrderOnBook{
+		int orderId;
+		Contract lmtContract;
+		Order lmtOrder;
+		OrderOnBook(int id, Contract c, Order o){
+			orderId = id;
+			lmtContract = c;
+			lmtOrder = o;
+		}
 	}
 	
 }

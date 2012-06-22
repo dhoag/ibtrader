@@ -43,7 +43,7 @@ public class TestDateManipulator {
 	@Test
 	public void testGetDatesStringCalendarHours() throws Exception{
 		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20120101", today);
-		Assert.assertEquals(300, res.size());
+		Assert.assertEquals(210, res.size());
 
 	}
 	@Test
@@ -52,7 +52,7 @@ public class TestDateManipulator {
 		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
 			String string = (String) iterator.next();
 		}
-		Assert.assertEquals(320, res.size());		
+		Assert.assertEquals(220, res.size());		
 	}
 	@Test
 	public void testGetDatesMoreThan52Hours() throws Exception{
@@ -72,7 +72,7 @@ public class TestDateManipulator {
 		for(String val: res){
 			System.out.println(val);
 		}
-		Assert.assertEquals(50, res.size() );
+		Assert.assertEquals(40, res.size() );
 	}
 	@Test
 	public void testGetDatesStringCalendar() throws Exception{
@@ -86,7 +86,7 @@ public class TestDateManipulator {
 		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
 			String string = (String) iterator.next();
 		}
-		Assert.assertEquals(320, res.size());		
+		Assert.assertEquals(5, res.size());		
 	}
 	@Test
 	public void testGetDatesMoreThan52() throws Exception{
