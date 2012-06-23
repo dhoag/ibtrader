@@ -58,7 +58,7 @@ public class IBClientRequestExecutorTest  {
 		DateFormat df = new SimpleDateFormat( "yyyyMMdd HH:mm:ss");
 		String date = df.format(Calendar.getInstance().getTime() );
 		CaptureHistoricalDataMock mock = new CaptureHistoricalDataMock();
-		executor.reqHistoricalData("IBM", date, mock);
+		executor.reqHistoricalData( "IBM", date, mock);
 		executor.waitForCompletion();
 		assertNotNull(mock.dateVal);
 	}

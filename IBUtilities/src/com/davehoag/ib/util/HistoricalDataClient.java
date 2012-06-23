@@ -91,4 +91,8 @@ public class HistoricalDataClient extends EClientSocket {
 		execution.m_shares = order.m_totalQuantity;
 		rh.execDetails(id, contract, execution);
 	}
+	@Override
+	public void reqAccountUpdates(final boolean keepGetting, final String accountName){
+		//Do nothing
+	}
 }

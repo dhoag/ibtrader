@@ -12,6 +12,7 @@ import java.util.Date;
  *
  */
 public class HistoricalDateManipulation {
+	final static DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 	/**
 	 * Get a list of Dates for which we want data.
 	 * @param startingDateStr
@@ -56,6 +57,9 @@ public class HistoricalDateManipulation {
 		final Date d = df.parse(dateStr );
 		return d.getTime() / 1000;
 	}
+	public static String getDateAsStr(final Date date){
+		return df.format(date);
+	}
 	/**
 	 * From the starting date figure out how how many discrete entries are required to request
 	 * historical data from the given start date.
@@ -66,7 +70,6 @@ public class HistoricalDateManipulation {
 	 * @throws ParseException
 	 */
 	public static ArrayList<String> getDatesBrokenIntoHours(final String startingDateStr, final Calendar today) throws ParseException {
-		final DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 		final ArrayList<String> result = new ArrayList<String>();
 		final Date d = df.parse(startingDateStr + " 00:00:00");
 		Calendar startingDate = Calendar.getInstance();
@@ -91,7 +94,7 @@ public class HistoricalDateManipulation {
 				topDay.add( Calendar.HOUR, 7);
 				for(int i = 0; i < 10; i++){
 					topDay.add( Calendar.HOUR, 1);
-					result.add(df.format(topDay.getTime()));
+					result.add(getDateAsStr(topDay.getTime()));
 				}
 			}
 			startingDate.add( Calendar.DAY_OF_WEEK, 1);

@@ -46,6 +46,7 @@ import me.prettyprint.hector.api.Keyspace;
  *
  */
 public class CassandraDao {
+	
 	private final Cluster cluster = HFactory.getOrCreateCluster("Test Cluster", "localhost:9160");
 	private final StringSerializer stringSerializer = StringSerializer.get();
 	private final LongSerializer longSerializer = LongSerializer.get();
@@ -65,12 +66,12 @@ public class CassandraDao {
 			t.printStackTrace();
 		}
 	}
-	protected void insertHistoricalData(final String symbol, final String dateSecondsStr,
+	protected void insertHistoricalData(final String barSize, final String symbol, final String dateSecondsStr,
 			final double open, final double high, final double low,
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGap)
 	{
-		final String barSize = "bar5sec";
+		
 		final DecimalFormat df = new DecimalFormat("#.##");
 		Long dateSeconds = Long.valueOf(dateSecondsStr);
 		

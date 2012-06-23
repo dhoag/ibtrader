@@ -27,6 +27,7 @@ public class PullStockData {
 		clientInterface.connect();
 		try {
 			StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
+			sh.setBarSize("bar1day");
 			clientInterface.reqHistoricalData(symbol, startDateStr, sh);
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {

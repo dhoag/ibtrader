@@ -1,8 +1,13 @@
 package com.davehoag.ib;
 
 import java.text.DecimalFormat;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import com.davehoag.ib.util.HistoricalDateManipulation;
 
 /**
  * Write the historical data to Cassandra
@@ -12,10 +17,36 @@ import java.util.logging.Logger;
 public class StoreHistoricalData extends ResponseHandlerDelegate {
 	final String sym; 
 	CassandraDao dao = new CassandraDao();
+	String barSize =  "bar5sec";
+	
 	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
 		super(ibInterface);
 		sym = symbol;
 		
+	}
+	public String getBar(){ 
+		if(barSize.equals("bar1day")) return IBConstants.bar1day;
+		if (barSize.equals("bar15min")) return IBConstants.bar15min;
+		if (barSize.equals("bar5sec")) return IBConstants.bar5sec;
+		return IBConstants.bar1day;
+	}
+	public void setBarSize(final String aBarSize){
+		barSize = aBarSize;
+	}
+	public String getDuration(){
+		if(barSize.equals("bar1day")) return IBConstants.dur1year;
+		if (barSize.equals("bar15min")) return IBConstants.dur1week;
+		if (barSize.equals("bar5sec")) return IBConstants.dur1hour;
+		return IBConstants.dur1hour;
+	}
+	public ArrayList<String> getDates(String startingDate) throws ParseException{
+		ArrayList<String> dates = new ArrayList<String>();
+		
+		if(barSize.equals("bar1day")) dates.add(HistoricalDateManipulation.getDateAsStr(Calendar.getInstance().getTime()));
+		else if (barSize.equals("bar5sec")) dates = HistoricalDateManipulation.getDatesBrokenIntoHours(startingDate);
+		else if (barSize.equals("bar15min")) dates = HistoricalDateManipulation.getDatesBrokenIntoWeeks(startingDate, Calendar.getInstance());
+		
+		return dates;
 	}
 	/**
 	 * Provide some context to the log information.
@@ -32,7 +63,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGaps) {
 
-		dao.insertHistoricalData(sym, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
+		dao.insertHistoricalData(barSize, sym, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
 		countOfRecords++;
 		/*DecimalFormat df = new DecimalFormat("#.##");
 		System.out.println("His Data for " + sym + " - Req: " + reqId + " " + dateStr + " O:"

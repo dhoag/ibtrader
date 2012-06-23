@@ -3,6 +3,7 @@ package com.davehoag.ib;
 import java.text.ParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -239,8 +240,9 @@ public class IBClientRequestExecutor {
 	 * @param date
 	 *            First day for which we want historical data Format like
 	 *            "YYYYMMDD"
+	 * @param rh For now, force to be the ResponseHandlerDelegate that writes the data out
 	 */
-	public void reqHistoricalData(final String symbol, final String date, final ResponseHandlerDelegate rh) throws ParseException {
+	public void reqHistoricalData(final String symbol, final String date, final StoreHistoricalData rh) throws ParseException {
 		final StockContract stock = new StockContract(symbol);
 		reqHisData(date, stock, rh );
 		rh.log(Level.INFO, "History data request(s) starting " + date + " " + symbol);
@@ -252,11 +254,12 @@ public class IBClientRequestExecutor {
 	 * @param stock
 	 * @throws ParseException
 	 */
-	protected void reqHisData(final String startingDate, final StockContract stock, final ResponseHandlerDelegate rh)
+	protected void reqHisData(final String startingDate, final StockContract stock, final StoreHistoricalData rh)
 			throws ParseException {
 
+		
 		// Get dates one hour apart that will retrieve the historical data
-		ArrayList<String> dates = HistoricalDateManipulation.getDatesBrokenIntoHours(startingDate);
+		ArrayList<String> dates = rh.getDates(startingDate);
 		final int markerRequestId = pushRequest();
 		boolean first = true;
 		for (final String date : dates) {
@@ -267,7 +270,7 @@ public class IBClientRequestExecutor {
 					rh.log(Level.INFO,
 							"Submitting request for historical data " + reqId + " " + date + " " + stock.m_symbol);
 
-					client.reqHistoricalData(reqId, stock, date, IBConstants.dur1hour, IBConstants.bar5sec,
+					client.reqHistoricalData(reqId, stock, date, rh.getDuration(), rh.getBar(),
 							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);
 
 				}
