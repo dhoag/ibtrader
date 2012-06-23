@@ -20,14 +20,16 @@ public class PullStockData {
 	public static void main(String[] args) {
 		String symbol = args[0];
 		String startDateStr = args[1];
-		
+		String barSize = args[2];
+
 		ResponseHandler rh = new ResponseHandler();
 		EClientSocket  m_client = new EClientSocket( rh );
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		try {
 			StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
-			sh.setBarSize("bar1day");
+			if( ! sh.isValidSize(barSize) ) throw new IllegalArgumentException("Bar size unknown " + barSize );
+			sh.setBarSize( barSize );
 			clientInterface.reqHistoricalData(symbol, startDateStr, sh);
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {

@@ -24,6 +24,14 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		sym = symbol;
 		
 	}
+	public boolean isValidSize(final String size){
+		switch(size){
+			case "bar1day":
+			case "bar15min" :
+			case "bar5sec" : return true;
+		}
+		return false;
+	}
 	public String getBar(){ 
 		if(barSize.equals("bar1day")) return IBConstants.bar1day;
 		if (barSize.equals("bar15min")) return IBConstants.bar15min;
