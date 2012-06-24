@@ -24,6 +24,10 @@ public class Portfolio {
 		Logger.getLogger("AccountManagement").log(Level.INFO, "Updating account " + symbol + " " + qty);
 		portfolio.put(symbol, qty);
 	}
+	/**
+	 * IB API approach with time in seconds 
+	 * @param time
+	 */
 	public void setTime(final long time){
 		currentTime = time;
 		if(HistoricalDateManipulation.isEndOfDay(time)){

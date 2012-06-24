@@ -57,6 +57,10 @@ public class HistoricalDateManipulation {
 		final Date d = df.parse(dateStr );
 		return d.getTime() / 1000;
 	}
+	public static String getDateAsStr(final long seconds){
+		final Date d = new Date(seconds*1000);
+		return getDateAsStr(d);
+	}
 	public static String getDateAsStr(final Date date){
 		return df.format(date);
 	}

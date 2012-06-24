@@ -34,7 +34,7 @@ public class HistoricalDataSender {
 	public void sendData() {
 		CassandraDao dao = new CassandraDao();
 		try { 
-			Iterator<Bar> data = dao.getData(contract.m_symbol);
+			Iterator<Bar> data = dao.getData(contract.m_symbol, 30, 0);
 			while(data.hasNext()){
 				final Bar bar = data.next();
 				checkRestingOrders(bar);

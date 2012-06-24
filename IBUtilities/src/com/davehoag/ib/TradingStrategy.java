@@ -24,7 +24,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		super(exec);
 		symbol = sym;
 	}
-	public void setStrategy(Strategy strat){
+	public void setStrategy(final Strategy strat){
 		strategy = strat;
 	}
 	@Override
@@ -54,8 +54,8 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	}
 
 	@Override
-	public void realtimeBar(final int reqId, final long time, final double open, double high,
-			double low, double close, final long volume, final double wap, final int count) {
+	public void realtimeBar(final int reqId, final long time, final double open, final double high,
+			final double low, final double close, final long volume, final double wap, final int count) {
 
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
@@ -75,7 +75,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 
 	}
 	@Override
-	public void error(int id, int errorCode, String errorMsg) {
+	public void error(final int id, final int errorCode, final String errorMsg) {
 		// TODO need to figure out how to map to my buy or sell so that I can undo it.
 		if( id == reqId) {
 			Logger.getLogger("MarketData").log(Level.SEVERE, "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);

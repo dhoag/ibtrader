@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 
 import java.text.DecimalFormat;
 import java.text.ParseException;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -184,7 +185,9 @@ public class CassandraDao {
 
     }
     public void query3() throws ParseException{
-    	Iterator<Bar> bars = getData("QQQ");
+        final long start = HistoricalDateManipulation.getTime("20111101 07:00:00");
+        final long finish = HistoricalDateManipulation.getTime("20111101 16:00:00");
+    	Iterator<Bar> bars = getData("QQQ", start, finish);
     	while(bars.hasNext()){
     		System.out.println(bars.next());
     	}
@@ -204,14 +207,18 @@ public class CassandraDao {
     /**
      * 
      * @param symbol
+     * @param start < 1000 and finish is zero, go back that many days
+     * 		
      * @return
      * @throws ParseException 
      */
-    public Iterator<Bar> getData(final String symbol) throws ParseException{
-
+    public Iterator<Bar> getData(final String symbol, final long start, final long finish) {
+    	final long actualFinish = finish < 1000 ? Calendar.getInstance().getTimeInMillis() / 1000 : finish;
+    	final long actualStart = start < 1000 ? actualFinish - 24*60*start : start;
+    	
     	return new Iterator<Bar>(){
-    		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol);
-    		final HashMap<String, List<HColumn<Long, Long>>> volData = getHistoricalData(symbol);
+    		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol, actualStart, actualFinish);
+    		final HashMap<String, List<HColumn<Long, Long>>> volData = getHistoricalData(symbol, actualStart,actualFinish);
     		int count = 0;
 			@Override
 			public boolean hasNext() {
@@ -237,10 +244,19 @@ public class CassandraDao {
 			@Override
 			public void remove() {
 				// TODO Auto-generated method stub
-				
 			}
-    		
     	};
+    }
+    /**
+     * 
+     * @param symbol
+     * @param seconds
+     * @return
+     */
+    public Bar getYesterday(final String symbol, final long seconds){
+    	Iterator<Bar> bars = getData(symbol, seconds - 24*60*60, seconds);
+    	if(bars.hasNext()) return bars.next();
+    	throw new IllegalArgumentException("No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
     }
     /**
      * Get the price data 
@@ -248,12 +264,10 @@ public class CassandraDao {
      * @return
      * @throws ParseException
      */
-    public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol) throws ParseException{
+    public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol, final long start, final long finish) {
     	final HashMap<String, List<HColumn<Long, Double>>> result = new HashMap<String, List<HColumn<Long, Double>>>();
         RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
         priceQuery.setColumnFamily("bar5sec");
-        final Long start = Long.valueOf(HistoricalDateManipulation.getTime("20111101 07:00:00"));
-        final Long finish = Long.valueOf(HistoricalDateManipulation.getTime("20111101 16:00:00"));
         priceQuery.setRange(start, finish, false, 12*60*8);
         
         for(String key: priceKeys){
@@ -270,12 +284,10 @@ public class CassandraDao {
      * @return
      * @throws ParseException
      */
-    public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol) throws ParseException{
+    public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol, final long start, final long finish) {
     	final HashMap<String, List<HColumn<Long, Long>>> result = new HashMap<String, List<HColumn<Long, Long>>>();
         SliceQuery<String, Long, Long> priceQuery = HFactory.createSliceQuery(keyspace, stringSerializer, longSerializer, longSerializer);
         priceQuery.setColumnFamily("bar5sec");
-        final Long start = Long.valueOf(HistoricalDateManipulation.getTime("20111101 07:00:00"));
-        final Long finish = Long.valueOf(HistoricalDateManipulation.getTime("20111101 16:00:00"));
         priceQuery.setRange(start, finish, false, 12*60*8);
         
         for(String key: longKeys ){
