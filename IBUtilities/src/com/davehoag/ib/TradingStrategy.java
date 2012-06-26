@@ -11,18 +11,23 @@ import com.ib.client.Contract;
 import com.ib.client.Execution;
 
 public class TradingStrategy extends ResponseHandlerDelegate {
+	
 	boolean positionOnTheBooks = false;
 	Strategy strategy;
 	final String symbol;
 	public int defaultQty = 100;
 	Portfolio portfolio;
+	long initialTimeStamp;
+
+	public TradingStrategy(final String sym, final Strategy strat, final IBClientRequestExecutor exec, final Portfolio port){
+		super(exec);
+		symbol = sym;
+		portfolio =port;
+		strategy = strat;
+	}
 	
 	public void setPortfolio(Portfolio p){
 		portfolio = p;
-	}
-	public TradingStrategy(final String sym,final IBClientRequestExecutor exec){
-		super(exec);
-		symbol = sym;
 	}
 	public void setStrategy(final Strategy strat){
 		strategy = strat;
@@ -60,6 +65,15 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
 		portfolio.setTime(time);
+		if(time - initialTimeStamp > (24*60*60)){
+			try { 
+			final Bar yest = CassandraDao.getInstance().getYesterday(symbol, time);
+			portfolio.setYesterday( yest );
+			} catch(Exception ex){
+				Logger.getLogger("MarketData").log(Level.WARNING, "Error getting yesterday", ex);
+			}
+			initialTimeStamp = time;
+		}
 		if( time % 60 == 0) { 
 			NumberFormat nf = NumberFormat.getCurrencyInstance();
 			Logger.getLogger("MarketData").log(Level.INFO, "Realtime bar : " + reqId + " " + bar);
@@ -70,7 +84,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		if(order != null){
 			if(order.getSymbol() == null ) order.setSymbol(symbol);
 			portfolio.placedOrder(order.isBuy(), 0, order.getSymbol(), order.getShares(), order.getPrice() );
-			final int orderId = requester.executeOrder(order.isBuy(), order.getSymbol(), order.getShares(), order.getPrice(), this);
+			requester.executeOrder(order.isBuy(), order.getSymbol(), order.getShares(), order.getPrice(), this);
 		}
 
 	}

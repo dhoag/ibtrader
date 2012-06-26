@@ -12,6 +12,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -57,12 +59,19 @@ public class CassandraDao {
 	
 	private final String [] priceKeys = { ":open", ":close", ":high", ":low", ":wap" };
 	private final String [] longKeys = { ":vol", ":tradeCount" };
+	final static CassandraDao dao = new CassandraDao();
+	public static CassandraDao getInstance(){
+		return dao;
+	}
 	public static void main(String [] args){
 		try{
-			CassandraDao dao = new CassandraDao();
-			//new CassandraDao().insertHistoricalData( "IBM", "23423422", 12.3d, 14,15,12,23,2312,33,true);
-	
-			dao.query3();		
+			System.out.println(Calendar.getInstance().getTimeInMillis());
+			Iterator<Bar> bars = dao.getData("SPY", 1, 0, "bar1day");
+			while(bars.hasNext()){
+				Bar aBar =bars.next();
+				System.out.println(aBar);
+			}
+					
 		} catch(Throwable t){
 			t.printStackTrace();
 		}
@@ -76,122 +85,34 @@ public class CassandraDao {
 		final DecimalFormat df = new DecimalFormat("#.##");
 		Long dateSeconds = Long.valueOf(dateSecondsStr);
 		
-		final HColumn<Long, Double> openCol = HFactory.createColumn(dateSeconds, open, longSerializer, doubleSerializer);
-		final HColumn<Long, Double> closeCol = HFactory.createColumn(dateSeconds, close, longSerializer, doubleSerializer);
-		final HColumn<Long, Double> highCol = HFactory.createColumn(dateSeconds, high, longSerializer, doubleSerializer);
-		final HColumn<Long, Double> lowCol = HFactory.createColumn(dateSeconds, low, longSerializer, doubleSerializer);
-		final HColumn<Long, Double> wapCol = HFactory.createColumn(dateSeconds, WAP, longSerializer, doubleSerializer);
-		final HColumn<Long, Long> volumeCol = HFactory.createColumn(dateSeconds, Long.valueOf(volume), longSerializer, longSerializer);
-		final HColumn<Long, Long> tradeCountCol = HFactory.createColumn(dateSeconds, Long.valueOf(count), longSerializer, longSerializer);
-		final HColumn<Long, Boolean> hasGapCol = HFactory.createColumn(dateSeconds, Boolean.valueOf(hasGap), longSerializer, booleanSerializer);
-		
 	    final Mutator<String> m = HFactory.createMutator(keyspace, stringSerializer);
 
 	    String key = symbol + ":open";
+		final HColumn<Long, Double> openCol = HFactory.createColumn(dateSeconds, open, longSerializer, doubleSerializer);
 	    m.addInsertion( key, barSize, openCol );
 	    key = symbol + ":close";
+		final HColumn<Long, Double> closeCol = HFactory.createColumn(dateSeconds, close, longSerializer, doubleSerializer);
 	    m.addInsertion( key, barSize, closeCol );
 	    key = symbol + ":high";
+		final HColumn<Long, Double> highCol = HFactory.createColumn(dateSeconds, high, longSerializer, doubleSerializer);
 	    m.addInsertion( key, barSize, highCol );
 	    key = symbol + ":low";
+		final HColumn<Long, Double> lowCol = HFactory.createColumn(dateSeconds, low, longSerializer, doubleSerializer);
 	    m.addInsertion( key, barSize, lowCol );
 	    key = symbol + ":wap";
+		final HColumn<Long, Double> wapCol = HFactory.createColumn(dateSeconds, WAP, longSerializer, doubleSerializer);
 	    m.addInsertion( key, barSize, wapCol );
 	    key = symbol + ":vol";
+		final HColumn<Long, Long> volumeCol = HFactory.createColumn(dateSeconds, Long.valueOf(volume), longSerializer, longSerializer);
 	    m.addInsertion( key, barSize, volumeCol );
 	    key = symbol + ":tradeCount";
+		final HColumn<Long, Long> tradeCountCol = HFactory.createColumn(dateSeconds, Long.valueOf(count), longSerializer, longSerializer);
 	    m.addInsertion( key, barSize, tradeCountCol);
 	    key = symbol + ":hasGap";
+		final HColumn<Long, Boolean> hasGapCol = HFactory.createColumn(dateSeconds, Boolean.valueOf(hasGap), longSerializer, booleanSerializer);
 	    m.addInsertion( key, barSize, hasGapCol);
 	    m.execute();
 	}
-	public void query(){
-	    ColumnQuery<Long, String, String> q = createColumnQuery(keyspace, longSerializer, stringSerializer, stringSerializer);
-	    Long key = Long.valueOf(1337783400);
-	    QueryResult<HColumn<String, String>> r = q.setKey(key).
-	        setName("symbol").
-	        setColumnFamily("15sec_candles").
-	        execute();
-	    HColumn<String, String> c = r.get();
-	    System.out.println( " Result: " + c == null ? null : c.getValue());
-	    
-	    long start = (new Date().getTime() / 1000) - (120*24*60*60);
-	    long end = new Date().getTime() / 1000;
-	    System.out.println("S " + start + " " + end);
-	    Iterable<Long> it = new KeyIterator<Long>(keyspace,"15sec_candles" , longSerializer, start, end);
-
-	    int tot = 0;
-	    Long lastKey = null;
-	    for (Long keyVal : it){
-	    	lastKey = keyVal;
-		    ColumnFamilyTemplate<Long, String> template = new ThriftColumnFamilyTemplate<Long, String>(keyspace, "15sec_candles", longSerializer, stringSerializer);
-		    template.addColumn("symbol", stringSerializer);
-		    template.addColumn("open", stringSerializer);
-		    template.addColumn("close", stringSerializer);
-		    template.addColumn("wap", stringSerializer);
-		    template.addColumn("high", stringSerializer);
-		    template.addColumn("low", stringSerializer);
-		    template.addColumn("volume", longSerializer);
-		    template.addColumn("tradeCount", longSerializer);
-		    template.addColumn("hasGaps", booleanSerializer);
-		    ColumnFamilyResult wrapper = template.queryColumns(lastKey);
-	        String sym = wrapper.getString("symbol");
-		    double open= Double.valueOf(wrapper.getString("open"));
-		    double close = Double.valueOf( wrapper.getString("close"));
-		    double high = Double.valueOf(wrapper.getString("high"));
-		    double low = Double.valueOf(wrapper.getString("low"));
-		    double WAP = Double.valueOf(wrapper.getString("wap"));
-		    int volume = wrapper.getLong("volume").intValue();
-		    int count =  wrapper.getLong("tradeCount").intValue();
-		    boolean hasGap = false;
-	        System.out.print(keyVal);
-		    System.out.print( "," + sym);
-		    System.out.print( "," + open);
-		    System.out.print( "," + close);	
-		    System.out.print( "," + high);	 
-		    System.out.print( "," + low);
-		    System.out.print( "," + WAP);	    
-		    System.out.print( "," + volume );	    
-		    System.out.print( "," + count);	 
-		    System.out.println( "," + hasGap); 
-		    //Used to migrate to new structure
-		    //insertHistoricalData(sym, String.valueOf(keyVal),  open, high, low, close, volume, count, WAP, hasGap);
-	    }	    
-	}
-    public void query2(){
-        RangeSlicesQuery<String, Long, Boolean> rangeSlicesQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, booleanSerializer);
-        rangeSlicesQuery.setColumnFamily("bar5sec");
-        rangeSlicesQuery.setKeys("SPY:hasGap", "SPY:hasGap");
-	    long start = (new Date().getTime() / 1000) - (4*24*60*60);
-	    long end = new Date().getTime() / 1000;
-        rangeSlicesQuery.setRange(end, start, true, 20);
-        QueryResult<OrderedRows<String, Long, Boolean>> result = rangeSlicesQuery.execute();
-        Rows<String, Long, Boolean> rows = result.get();
-        printFirstRow(rows);
-
-        RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
-        priceQuery.setKeys("QQQ:close", "QQQ:close");
-        priceQuery.setColumnFamily("bar5sec");
-        priceQuery.setRange(end, start, true, 2);
-        QueryResult<OrderedRows<String, Long, Double>> priceResults = priceQuery.execute();
-        Rows<String, Long, Double> closeRows = priceResults.get();
-        priceQuery.setKeys("QQQ:wap", "QQQ:wap");
-        priceResults = priceQuery.execute();
-        Rows<String, Long, Double> wapRows = priceResults.get();
-        printFirstRow(closeRows);
-        printFirstRow(wapRows);
-        
-        printColumns( closeRows.getByKey("QQQ:close"), wapRows.getByKey("QQQ:wap"));
-
-    }
-    public void query3() throws ParseException{
-        final long start = HistoricalDateManipulation.getTime("20111101 07:00:00");
-        final long finish = HistoricalDateManipulation.getTime("20111101 16:00:00");
-    	Iterator<Bar> bars = getData("QQQ", start, finish);
-    	while(bars.hasNext()){
-    		System.out.println(bars.next());
-    	}
-    }
     
     < V> void printFirstRow(Rows<String, Long, V> rows ){
     	
@@ -212,13 +133,23 @@ public class CassandraDao {
      * @return
      * @throws ParseException 
      */
-    public Iterator<Bar> getData(final String symbol, final long start, final long finish) {
-    	final long actualFinish = finish < 1000 ? Calendar.getInstance().getTimeInMillis() / 1000 : finish;
-    	final long actualStart = start < 1000 ? actualFinish - 24*60*start : start;
+    public Iterator<Bar> getData(final String symbol, long start, final long finish, final String cf) {
     	
-    	return new Iterator<Bar>(){
-    		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol, actualStart, actualFinish);
-    		final HashMap<String, List<HColumn<Long, Long>>> volData = getHistoricalData(symbol, actualStart,actualFinish);
+    	final long actualFinish =  getToday(start, finish);
+    	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
+    	Logger.getLogger("MarketData").log(Level.INFO, "Getting "  + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	return getDataIterator(symbol, actualFinish, actualStart, cf);
+    }
+	/**
+	 * @param symbol
+	 * @param actualFinish
+	 * @param actualStart
+	 * @return
+	 */
+	protected Iterator<Bar> getDataIterator(final String symbol, final long actualFinish, final long actualStart, final String cf) {
+		return new Iterator<Bar>(){
+    		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol, actualStart, actualFinish, cf);
+    		final HashMap<String, List<HColumn<Long, Long>>> volData = getHistoricalData(symbol, actualStart,actualFinish, cf);
     		int count = 0;
 			@Override
 			public boolean hasNext() {
@@ -246,15 +177,38 @@ public class CassandraDao {
 				// TODO Auto-generated method stub
 			}
     	};
-    }
+	}
+	/**
+	 * If finish < 1000 figure to use today as the date. 
+	 * If start is also < 1000, then we are counting back N # of days ,so if it's monday or sunday
+	 * move the date back to Saturday as the starting point from which to count back
+	 * otherwise just leave start as it is
+	 * @param start
+	 * @param finish
+	 * @return
+	 */
+	protected long getToday(final long start, final long finish) {
+		long todayInSeconds = finish;
+    	if(finish < 1000) {
+        	Calendar today = Calendar.getInstance();
+        	if( start  < 1000 ){
+        		if( today.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY ) today.add(Calendar.HOUR, -2*24);
+        		else 
+        		if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) today.add(Calendar.HOUR, -24);
+    		} 
+    		//Actual start date, so just put today in there
+    		todayInSeconds = today.getTimeInMillis() / 1000;
+    	}
+		return todayInSeconds;
+	}
     /**
      * 
      * @param symbol
      * @param seconds
-     * @return
+     * @return throws an exception if no data from yesterday
      */
     public Bar getYesterday(final String symbol, final long seconds){
-    	Iterator<Bar> bars = getData(symbol, seconds - 24*60*60, seconds);
+    	Iterator<Bar> bars = getData(symbol, 1, seconds, "bar1day");
     	if(bars.hasNext()) return bars.next();
     	throw new IllegalArgumentException("No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
     }
@@ -264,10 +218,10 @@ public class CassandraDao {
      * @return
      * @throws ParseException
      */
-    public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol, final long start, final long finish) {
+    protected HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol, final long start, final long finish, final String cf) {
     	final HashMap<String, List<HColumn<Long, Double>>> result = new HashMap<String, List<HColumn<Long, Double>>>();
         RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
-        priceQuery.setColumnFamily("bar5sec");
+        priceQuery.setColumnFamily(cf);
         priceQuery.setRange(start, finish, false, 12*60*8);
         
         for(String key: priceKeys){
@@ -284,16 +238,17 @@ public class CassandraDao {
      * @return
      * @throws ParseException
      */
-    public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol, final long start, final long finish) {
+    protected HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol, final long start, final long finish, final String cf) {
     	final HashMap<String, List<HColumn<Long, Long>>> result = new HashMap<String, List<HColumn<Long, Long>>>();
         SliceQuery<String, Long, Long> priceQuery = HFactory.createSliceQuery(keyspace, stringSerializer, longSerializer, longSerializer);
-        priceQuery.setColumnFamily("bar5sec");
+        priceQuery.setColumnFamily(cf);
         priceQuery.setRange(start, finish, false, 12*60*8);
         
         for(String key: longKeys ){
         	String rowKey = symbol + key;
             priceQuery.setKey(rowKey);
             List<HColumn<Long, Long>> column = priceQuery.execute().get().getColumns();
+    System.out.println(rowKey + " " + cf + " " + start + " " + finish + " " + column.size());
             result.put(rowKey, column);
         }
     	return result;

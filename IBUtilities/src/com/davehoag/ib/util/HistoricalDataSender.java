@@ -18,6 +18,9 @@ import com.ib.client.Order;
  *
  */
 public class HistoricalDataSender {
+	final static String defaultHistoricalDataBarSize = "bar5sec";
+	final static int daysToBackTest = 30;
+	
 	final int reqId;
 	final Contract contract;
 	final ResponseHandler handler;
@@ -34,7 +37,7 @@ public class HistoricalDataSender {
 	public void sendData() {
 		CassandraDao dao = new CassandraDao();
 		try { 
-			Iterator<Bar> data = dao.getData(contract.m_symbol, 30, 0);
+			Iterator<Bar> data = dao.getData(contract.m_symbol, daysToBackTest, 0, defaultHistoricalDataBarSize);
 			while(data.hasNext()){
 				final Bar bar = data.next();
 				checkRestingOrders(bar);

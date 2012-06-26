@@ -53,7 +53,6 @@ public class HistoricalDateManipulation {
 	 * @throws ParseException
 	 */
 	public static long getTime(String dateStr) throws ParseException{
-		final DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 		final Date d = df.parse(dateStr );
 		return d.getTime() / 1000;
 	}

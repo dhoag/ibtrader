@@ -15,6 +15,14 @@ public class Portfolio {
 	double cash = 0;
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
+	Bar yesterday;
+	/**
+	 * sometimes knowing yesterday's data is valuable. Could be null 
+	 * @param aOneDayBar
+	 */
+	public void setYesterday(final Bar aOneDayBar){
+		yesterday = aOneDayBar;
+	}
 	/**
 	 * Called at start time when we are initializing the portfolio
 	 * @param symbol

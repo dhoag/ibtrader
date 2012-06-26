@@ -7,7 +7,7 @@ import com.ib.client.EClientSocket;
 
 
 public class LaunchTrading {
-static boolean simulateTrading = false;
+static boolean simulateTrading = true;
 	/**
 	 * @param args
 	 */
@@ -24,10 +24,8 @@ static boolean simulateTrading = false;
 		clientInterface.connect();
 		clientInterface.initializePortfolio( );
 		try{
-			TradingStrategy strat = new TradingStrategy(symbol, clientInterface);
 			MACDStrategy macd = new MACDStrategy();
-			strat.setStrategy(macd);
-			strat.setPortfolio( rh.getPortfolio() );
+			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
 		}

@@ -16,7 +16,6 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  */
 public class StoreHistoricalData extends ResponseHandlerDelegate {
 	final String sym; 
-	CassandraDao dao = new CassandraDao();
 	String barSize =  "bar5sec";
 	
 	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
@@ -71,13 +70,29 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGaps) {
 
-		dao.insertHistoricalData(barSize, sym, dateStr, open, high, low, close, volume, count, WAP, hasGaps);
+		final String actualDateStr = getModifiedDateString(dateStr);
+		CassandraDao.getInstance().insertHistoricalData(barSize, sym, actualDateStr, open, high, low, close, volume, count, WAP, hasGaps);
 		countOfRecords++;
-		/*DecimalFormat df = new DecimalFormat("#.##");
+		/* DecimalFormat df = new DecimalFormat("#.##");
 		System.out.println("His Data for " + sym + " - Req: " + reqId + " " + dateStr + " O:"
 				+ df.format(open) + " C:" + df.format(close) + " H:"
 				+ df.format(high) + " W:" + df.format(WAP) + " L:"
 				+ df.format(low) + " V:" + volume + " #:" + count + " gaps?"
-				+ hasGaps); */
+				+ hasGaps);  */
+	}
+	/**
+	 * @param dateStr
+	 * @return
+	 */
+	protected String getModifiedDateString(final String dateStr) {
+		String actualDateStr = dateStr; 
+		if(barSize.equals("bar1day"))
+		try{ //dates are not in seconds, since I don't want quries to worry about bar size convert to seconds
+			long dateInSeconds  = HistoricalDateManipulation.getTime(dateStr + " 16:00:00");
+			actualDateStr = "" + dateInSeconds;
+		}catch(ParseException ex){
+			throw new IllegalStateException("Should not get parse errors with 1 day bars");
+		}
+		return actualDateStr;
 	}
 }
