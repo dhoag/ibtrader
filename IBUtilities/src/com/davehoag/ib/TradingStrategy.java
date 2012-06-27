@@ -62,18 +62,8 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	public void realtimeBar(final int reqId, final long time, final double open, final double high,
 			final double low, final double close, final long volume, final double wap, final int count) {
 
-
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
-		portfolio.setTime(time);
-		if(time - initialTimeStamp > (24*60*60)){
-			try { 
-			final Bar yest = CassandraDao.getInstance().getYesterday(symbol, time);
-			portfolio.setYesterday( yest );
-			} catch(Exception ex){
-				Logger.getLogger("MarketData").log(Level.WARNING, "Error getting yesterday", ex);
-			}
-			initialTimeStamp = time;
-		}
+		updatePortfolioTime(time);
 		if( time % 60 == 0) { 
 			NumberFormat nf = NumberFormat.getCurrencyInstance();
 			Logger.getLogger("MarketData").log(Level.INFO, "Realtime bar : " + reqId + " " + bar);
@@ -87,6 +77,27 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			requester.executeOrder(order.isBuy(), order.getSymbol(), order.getShares(), order.getPrice(), this);
 		}
 
+	}
+
+	/**
+	 * @param time
+	 */
+	final protected void updatePortfolioTime(final long time) {
+		portfolio.setTime(time);
+		//if time is 10 hours beyond the last check, update "yesterday"
+		if(time - initialTimeStamp > (10*60*60)){
+			try { 
+				initialTimeStamp = time;
+				final Bar yest = CassandraDao.getInstance().getYesterday(symbol, time);
+				if(yest != null){
+					initialTimeStamp = yest.originalTime;
+				}
+				portfolio.setYesterday( yest );
+			} catch(Exception ex){
+				Logger.getLogger("MarketData").log(Level.WARNING, "Error getting yesterday", ex);
+			}
+			
+		}
 	}
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {

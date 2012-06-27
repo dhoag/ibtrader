@@ -1,7 +1,5 @@
 package com.davehoag.ib;
 
-
-import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.ib.client.EClientSocket;
 

@@ -9,7 +9,6 @@ import java.util.Date;
 /**
  * Facilitate different breakdown ranges to conform with IB constraints
  * @author thinkpad7
- *
  */
 public class HistoricalDateManipulation {
 	final static DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
@@ -24,7 +23,20 @@ public class HistoricalDateManipulation {
 		
 		return getDatesBrokenIntoHours(startingDateStr, today);
 	}
-
+	/**
+	 * Tweak the time to be 8:30, the time of the first bar
+	 * @param time
+	 * @return
+	 */
+	public static long getOpen(final long time){
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		cal.setTime(d);
+		cal.set(Calendar.HOUR_OF_DAY, 8);
+		cal.set(Calendar.MINUTE, 30);
+		cal.set(Calendar.SECOND, 0);
+		return cal.getTimeInMillis() / 1000;
+	}
 	/**
 	 * @param time
 	 * @return
@@ -36,7 +48,11 @@ public class HistoricalDateManipulation {
 		final int hour = cal.get(cal.HOUR_OF_DAY);
 		return hour;
 	}
-	
+	/**
+	 * 
+	 * @param time
+	 * @return
+	 */
 	public static boolean isEndOfDay(final long time){
 		final Date d = new Date(time*1000);
 		final Calendar cal = Calendar.getInstance();

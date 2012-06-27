@@ -1,10 +1,5 @@
 package com.davehoag.ib;
 
-import static me.prettyprint.hector.api.factory.HFactory.createColumnQuery;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.Calendar;
@@ -18,27 +13,16 @@ import java.util.logging.Logger;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
-import me.prettyprint.cassandra.model.CqlQuery;
-import me.prettyprint.cassandra.model.CqlRows;
 import me.prettyprint.cassandra.serializers.BooleanSerializer;
 import me.prettyprint.cassandra.serializers.DoubleSerializer;
 import me.prettyprint.cassandra.serializers.LongSerializer;
 import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.cassandra.service.KeyIterator;
-import me.prettyprint.cassandra.service.template.ColumnFamilyResult;
-import me.prettyprint.cassandra.service.template.ColumnFamilyTemplate;
-import me.prettyprint.cassandra.service.template.ThriftColumnFamilyTemplate;
 import me.prettyprint.hector.api.beans.ColumnSlice;
 import me.prettyprint.hector.api.beans.HColumn;
-import me.prettyprint.hector.api.beans.OrderedRows;
 import me.prettyprint.hector.api.beans.Row;
 import me.prettyprint.hector.api.beans.Rows;
-import me.prettyprint.hector.api.ddl.ColumnFamilyDefinition;
-import me.prettyprint.hector.api.ddl.ComparatorType;
 import me.prettyprint.hector.api.factory.HFactory;
 import me.prettyprint.hector.api.mutation.Mutator;
-import me.prettyprint.hector.api.query.ColumnQuery;
-import me.prettyprint.hector.api.query.QueryResult;
 import me.prettyprint.hector.api.query.RangeSlicesQuery;
 import me.prettyprint.hector.api.query.SliceQuery;
 import me.prettyprint.hector.api.Cluster;
@@ -65,17 +49,26 @@ public class CassandraDao {
 	}
 	public static void main(String [] args){
 		try{
-			System.out.println(Calendar.getInstance().getTimeInMillis());
-			Iterator<Bar> bars = dao.getData("SPY", 1, 0, "bar1day");
+			System.out.println(Calendar.getInstance().getTimeInMillis() / 1000);
+			Iterator<Bar> bars = dao.getData("SPY", 5, 0, "bar5sec");
+			int count = 0;
 			while(bars.hasNext()){
 				Bar aBar =bars.next();
 				System.out.println(aBar);
+				if(count++ > 10) break;
 			}
+			System.out.println( "OPEN " + dao.getOpen("SPY", 5));
 					
 		} catch(Throwable t){
 			t.printStackTrace();
 		}
 	}
+	/**
+	 * Store the market data in Cassandra
+	 * @param barSize - Must be predefined column family 
+	 * @param dateSecondsStr - Seconds since some date in the 70s - 
+	 * @param hasGap
+	 */
 	protected void insertHistoricalData(final String barSize, final String symbol, final String dateSecondsStr,
 			final double open, final double high, final double low,
 			final double close, final int volume, final int count,
@@ -124,6 +117,19 @@ public class CassandraDao {
     		    System.out.println(d + " " + column.getValue());
     		}            
         }    	
+    }
+    public Bar getOpen(final String symbol, long today){
+    	//first assume today could be the number of days to go back from today
+    	
+    	long actualToday = today;
+    	if(today < 1000){
+    		actualToday =  getToday(today, 0) - today*24*60*60;
+    	}
+    	Logger.getLogger("MarketData").log(Level.INFO, "Actual today " + actualToday + " " + new Date(actualToday *1000));
+    	long openTime = HistoricalDateManipulation.getOpen(actualToday);
+    	Iterator<Bar> bars = getData( symbol, openTime, openTime, "bar5sec");
+    	if(bars.hasNext()) return bars.next();
+    	return null;
     }
     /**
      * 
@@ -190,7 +196,7 @@ public class CassandraDao {
 	protected long getToday(final long start, final long finish) {
 		long todayInSeconds = finish;
     	if(finish < 1000) {
-        	Calendar today = Calendar.getInstance();
+        	final Calendar today = Calendar.getInstance();
         	if( start  < 1000 ){
         		if( today.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY ) today.add(Calendar.HOUR, -2*24);
         		else 
@@ -205,12 +211,13 @@ public class CassandraDao {
      * 
      * @param symbol
      * @param seconds
-     * @return throws an exception if no data from yesterday
+     * @return 
      */
     public Bar getYesterday(final String symbol, final long seconds){
     	Iterator<Bar> bars = getData(symbol, 1, seconds, "bar1day");
     	if(bars.hasNext()) return bars.next();
-    	throw new IllegalArgumentException("No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
+    	Logger.getLogger("MarketData").log(Level.WARNING, "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
+    	return null;
     }
     /**
      * Get the price data 
