@@ -12,6 +12,7 @@ import com.ib.client.EWrapper;
 import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
+import com.ib.client.TickType;
 import com.ib.client.UnderComp;
 /**
  * The one and only response handler registered with the client. Requests will 
@@ -76,35 +77,47 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void tickPrice(int tickerId, int field, double price,
 			int canAutoExecute) {
-		// TODO Auto-generated method stub
+		EWrapper ew = requester.getResponseHandler(tickerId);
+		
+		if(ew != null) ew.tickPrice(tickerId, field, price, canAutoExecute);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickPrice " + TickType.getField(field)+ " @" +  price + " but no delegate registered");
 
 	}
 
 	@Override
 	public void tickSize(int tickerId, int field, int size) {
-		// TODO Auto-generated method stub
+		EWrapper ew = requester.getResponseHandler(tickerId);
+		
+		if(ew != null) ew.tickSize(tickerId, field, size);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickSize " + TickType.getField(field)+ " " +  size + " but no delegate registered");
 
 	}
-
 	@Override
 	public void tickOptionComputation(int tickerId, int field,
 			double impliedVol, double delta, double optPrice,
 			double pvDividend, double gamma, double vega, double theta,
 			double undPrice) {
-		// TODO Auto-generated method stub
+		EWrapper ew = requester.getResponseHandler(tickerId);
+		
+		if(ew != null) ew.tickOptionComputation(tickerId, field, impliedVol, delta, optPrice, pvDividend, gamma, vega, theta, undPrice);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickOptionComp " + TickType.getField(field) + " but no delegate registered");
 
 	}
-
 	@Override
 	public void tickGeneric(int tickerId, int tickType, double value) {
-		// TODO Auto-generated method stub
+		EWrapper ew = requester.getResponseHandler(tickerId);
+		
+		if(ew != null) ew.tickGeneric(tickerId, tickType, value);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickGeneric " + TickType.getField(tickType)+ " " +  value+ " but no delegate registered");
 
 	}
 
 	@Override
 	public void tickString(int tickerId, int tickType, String value) {
-		// TODO Auto-generated method stub
-
+		EWrapper ew = requester.getResponseHandler(tickerId);
+		
+		if(ew != null) ew.tickString(tickerId, tickType, value);
+		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickString " + TickType.getField(tickType)+ " " +  value+ " but no delegate registered");
 	}
 
 	@Override
@@ -153,8 +166,8 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void updateAccountTime(String timeStamp) {
-		// TODO Auto-generated method stub
-
+		Logger.getLogger("Misc").log(Level.INFO, "Update time to " + timeStamp);
+		portfolio.setTime(Long.valueOf(timeStamp));
 	}
 
 	@Override

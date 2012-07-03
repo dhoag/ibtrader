@@ -3,7 +3,6 @@ package com.davehoag.ib;
 import java.text.ParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
@@ -11,14 +10,10 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.junit.experimental.theories.PotentialAssignment;
-
-import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
-import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.EClientSocket;
-import com.ib.client.EWrapper;
 import com.ib.client.Order;
+import com.ib.client.TickType;
 
 /**
  * Control all IB client requests
@@ -85,10 +80,33 @@ public class IBClientRequestExecutor {
 	 * @param price
 	 * @param rh
 	 */
-	public int executeOrder(final boolean buy, final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
+	public void executeOrder(final boolean buy, final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
+		final Runnable r = new Runnable() {
+			@Override
+			public void run() {
+				final Order order = createPrimaryOrder(buy, symbol, qty, price, rh);
+				final StockContract contract = new StockContract(symbol);
+				final Order stop = createStopOrder(buy, order, rh);
+				client.placeOrder(order.m_orderId, contract, order);
+				client.placeOrder(stop.m_orderId, contract, stop);
+			}
+		};
+		execute(r, 0);
+	}
+
+	/**
+	 * @param buy
+	 * @param symbol
+	 * @param qty
+	 * @param price
+	 * @param rh
+	 * @return
+	 */
+	protected Order createPrimaryOrder(final boolean buy, final String symbol, final int qty,
+			final double price, final ResponseHandlerDelegate rh) {
 		Order order = new Order();
 		order.m_permId = (((int)(System.currentTimeMillis() / 1000)) << 2);
-		order.m_permId += 2;
+
 		order.m_orderId = order.m_permId;
 		
 		pushResponseHandler(order.m_orderId, rh);
@@ -100,17 +118,39 @@ public class IBClientRequestExecutor {
 
 		order.m_clientId = IBConstants.clientId;
 		order.m_allOrNone = true;
-		order.m_transmit = true;
-		final StockContract contract = new StockContract(symbol);
-		client.placeOrder(order.m_orderId, contract, order);
-		return order.m_orderId;
+		order.m_transmit = false;
+		return order;
 	}
-	
+	/**
+	 * Use trailing stops
+	 * @param buy
+	 * @param primaryOrder
+	 * @param rh
+	 * @return
+	 */
+	protected Order createStopOrder(final boolean buy, final Order primaryOrder, final ResponseHandlerDelegate rh){
+		Order order = new Order();
+		order.m_permId = primaryOrder.m_permId + 1;
+		order.m_orderId = order.m_permId;
+		pushResponseHandler(order.m_orderId, rh);
+
+		order.m_parentId = primaryOrder.m_orderId;
+		order.m_action = !buy ? "BUY" : "SELL";
+		order.m_orderType = "TRAIL";
+		order.m_trailingPercent = .5;
+		order.m_totalQuantity = primaryOrder.m_totalQuantity;
+
+		order.m_clientId = IBConstants.clientId;
+		order.m_transmit = true;
+		return order;
+		
+	}
 	/**
 	 * Populate the portfolio with existing positions
 	 * @param port
 	 */
 	final void initializePortfolio( ){
+		//@TODO hard coded account name
 		String testAccountName = "DU132661";
 		int reqId = pushRequest();
 		client.reqAccountUpdates(true, testAccountName);
@@ -191,6 +231,7 @@ public class IBClientRequestExecutor {
 		Logger.getLogger("RequestManager").log(Level.FINEST, "Enqueing request");
 		
 		boolean result = tasks.offer(new Runnable() {
+			@Override
 			public void run() {
 				try {
 					if (seconds > 0) {
@@ -264,6 +305,7 @@ public class IBClientRequestExecutor {
 		boolean first = true;
 		for (final String date : dates) {
 			final Runnable r = new Runnable() {
+				@Override
 				public void run() {
 					final int reqId = pushRequest();
 					pushResponseHandler(reqId, rh);
@@ -292,6 +334,7 @@ public class IBClientRequestExecutor {
 	public void reqRealTimeBars(final String symbol, final ResponseHandlerDelegate rh){
 		Logger.getLogger("MarketData").log(Level.INFO, "Requesting realtime bars for " + symbol);
 		final Runnable r = new Runnable() {
+			@Override
 			public void run() {
 				StockContract stock = new StockContract(symbol);
 				final int reqId = pushRequest();
@@ -302,6 +345,8 @@ public class IBClientRequestExecutor {
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
 				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
+				final boolean snapshot = false;
+				client.reqMktData(reqId, stock, "" + TickType.LAST + "," + TickType.BID + "," + TickType.ASK + "," + TickType.MODEL_OPTION, snapshot);
 
 			}
 		};
@@ -318,6 +363,7 @@ public class IBClientRequestExecutor {
 	 */
 	protected void scheduleClosingRequest(final int reqId){
 		final Runnable r = new Runnable() {
+			@Override
 			public void run() {
 				endRequest(reqId);
 			};	
@@ -338,7 +384,7 @@ public class IBClientRequestExecutor {
 	 * @param reqId
 	 * @return
 	 */
-	public ResponseHandlerDelegate getResponseHandler(int reqId){
+	protected ResponseHandlerDelegate getResponseHandler(int reqId){
 		return map.get(Integer.valueOf(reqId));
 	}
 }

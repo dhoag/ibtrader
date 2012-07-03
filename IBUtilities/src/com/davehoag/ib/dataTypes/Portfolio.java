@@ -16,6 +16,7 @@ public class Portfolio {
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	Bar yesterday;
+	RiskLimits risk = new SimpleRiskLimits();
 	/**
 	 * sometimes knowing yesterday's data is valuable. Could be null 
 	 * @param aOneDayBar
@@ -55,6 +56,9 @@ public class Portfolio {
 		}
 	}
 	public synchronized void bought(final int orderId, final String symbol, final int qty, final double price){
+		if( ! risk.acceptTrade(true, qty, this, price)){
+			throw new IllegalStateException("Not willing to make  trade - too risky");
+		}
 		final Integer originalQty = portfolio.get(symbol);
 		final Integer newQty = originalQty != null ? (originalQty.intValue() + qty) : qty;
 		portfolio.put(symbol, newQty);
@@ -62,7 +66,9 @@ public class Portfolio {
 		cash -= qty * price;
 	}
 	public synchronized void sold(final int orderId, final String symbol, final int qty, final double price){
-
+		if( ! risk.acceptTrade(false, qty, this, price)){
+			throw new IllegalStateException("Not willing to make  trade - too risky");
+		}
 		final Integer originalQty = portfolio.get(symbol);
 		final Integer newQty = originalQty != null ? (originalQty.intValue() - qty) : -qty;
 		portfolio.put(symbol, newQty);

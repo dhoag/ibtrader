@@ -38,6 +38,9 @@ public class HistoricalDataSender {
 		CassandraDao dao = new CassandraDao();
 		try { 
 			Iterator<Bar> data = dao.getData(contract.m_symbol, daysToBackTest, 0, defaultHistoricalDataBarSize);
+			//Each bar represents a forward looking 5 second period - thus the first first time is 8:30 and last is 2:55:55
+			//TODO To simulate realtime data need to make up some data points to send over tickXyz
+			//prior to sending bar
 			while(data.hasNext()){
 				final Bar bar = data.next();
 				checkRestingOrders(bar);

@@ -8,11 +8,11 @@ import org.junit.Test;
 
 import com.davehoag.ib.CaptureHistoricalDataMock;
 import com.davehoag.ib.IBClientRequestExecutor;
-import com.davehoag.ib.IBClientRequestExecutorTest;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.TestClientMock;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.StockContract;
+import com.davehoag.ib.util.HistoricalDataSender;
 import com.ib.client.Order;
 
 public class HistoricalDataSenderTest {
