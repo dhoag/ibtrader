@@ -23,6 +23,7 @@ public class HistoricalDataSenderTest {
 	@Before
 	public void setUp() throws Exception {
 		ResponseHandler hl = new ResponseHandler();
+		hl.setExecutorService(new ImmediateExecutor());
 		TestClientMock mock = new TestClientMock(hl);
 		IBClientRequestExecutor req = new IBClientRequestExecutor(mock, hl);
 
@@ -35,6 +36,14 @@ public class HistoricalDataSenderTest {
 	public void tearDown() throws Exception {
 	}
 
+	@Test
+	public void testGetLimitPrice(){
+		double offset = .1;
+		double price = 100.0;
+		boolean buy = false;
+		double limit = sender.getLimitPrice(buy, offset, price);
+		assertEquals(90.0, limit, .001);
+	}
 	@Test
 	public void testCheckRestingOrders() {
 		testAddLimitOrderIntContractOrder();

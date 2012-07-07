@@ -12,6 +12,7 @@ import com.davehoag.ib.dataTypes.LimitOrder;
 import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
+import com.ib.client.TickType;
 /**
  * Connect to Cassandra and simulate the realtime bars wit the historical data
  * @author dhoag
@@ -45,6 +46,10 @@ public class HistoricalDataSender {
 				final Bar bar = data.next();
 				checkRestingOrders(bar);
 				lastBar = bar;
+				handler.tickPrice(reqId, TickType.LAST, bar.open, 0);
+				handler.tickPrice(reqId, TickType.LAST, bar.high, 0);
+				handler.tickPrice(reqId, TickType.LAST, bar.low, 0);
+				handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
 				handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
 			}
 		}
@@ -56,10 +61,17 @@ public class HistoricalDataSender {
 	protected void checkRestingOrders(final Bar bar){
 		final ArrayList<OrderOnBook> executed = new ArrayList<OrderOnBook>();
 		for(OrderOnBook order: restingOrders){
-			final double mktPrice = order.lmtOrder.m_action.equals("BUY") ? bar.low : bar.high;
+			final boolean isBuy = order.lmtOrder.m_action.equals("BUY");
+			final double mktPrice = isBuy ? bar.low : bar.high;
 			if(isExecutable(order.lmtOrder.m_lmtPrice, order.lmtOrder.m_action, mktPrice)){
 				executed.add(order);
 				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
+			}
+			else
+			if(order.lmtOrder.m_orderType.equals("TRAIL")){
+				//the "lmtPrice" was set during placement of order
+				//update it since it didn't fill in the prior if block
+				order.lmtOrder.m_lmtPrice = getLimitPrice(isBuy, order.lmtOrder.m_percentOffset, mktPrice);
 			}
 		}
 		restingOrders.removeAll(executed);
@@ -70,6 +82,12 @@ public class HistoricalDataSender {
 	 */
 	public void setClient(final HistoricalDataClient socket){
 		client = socket;
+	}
+	public double getLimitPrice(final boolean buy, final double percentageOffset){
+		return getLimitPrice( buy, percentageOffset, lastBar.close);
+	}
+	public double getLimitPrice(final boolean buy, final double percentageOffset, final double referencePrice){
+		return buy  ? referencePrice  * (1* + percentageOffset) : referencePrice * ( 1- percentageOffset);
 	}
 	public boolean isExecutable(final double price, final String action){
 		return isExecutable(price, action, lastBar.close);

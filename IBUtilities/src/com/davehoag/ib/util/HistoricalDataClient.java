@@ -74,6 +74,17 @@ public class HistoricalDataClient extends EClientSocket {
 				sender.addLimitOrder(id, contract, order);
 			}
 		}
+		else
+		if(sender != null && order.m_orderType.equals("TRAIL")){
+			final double price = sender.getLimitPrice(order.m_action.equals("BUY"), order.m_percentOffset);
+			if(sender.isExecutable(price, order.m_action)){
+				fillOrder(id, contract, order);
+			}
+			else{
+				order.m_lmtPrice = price;
+				sender.addLimitOrder(id, order);
+			}
+		}
 		else{
 			fillOrder(id, contract, order);
 		}

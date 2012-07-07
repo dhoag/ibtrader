@@ -83,8 +83,8 @@ public class TestDateManipulator {
 	@Test
 	public void testGetDatesYearBoundary() throws Exception {
 		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoWeeks( "20111230", today);
-		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
-			String string = (String) iterator.next();
+		for (Iterator<String> iterator = res.iterator(); iterator.hasNext();) {
+			String string = iterator.next();
 		}
 		Assert.assertEquals(5, res.size());		
 	}
@@ -106,7 +106,7 @@ public class TestDateManipulator {
 		for(String val: res){
 			System.out.println(val);
 		}
-		Assert.assertEquals(50, res.size() );
+		Assert.assertEquals(1, res.size() );
 	}
 
 }

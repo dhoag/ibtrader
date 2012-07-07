@@ -5,6 +5,7 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Queue;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Level;
@@ -25,7 +26,7 @@ public class IBClientRequestExecutor {
 
 	final EClientSocket client;
 	final Queue<Runnable> tasks = new ArrayDeque<Runnable>();
-	final ExecutorService executor;
+	Executor executor;
 	Runnable active;
 	int requests = 0;
 	final HashMap<Integer, ResponseHandlerDelegate> map = new HashMap<Integer, ResponseHandlerDelegate>();
@@ -37,14 +38,20 @@ public class IBClientRequestExecutor {
 		this.executor = Executors.newSingleThreadExecutor();
 		rh.setRequestor(this);
 	}
-
+	/**
+	 * Allow override - typically for testing
+	 * @param ex
+	 */
+	public void setExcutor(final Executor ex){
+		executor = ex;
+	}
 	/**
 	 * Got a disconnect from the TWS and I'm responding as best I can
 	 */
 	protected void forcedClose() {
-		executor.shutdownNow();
 		Logger.getLogger("RequestManager").log(Level.SEVERE, "Forced Exit");
 		client.eDisconnect();
+		((ExecutorService)executor).shutdownNow();
 		requests = 0;
 	}
 
@@ -53,8 +60,8 @@ public class IBClientRequestExecutor {
 	 */
 	public void close() {
 		Logger.getLogger("RequestManager").log(Level.INFO, "Shutting down");
-		executor.shutdown();
 		client.eDisconnect();
+		((ExecutorService)executor).shutdown();
 	}
 
 	/**
@@ -301,6 +308,10 @@ public class IBClientRequestExecutor {
 		
 		// Get dates one hour apart that will retrieve the historical data
 		ArrayList<String> dates = rh.getDates(startingDate);
+		if(dates.size() == 0){
+			rh.log(Level.WARNING, "No dates for starting date " + startingDate);
+			return;
+		}
 		final int markerRequestId = pushRequest();
 		boolean first = true;
 		for (final String date : dates) {

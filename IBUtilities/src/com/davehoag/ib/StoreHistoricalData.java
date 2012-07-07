@@ -46,6 +46,12 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		if (barSize.equals("bar5sec")) return IBConstants.dur1hour;
 		return IBConstants.dur1hour;
 	}
+	/**
+	 * Return the dates 
+	 * @param startingDate
+	 * @return
+	 * @throws ParseException
+	 */
 	public ArrayList<String> getDates(String startingDate) throws ParseException{
 		ArrayList<String> dates = new ArrayList<String>();
 		

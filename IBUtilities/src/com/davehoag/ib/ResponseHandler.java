@@ -1,6 +1,10 @@
 package com.davehoag.ib;
 
 import java.lang.reflect.Array;
+import java.util.ArrayDeque;
+import java.util.Queue;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,6 +29,7 @@ import com.ib.client.UnderComp;
 public class ResponseHandler implements EWrapper {
 
 	IBClientRequestExecutor requester;
+	Executor executorService = Executors.newFixedThreadPool(10);
 	//There is only one per account
 	Portfolio portfolio = new Portfolio();
 
@@ -33,6 +38,13 @@ public class ResponseHandler implements EWrapper {
 	}
 	public void setRequestor(final IBClientRequestExecutor req) {
 		requester = req;
+	}
+	/**
+	 * Allow the default 10 thread pool to be overridden
+	 * @param exe
+	 */
+	public void setExecutorService(final Executor exe){
+		executorService = exe;
 	}
 
 	@Override
@@ -47,6 +59,7 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {
+		
 		int [] informationalCodes = { 2104 ,2106 };
 		boolean inf = false;
 		for(int code: informationalCodes){
@@ -75,49 +88,69 @@ public class ResponseHandler implements EWrapper {
 	}
 
 	@Override
-	public void tickPrice(int tickerId, int field, double price,
-			int canAutoExecute) {
-		EWrapper ew = requester.getResponseHandler(tickerId);
-		
-		if(ew != null) ew.tickPrice(tickerId, field, price, canAutoExecute);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickPrice " + TickType.getField(field)+ " @" +  price + " but no delegate registered");
-
+	public void tickPrice(final int tickerId, final int field, final double price,
+			final int canAutoExecute) {
+		final Runnable r = new Runnable(){
+			public void run(){
+				EWrapper ew = requester.getResponseHandler(tickerId);
+				
+				if(ew != null) ew.tickPrice(tickerId, field, price, canAutoExecute);
+				else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickPrice " + TickType.getField(field)+ " @" +  price + " but no delegate registered");
+			}
+		};
+		executorService.execute(r);
 	}
 
 	@Override
-	public void tickSize(int tickerId, int field, int size) {
-		EWrapper ew = requester.getResponseHandler(tickerId);
-		
-		if(ew != null) ew.tickSize(tickerId, field, size);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickSize " + TickType.getField(field)+ " " +  size + " but no delegate registered");
-
+	public void tickSize(final int tickerId, final int field, final int size) {
+		final Runnable r = new Runnable(){
+			public void run(){
+				EWrapper ew = requester.getResponseHandler(tickerId);
+				if(ew != null) ew.tickSize(tickerId, field, size);
+				else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickSize " + TickType.getField(field)+ " " +  size + " but no delegate registered");
+			}
+		};
+		executorService.execute(r);
 	}
 	@Override
-	public void tickOptionComputation(int tickerId, int field,
-			double impliedVol, double delta, double optPrice,
-			double pvDividend, double gamma, double vega, double theta,
-			double undPrice) {
-		EWrapper ew = requester.getResponseHandler(tickerId);
-		
-		if(ew != null) ew.tickOptionComputation(tickerId, field, impliedVol, delta, optPrice, pvDividend, gamma, vega, theta, undPrice);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickOptionComp " + TickType.getField(field) + " but no delegate registered");
-
+	public void tickOptionComputation(final int tickerId, final int field,
+			final double impliedVol, final double delta, final double optPrice,
+			final double pvDividend, final double gamma, final double vega, final double theta,
+			final double undPrice) {
+		final Runnable r = new Runnable(){
+			public void run(){
+				EWrapper ew = requester.getResponseHandler(tickerId);
+				
+				if(ew != null) ew.tickOptionComputation(tickerId, field, impliedVol, delta, optPrice, pvDividend, gamma, vega, theta, undPrice);
+				else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickOptionComp " + TickType.getField(field) + " but no delegate registered");
+			}
+		};
+		executorService.execute(r);
 	}
 	@Override
-	public void tickGeneric(int tickerId, int tickType, double value) {
-		EWrapper ew = requester.getResponseHandler(tickerId);
-		
-		if(ew != null) ew.tickGeneric(tickerId, tickType, value);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickGeneric " + TickType.getField(tickType)+ " " +  value+ " but no delegate registered");
-
+	public void tickGeneric(final int tickerId, final int tickType, final double value) {
+		final Runnable r = new Runnable(){
+			public void run(){
+				EWrapper ew = requester.getResponseHandler(tickerId);
+				if(ew != null) ew.tickGeneric(tickerId, tickType, value);
+				else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickGeneric " + TickType.getField(tickType)+ " " +  value+ " but no delegate registered");
+			}
+		};
+		executorService.execute(r);
 	}
 
 	@Override
-	public void tickString(int tickerId, int tickType, String value) {
-		EWrapper ew = requester.getResponseHandler(tickerId);
-		
-		if(ew != null) ew.tickString(tickerId, tickType, value);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickString " + TickType.getField(tickType)+ " " +  value+ " but no delegate registered");
+	public void tickString(final int tickerId, final int tickType, final String value) {
+		final Runnable r = new Runnable(){
+			public void run(){
+				
+				EWrapper ew = requester.getResponseHandler(tickerId);
+				
+				if(ew != null) ew.tickString(tickerId, tickType, value);
+				else Logger.getLogger("Trading").log(Level.WARNING, "[" + tickerId + "] Received tickString " + TickType.getField(tickType)+ " " +  value+ " but no delegate registered");
+			}
+		};
+		executorService.execute(r);
 	}
 
 	@Override
@@ -137,9 +170,17 @@ public class ResponseHandler implements EWrapper {
 	}
 
 	@Override
-	public void openOrder(int orderId, Contract contract, Order order,
-			OrderState orderState) {
-		// TODO Auto-generated method stub
+	public void openOrder(final int orderId, final Contract contract, final Order order,
+			final OrderState orderState) {
+		Runnable r = new Runnable(){
+			public void run(){ 
+				//delegate to the registered handler
+				final ResponseHandlerDelegate ew = requester.getResponseHandler(orderId);
+				if(ew != null) ew.openOrder(orderId, contract, order, orderState);
+				else Logger.getLogger("RealTimeBar").log(Level.WARNING, "[" + orderId + "] Reveived openOrder but no delegate registered " );
+			};
+		};
+		executorService.execute(r);
 
 	}
 
@@ -202,13 +243,18 @@ public class ResponseHandler implements EWrapper {
 
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
-		EWrapper ew = requester.getResponseHandler(reqId);
-		
-		if(ew == null && execution != null){
-			ew = requester.getResponseHandler(execution.m_orderId);
-		}
-		if(ew != null) ew.execDetails(execution.m_orderId, contract, execution);
-		else Logger.getLogger("Trading").log(Level.WARNING, "[" + reqId + "] Received execDetails " + contract.m_symbol + " " + execution.m_shares + "@" + execution.m_price + " but no delegate registered");
+		Runnable r = new Runnable(){
+			public void run(){
+				EWrapper ew = requester.getResponseHandler(reqId);
+				
+				if(ew == null && execution != null){
+					ew = requester.getResponseHandler(execution.m_orderId);
+				}
+				if(ew != null) ew.execDetails(execution.m_orderId, contract, execution);
+				else Logger.getLogger("Trading").log(Level.WARNING, "[" + reqId + "] Received execDetails " + contract.m_symbol + " " + execution.m_shares + "@" + execution.m_price + " but no delegate registered");
+			};
+		};
+		executorService.execute(r);
 	}
 
 	@Override
@@ -292,12 +338,17 @@ public class ResponseHandler implements EWrapper {
 	}
 
 	@Override
-	public void realtimeBar(int reqId, long time, double open, double high,
-			double low, double close, long volume, double wap, int count) {
-		//delegate to the registered handler
-		final ResponseHandlerDelegate ew = requester.getResponseHandler(reqId);
-		if(ew != null) ew.realtimeBar(reqId, time, open, high, low, close, volume, wap, count);
-		else Logger.getLogger("RealTimeBar").log(Level.WARNING, "[" + reqId + "] Reveived realtime bar but no delegate registered " );
+	public void realtimeBar(final int reqId, final long time, final double open, final double high,
+			final double low, final double close, final long volume, final double wap, final int count) {
+		Runnable r = new Runnable(){
+			public void run(){ 
+				//delegate to the registered handler
+				final ResponseHandlerDelegate ew = requester.getResponseHandler(reqId);
+				if(ew != null) ew.realtimeBar(reqId, time, open, high, low, close, volume, wap, count);
+				else Logger.getLogger("RealTimeBar").log(Level.WARNING, "[" + reqId + "] Reveived realtime bar but no delegate registered " );
+			};
+		};
+		executorService.execute(r);
 	}
 
 	@Override
