@@ -49,8 +49,8 @@ public class TestDateManipulator {
 	@Test
 	public void testGetDatesYearBoundaryHours() throws Exception {
 		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20111230", today);
-		for (Iterator iterator = res.iterator(); iterator.hasNext();) {
-			String string = (String) iterator.next();
+		for (Iterator<String> iterator = res.iterator(); iterator.hasNext();) {
+			String string =  iterator.next();
 		}
 		Assert.assertEquals(220, res.size());		
 	}

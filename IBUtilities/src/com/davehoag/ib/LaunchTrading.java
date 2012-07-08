@@ -1,21 +1,23 @@
 package com.davehoag.ib;
-
 import com.davehoag.ib.util.HistoricalDataClient;
+import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;
 
 
 public class LaunchTrading {
-static boolean simulateTrading = true;
+	static boolean simulateTrading = true;
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-
 		final String symbol = "SPY";
 		ResponseHandler rh = new ResponseHandler();
 		
 		EClientSocket  m_client;
-		if( simulateTrading ) m_client = new HistoricalDataClient(rh);
+		if( simulateTrading ){
+			m_client = new HistoricalDataClient(rh);
+			rh.setExecutorService(new ImmediateExecutor());
+		}
 		else  m_client = new EClientSocket( rh );
 		
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);

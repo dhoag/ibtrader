@@ -4,9 +4,9 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
 
+import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 /**
@@ -17,7 +17,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 public class StoreHistoricalData extends ResponseHandlerDelegate {
 	final String sym; 
 	String barSize =  "bar5sec";
-	
+
 	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
 		super(ibInterface);
 		sym = symbol;
@@ -47,6 +47,24 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		return IBConstants.dur1hour;
 	}
 	/**
+	 * Remove all dates for which we have an opening bar
+	 * @param dates
+	 */
+	public void filterExistingDates(ArrayList<String> dates){
+		if(barSize.equals("bar1day")) return;
+		ArrayList<String> purgeList = new ArrayList<String>();
+		for(String dateStr: dates)
+		try{
+			long today = HistoricalDateManipulation.getTime(dateStr);
+			Bar openBar = CassandraDao.getInstance().getOpen(sym, today);
+			if(openBar != null){
+				purgeList.add(dateStr);
+			}
+		}//Should never throw a parse exception
+		catch(Exception ex){ ex.printStackTrace(); };
+		dates.removeAll(purgeList);
+	}
+	/**
 	 * Return the dates 
 	 * @param startingDate
 	 * @return
@@ -58,14 +76,15 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		if(barSize.equals("bar1day")) dates.add(HistoricalDateManipulation.getDateAsStr(Calendar.getInstance().getTime()));
 		else if (barSize.equals("bar5sec")) dates = HistoricalDateManipulation.getDatesBrokenIntoHours(startingDate);
 		else if (barSize.equals("bar15min")) dates = HistoricalDateManipulation.getDatesBrokenIntoWeeks(startingDate, Calendar.getInstance());
-		
+		filterExistingDates(dates);
 		return dates;
 	}
 	/**
 	 * Provide some context to the log information.
 	 */
-	public void log( final Level logLevel, final String msg) {
-		Logger.getLogger("HistoricalData:" + sym).log(logLevel, msg);
+	@Override
+	public void info(  final String msg) {
+		LoggerFactory.getLogger("HistoricalData" ).info( "Symbol: " + sym + " " + msg);
 	}
 	/**
 	 * Delegated response from the ResponseHandler that is actually getting the call
@@ -93,12 +112,20 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	protected String getModifiedDateString(final String dateStr) {
 		String actualDateStr = dateStr; 
 		if(barSize.equals("bar1day"))
-		try{ //dates are not in seconds, since I don't want quries to worry about bar size convert to seconds
-			long dateInSeconds  = HistoricalDateManipulation.getTime(dateStr + " 16:00:00");
+		try{ 
+			//dates are not in seconds, since I don't want quries to worry about bar size convert to seconds.
+			long dateInSeconds  = HistoricalDateManipulation.getTime(dateStr + " 08:30:00");
 			actualDateStr = "" + dateInSeconds;
 		}catch(ParseException ex){
 			throw new IllegalStateException("Should not get parse errors with 1 day bars");
 		}
 		return actualDateStr;
+	}
+	@Override
+	public void error(int id, int errorCode, String errorMsg) {
+		LoggerFactory.getLogger("HistoricalData" ).error( "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
+		if(errorCode == 162){
+			//eventually skip that day
+		}
 	}
 }

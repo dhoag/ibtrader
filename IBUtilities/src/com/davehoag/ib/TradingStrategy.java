@@ -1,9 +1,7 @@
 package com.davehoag.ib;
 
 import java.text.NumberFormat;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
+import org.slf4j.*;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -38,10 +36,10 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			
 			//TODO need some logic to account for all orders not actually trading or trading at different prices
 		//	portfolio.confirm(execution.m_execId, execution.m_price, execution.m_side);
-			Logger.getLogger("Trading").log(Level.INFO, "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares + " @ " + execution.m_price );
+			LoggerFactory.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares + " @ " + execution.m_price );
 		}
 		else{
-			log(Level.SEVERE, "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
+			LoggerFactory.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
 		}
 		
 		//TODO for now assuming full fills, not partials
@@ -55,7 +53,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	 */
 	@Override
 	public void execDetailsEnd(int id) {
-		log(Level.SEVERE, "Didn't expect execDetailsEnd " + reqId + " my id is " + reqId + " passed Id is " + id);
+		LoggerFactory.getLogger("Trading").error( "Didn't expect execDetailsEnd " + reqId + " my id is " + reqId + " passed Id is " + id);
 	}
 
 	@Override
@@ -66,8 +64,8 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		updatePortfolioTime(time);
 		if( time % 60 == 0) { 
 			NumberFormat nf = NumberFormat.getCurrencyInstance();
-			Logger.getLogger("MarketData").log(Level.INFO, "Realtime bar : " + reqId + " " + bar);
-			Logger.getLogger("Portfolio").log(Level.INFO, "Time: " + time + " C: " + nf.format(portfolio.getCash()) + " value " + nf.format( portfolio.getValue(symbol, close)));
+			LoggerFactory.getLogger("MarketData").info( "Realtime bar : " + reqId + " " + bar);
+			LoggerFactory.getLogger("Portfolio").info( "Time: " + time + " C: " + nf.format(portfolio.getCash()) + " value " + nf.format( portfolio.getValue(symbol, close)));
 		}
 	
 		final LimitOrder order = strategy.newBar(bar, portfolio);
@@ -94,7 +92,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 				}
 				portfolio.setYesterday( yest );
 			} catch(Exception ex){
-				Logger.getLogger("MarketData").log(Level.WARNING, "Error getting yesterday", ex);
+				LoggerFactory.getLogger("MarketData").warn( "Error getting yesterday", ex);
 			}
 			
 		}
@@ -103,11 +101,11 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	public void error(final int id, final int errorCode, final String errorMsg) {
 		// TODO need to figure out how to map to my buy or sell so that I can undo it.
 		if( id == reqId) {
-			Logger.getLogger("MarketData").log(Level.SEVERE, "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
+			LoggerFactory.getLogger("MarketData").error( "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
 			
 		}
 		else{
-			Logger.getLogger("Trading").log(Level.SEVERE, "Order failed failed: " + id+ " " + errorCode + " "+ errorMsg);
+			LoggerFactory.getLogger("Trading").error( "Order failed failed: " + id+ " " + errorCode + " "+ errorMsg);
 		}
 	}
 	/**

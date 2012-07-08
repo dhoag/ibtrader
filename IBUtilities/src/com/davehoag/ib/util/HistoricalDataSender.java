@@ -2,15 +2,12 @@ package com.davehoag.ib.util;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.*;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.dataTypes.Bar;
-import com.davehoag.ib.dataTypes.LimitOrder;
 import com.ib.client.Contract;
-import com.ib.client.EClientSocket;
 import com.ib.client.Order;
 import com.ib.client.TickType;
 /**
@@ -20,7 +17,7 @@ import com.ib.client.TickType;
  */
 public class HistoricalDataSender {
 	final static String defaultHistoricalDataBarSize = "bar5sec";
-	final static int daysToBackTest = 30;
+	final static int daysToBackTest = 3;
 	
 	final int reqId;
 	final Contract contract;
@@ -37,28 +34,25 @@ public class HistoricalDataSender {
 	}
 	public void sendData() {
 		CassandraDao dao = new CassandraDao();
-		try { 
-			Iterator<Bar> data = dao.getData(contract.m_symbol, daysToBackTest, 0, defaultHistoricalDataBarSize);
-			//Each bar represents a forward looking 5 second period - thus the first first time is 8:30 and last is 2:55:55
-			//TODO To simulate realtime data need to make up some data points to send over tickXyz
-			//prior to sending bar
-			while(data.hasNext()){
-				final Bar bar = data.next();
-				checkRestingOrders(bar);
-				lastBar = bar;
-				handler.tickPrice(reqId, TickType.LAST, bar.open, 0);
-				handler.tickPrice(reqId, TickType.LAST, bar.high, 0);
-				handler.tickPrice(reqId, TickType.LAST, bar.low, 0);
-				handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
-				handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
-			}
-		}
-		catch(Throwable t){
-			Logger.getLogger("Backtesting").log(Level.SEVERE, "Failure running data for " + contract.m_symbol);
-			t.printStackTrace();
+
+    	LoggerFactory.getLogger("MarketData").info(  "Sending "  + contract.m_symbol +  " going back " + daysToBackTest);
+
+		Iterator<Bar> data = dao.getData(contract.m_symbol, daysToBackTest, 0, defaultHistoricalDataBarSize);
+		//Each bar represents a forward looking 5 second period - thus the first first time is 8:30 and last is 2:55:55
+		//TODO To simulate realtime data need to make up some data points to send over tickXyz
+		//prior to sending bar
+		while(data.hasNext()){
+			final Bar bar = data.next();
+			checkRestingOrders(bar);
+			lastBar = bar;
+			handler.tickPrice(reqId, TickType.LAST, bar.open, 0);
+			handler.tickPrice(reqId, TickType.LAST, bar.high, 0);
+			handler.tickPrice(reqId, TickType.LAST, bar.low, 0);
+			handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
+			handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
 		}
 	}
-	protected void checkRestingOrders(final Bar bar){
+	protected synchronized void checkRestingOrders(final Bar bar){
 		final ArrayList<OrderOnBook> executed = new ArrayList<OrderOnBook>();
 		for(OrderOnBook order: restingOrders){
 			final boolean isBuy = order.lmtOrder.m_action.equals("BUY");
@@ -100,7 +94,7 @@ public class HistoricalDataSender {
 	public void addLimitOrder(final int id, final Order order){
 		addLimitOrder(id, contract, order);
 	}
-	public void addLimitOrder(final int id, final Contract lmtContract, final Order order){
+	public synchronized void addLimitOrder(final int id, final Contract lmtContract, final Order order){
 		final OrderOnBook lmtOrder = new OrderOnBook(id, lmtContract, order);
 		restingOrders.add(lmtOrder);
 	}

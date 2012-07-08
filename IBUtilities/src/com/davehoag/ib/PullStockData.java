@@ -1,8 +1,7 @@
 package com.davehoag.ib;
 
 import java.text.ParseException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ib.client.EClientSocket;
 /**
@@ -33,7 +32,7 @@ public class PullStockData {
 			clientInterface.reqHistoricalData(symbol, startDateStr, sh);
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {
-			Logger.getLogger("PullStockData").log(Level.SEVERE, "Parse Exception!! " + startDateStr, e);
+			LoggerFactory.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);
 		}
 		finally { 
 			clientInterface.close();

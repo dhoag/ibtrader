@@ -7,8 +7,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
+
 
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -118,6 +118,13 @@ public class CassandraDao {
     		}            
         }    	
     }
+    /**
+     * Get the open (8:30 bar) for the specified date of today. 
+     * If "today" is < 1000 assume its an offset of how many days to go back
+     * @param symbol
+     * @param today
+     * @return
+     */
     public Bar getOpen(final String symbol, long today){
     	//first assume today could be the number of days to go back from today
     	
@@ -125,7 +132,7 @@ public class CassandraDao {
     	if(today < 1000){
     		actualToday =  getToday(today, 0) - today*24*60*60;
     	}
-    	Logger.getLogger("MarketData").log(Level.INFO, "Actual today " + actualToday + " " + new Date(actualToday *1000));
+    	LoggerFactory.getLogger("MarketData").debug( "Get " + symbol + " open of day: " + actualToday + " " + new Date(actualToday *1000));
     	long openTime = HistoricalDateManipulation.getOpen(actualToday);
     	Iterator<Bar> bars = getData( symbol, openTime, openTime, "bar5sec");
     	if(bars.hasNext()) return bars.next();
@@ -143,7 +150,7 @@ public class CassandraDao {
     	
     	final long actualFinish =  getToday(start, finish);
     	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
-    	Logger.getLogger("MarketData").log(Level.INFO, "Getting "  + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	LoggerFactory.getLogger("MarketData").info( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
     	return getDataIterator(symbol, actualFinish, actualStart, cf);
     }
 	/**
@@ -153,16 +160,17 @@ public class CassandraDao {
 	 * @return
 	 */
 	protected Iterator<Bar> getDataIterator(final String symbol, final long actualFinish, final long actualStart, final String cf) {
+		try { 
 		return new Iterator<Bar>(){
     		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol, actualStart, actualFinish, cf);
     		final HashMap<String, List<HColumn<Long, Long>>> volData = getHistoricalData(symbol, actualStart,actualFinish, cf);
     		int count = 0;
-			@Override
+			
 			public boolean hasNext() {
 				return count < volData.get(symbol + ":vol" ).size();
 			}
 
-			@Override
+			
 			public Bar next() {
 				final Bar bar = new Bar();
 				bar.symbol = symbol;
@@ -178,11 +186,25 @@ public class CassandraDao {
 				return bar;
 			}
 
-			@Override
+			
 			public void remove() {
 				// TODO Auto-generated method stub
 			}
     	};
+		} catch (Exception ex){
+			LoggerFactory.getLogger("MarketData").warn( "No data found in DAO for " + symbol);
+			return new Iterator<Bar>(){
+				public boolean hasNext() {
+					return false;
+				}
+				public Bar next() {
+					return null;
+				}
+				public void remove() {
+					// TODO Auto-generated method stub
+				}
+	    	};
+		}
 	}
 	/**
 	 * If finish < 1000 figure to use today as the date. 
@@ -216,7 +238,7 @@ public class CassandraDao {
     public Bar getYesterday(final String symbol, final long seconds){
     	Iterator<Bar> bars = getData(symbol, 1, seconds, "bar1day");
     	if(bars.hasNext()) return bars.next();
-    	Logger.getLogger("MarketData").log(Level.WARNING, "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
+    	LoggerFactory.getLogger("MarketData").warn( "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
     	return null;
     }
     /**
@@ -255,7 +277,7 @@ public class CassandraDao {
         	String rowKey = symbol + key;
             priceQuery.setKey(rowKey);
             List<HColumn<Long, Long>> column = priceQuery.execute().get().getColumns();
-    System.out.println(rowKey + " " + cf + " " + start + " " + finish + " " + column.size());
+//    System.out.println(rowKey + " " + cf + " " + start + " " + finish + " " + column.size());
             result.put(rowKey, column);
         }
     	return result;

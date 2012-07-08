@@ -1,8 +1,10 @@
 package com.davehoag.ib.util;
 
+import java.net.ConnectException;
 import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
+
+import me.prettyprint.hector.api.exceptions.HectorException;
 
 import com.davehoag.ib.IBConstants;
 import com.davehoag.ib.ResponseHandler;
@@ -45,7 +47,14 @@ public class HistoricalDataClient extends EClientSocket {
 			public void run(){
 				HistoricalDataSender sender = new HistoricalDataSender(reqId, stock, rh, HistoricalDataClient.this);
 				mktDataFeed.put(stock.m_symbol, sender);
-				sender.sendData();
+				try{
+					sender.sendData();
+				}
+				catch(Throwable t){
+					LoggerFactory.getLogger("Backtesting").error( "Failure running data for " + stock.m_symbol);
+					t.printStackTrace();
+					System.exit(1);
+				}
 			}
 		};
 		new Thread(r).start();
@@ -70,7 +79,7 @@ public class HistoricalDataClient extends EClientSocket {
 				fillOrder(id, contract, order);
 			}
 			else{
-				Logger.getLogger("Trading").log(Level.INFO, "booking order!" );
+				LoggerFactory.getLogger("Trading").info( "booking order!" );
 				sender.addLimitOrder(id, contract, order);
 			}
 		}

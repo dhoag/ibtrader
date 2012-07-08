@@ -1,7 +1,6 @@
 package com.davehoag.ib;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
@@ -14,9 +13,19 @@ import com.ib.client.UnderComp;
 
 abstract class ResponseHandlerDelegate implements EWrapper {
 	IBClientRequestExecutor requester;
-	protected int countOfRecords;
 	int reqId;
-	long startTime;
+	long startTime;	
+	int countOfRecords;
+	
+	public void resetRecordCount(){ countOfRecords = 0; }
+
+	/**
+	 * Determine how many times records were stored by this object.
+	 * @return
+	 */
+	public int getCountOfRecords(){
+		return countOfRecords;
+	}
 	/**
 	 * Force one to be set
 	 * @param ibInterface
@@ -43,38 +52,30 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 		reqId = val;
 	}
 	/**
-	 * Determine how many times records were stored by this object.
-	 * @return
-	 */
-	public int getCountOfRecords(){
-		return countOfRecords;
-	}
-	/**
 	 * Expect this to be overridden to provide a meaningful logger context.
 	 * @param logLevel
 	 * @param message
 	 */
-	public void log( final Level logLevel, final String message) {
-		Logger.getGlobal().log(logLevel, message);
+	public void info( final String message) {
+		LoggerFactory.getLogger("Delegate").info(message);
 	}
 	public void setRequestor(final IBClientRequestExecutor req) {
 		requester = req;
 	}
 	@Override
 	public void error(Exception e) {
-		Logger.getLogger("Delegate"). log( Level.WARNING, "RH Delegate error: " + e);
+		LoggerFactory.getLogger("Delegate").warn("RH Delegate error: " + e);
 		e.printStackTrace();
 	}
 
 	@Override
 	public void error(String str) {
-		Logger.getLogger("Delegate"). log( Level.WARNING, "RH Delegate error: " + str );
-
+		LoggerFactory.getLogger("Delegate").warn( "RH Delegate error: " + str );
 	}
 
 	@Override
 	public void error(int id, int errorCode, String errorMsg) {
-		Logger.getLogger("Delegate").log(Level.SEVERE, "Order failed or realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
+		LoggerFactory.getLogger("Delegate").error( "Order failed or realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
 	}
 
 	@Override

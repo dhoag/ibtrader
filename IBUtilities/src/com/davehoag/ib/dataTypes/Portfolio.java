@@ -4,8 +4,7 @@ import java.text.NumberFormat;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
@@ -30,7 +29,7 @@ public class Portfolio {
 	 * @param qty
 	 */
 	public void update(final String symbol, final int qty){
-		Logger.getLogger("AccountManagement").log(Level.INFO, "Updating account " + symbol + " " + qty);
+		LoggerFactory.getLogger("AccountManagement").info( "Updating account " + symbol + " " + qty);
 		portfolio.put(symbol, qty);
 	}
 	/**
@@ -43,7 +42,7 @@ public class Portfolio {
 			dumpLog();
 		}
 	}
-	public void confirm(final int orderId, final String symbol, final double price, final int qty){
+	public synchronized void confirm(final int orderId, final String symbol, final double price, final int qty){
 		
 		history.add("[" + orderId + "] " + new Date(currentTime) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
 	}
@@ -87,10 +86,10 @@ public class Portfolio {
 		if(currentQty == null) return 0;
 		return currentQty.intValue() * price;
 	}
-	public void dumpLog(){
-		Logger.getLogger("Trading").log(Level.INFO, "#### Display trade history ####");
+	public synchronized void dumpLog(){
+		LoggerFactory.getLogger("Trading").info( "#### Display trade history ####");
 		for(String entry: history){
-			Logger.getLogger("Trading").log(Level.INFO, entry);
+			LoggerFactory.getLogger("Trading").info( entry);
 		}
 	}
 }

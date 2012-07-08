@@ -1,5 +1,7 @@
 package com.davehoag.ib;
 
+import java.util.ArrayList;
+
 import com.ib.client.Contract;
 import com.ib.client.Execution;
 
@@ -30,5 +32,9 @@ public class CaptureHistoricalDataMock extends StoreHistoricalData {
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		//Filled!
 		exec = execution;
+	}
+	@Override
+	public void filterExistingDates(ArrayList<String> dates){
+		//Do nothing but keep from calling Cassandra
 	}
 }
