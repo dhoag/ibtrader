@@ -61,7 +61,7 @@ public class Portfolio {
 		final Integer originalQty = portfolio.get(symbol);
 		final Integer newQty = originalQty != null ? (originalQty.intValue() + qty) : qty;
 		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + new Date(currentTime) + " Buy " + qty + " of " + symbol + " @ " + price);
+		history.add("[" + orderId + "]" + new Date(currentTime * 1000) + " Buy " + qty + " of " + symbol + " @ " + nf.format(price));
 		cash -= qty * price;
 	}
 	public synchronized void sold(final int orderId, final String symbol, final int qty, final double price){
@@ -71,7 +71,7 @@ public class Portfolio {
 		final Integer originalQty = portfolio.get(symbol);
 		final Integer newQty = originalQty != null ? (originalQty.intValue() - qty) : -qty;
 		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + new Date(currentTime) + " Sell " + qty + " of " + symbol + " @ " + price);
+		history.add("[" + orderId + "]" + new Date(currentTime * 1000) + " Sell " + qty + " of " + symbol + " @ " + nf.format(price));
 		cash += qty * price;
 	}
 	public int getShares(final String symbol){

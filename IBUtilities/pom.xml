@@ -36,4 +36,12 @@
   		</dependency>
   	</dependencies>
   </dependencyManagement>
+  <name>ibtrader</name>
+  <url>http://code.google.com/p/ibtrader/</url>
+  <scm>
+  	<url>https://code.google.com/p/ibtrader</url>
+  </scm>
+  <issueManagement>
+  	<url>http://code.google.com/p/ibtrader/issues/list</url>
+  </issueManagement>
 </project>

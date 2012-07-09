@@ -9,6 +9,7 @@ import com.ib.client.Contract;
 import com.ib.client.Execution;
 
 public class TradingStrategy extends ResponseHandlerDelegate {
+	final NumberFormat nf = NumberFormat.getCurrencyInstance();
 	
 	boolean positionOnTheBooks = false;
 	Strategy strategy;
@@ -36,7 +37,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			
 			//TODO need some logic to account for all orders not actually trading or trading at different prices
 		//	portfolio.confirm(execution.m_execId, execution.m_price, execution.m_side);
-			LoggerFactory.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  "Order " + execution.m_orderId + " filled " + execution.m_shares + " @ " + execution.m_price );
+			LoggerFactory.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
 		}
 		else{
 			LoggerFactory.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
@@ -63,7 +64,6 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
 		updatePortfolioTime(time);
 		if( time % 60 == 0) { 
-			NumberFormat nf = NumberFormat.getCurrencyInstance();
 			LoggerFactory.getLogger("MarketData").info( "Realtime bar : " + reqId + " " + bar);
 			LoggerFactory.getLogger("Portfolio").info( "Time: " + time + " C: " + nf.format(portfolio.getCash()) + " value " + nf.format( portfolio.getValue(symbol, close)));
 		}

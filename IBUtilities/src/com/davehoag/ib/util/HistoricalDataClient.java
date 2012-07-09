@@ -85,8 +85,12 @@ public class HistoricalDataClient extends EClientSocket {
 		}
 		else
 		if(sender != null && order.m_orderType.equals("TRAIL")){
-			final double price = sender.getLimitPrice(order.m_action.equals("BUY"), order.m_percentOffset);
+			//Calculate the trailing limit price
+			//TODO this is all wrong, buys are immediatley hitting limit prices and selling
+			final double price = sender.getLimitPrice(order.m_action.equals("BUY"), order.m_trailingPercent);
+			//If price is near the current executable price, not the complete offset
 			if(sender.isExecutable(price, order.m_action)){
+				order.m_lmtPrice = price;
 				fillOrder(id, contract, order);
 			}
 			else{

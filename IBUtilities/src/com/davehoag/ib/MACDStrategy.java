@@ -1,19 +1,10 @@
 package com.davehoag.ib;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.Calendar;
-import java.util.Date;
-
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
-import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
-import com.ib.client.Contract;
-import com.ib.client.Execution;
-
 /**
  * Current design only supports 1 strategy per symbol. Need to route market data not directly to a strategy
  * but through a StrategyManager.
