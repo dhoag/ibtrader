@@ -1,8 +1,11 @@
-package com.davehoag.ib;
+package com.davehoag.ib.tools;
 
 import java.text.ParseException;
 import org.slf4j.LoggerFactory;
 
+import com.davehoag.ib.IBClientRequestExecutor;
+import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.StoreHistoricalData;
 import com.ib.client.EClientSocket;
 /**
  * http://individuals.interactivebrokers.com/php/apiguide/interoperability/dde_excel/tabhistorical.htm

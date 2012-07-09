@@ -44,7 +44,7 @@ public class Portfolio {
 	}
 	public synchronized void confirm(final int orderId, final String symbol, final double price, final int qty){
 		
-		history.add("[" + orderId + "] " + new Date(currentTime) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
+		history.add("[" + orderId + "] " + new Date(currentTime*1000) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
 	}
 	public void placedOrder(final boolean isBuy, final int orderId, final String symbol, final int qty, final double price){
 		if(isBuy){

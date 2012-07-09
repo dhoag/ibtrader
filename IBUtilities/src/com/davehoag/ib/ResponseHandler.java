@@ -69,8 +69,14 @@ public class ResponseHandler implements EWrapper {
 		}
 		if(inf)
 			LoggerFactory.getLogger("ResponseHandler").info( "[" + id + "]  "+ errorCode + " '" + errorMsg + "'");
-		else
+		else {
 			LoggerFactory.getLogger("ResponseHandler").error( "[" + id + "]  ERROR:" + errorCode + " '" + errorMsg + "'");
+			if(errorCode == 2105){
+				//Historical Market Data Service is stopped.
+				requester.close();
+				System.exit(errorCode);
+			}
+		}
 		
 		if(id > 0){//TODO figure out if I should move the "endRequest" to the delegate. 
 			final ResponseHandlerDelegate ew = requester.getResponseHandler(id);

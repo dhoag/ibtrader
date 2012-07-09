@@ -150,7 +150,7 @@ public class CassandraDao {
     	
     	final long actualFinish =  getToday(start, finish);
     	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
-    	LoggerFactory.getLogger("MarketData").info( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	LoggerFactory.getLogger("MarketData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
     	return getDataIterator(symbol, actualFinish, actualStart, cf);
     }
 	/**
@@ -192,7 +192,8 @@ public class CassandraDao {
 			}
     	};
 		} catch (Exception ex){
-			LoggerFactory.getLogger("MarketData").warn( "No data found in DAO for " + symbol);
+			LoggerFactory.getLogger("MarketData").warn( "No data found in DAO for " + symbol + ". " + ex);
+			
 			return new Iterator<Bar>(){
 				public boolean hasNext() {
 					return false;

@@ -1,4 +1,8 @@
-package com.davehoag.ib;
+package com.davehoag.ib.tools;
+import com.davehoag.ib.IBClientRequestExecutor;
+import com.davehoag.ib.MACDStrategy;
+import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.TradingStrategy;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;

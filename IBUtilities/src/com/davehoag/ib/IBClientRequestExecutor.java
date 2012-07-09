@@ -154,7 +154,7 @@ public class IBClientRequestExecutor {
 	 * Populate the portfolio with existing positions
 	 * @param port
 	 */
-	final void initializePortfolio( ){
+	final public void initializePortfolio( ){
 		//@TODO hard coded account name
 		String testAccountName = "DU132661";
 		int reqId = pushRequest();

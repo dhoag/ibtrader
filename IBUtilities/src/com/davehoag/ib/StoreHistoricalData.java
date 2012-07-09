@@ -51,7 +51,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	 * @param dates
 	 */
 	public void filterExistingDates(ArrayList<String> dates){
-		if(barSize.equals("bar1day")) return;
+		if( barSize.equals("bar1day") ) return;
 		ArrayList<String> purgeList = new ArrayList<String>();
 		for(String dateStr: dates)
 		try{
