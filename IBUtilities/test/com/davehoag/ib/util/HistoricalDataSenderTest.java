@@ -26,10 +26,12 @@ public class HistoricalDataSenderTest {
 		hl.setExecutorService(new ImmediateExecutor());
 		TestClientMock mock = new TestClientMock(hl);
 		IBClientRequestExecutor req = new IBClientRequestExecutor(mock, hl);
-
-
 		req.pushResponseHandler(reqId, rh);
 		sender = new HistoricalDataSender(reqId, null, null, mock);
+		sender.lastBar = new Bar();
+		sender.lastBar.low = 1.5;
+		sender.lastBar.close = 2.0;
+		sender.lastBar.high = 2.5;
 	}
 
 	@After
@@ -41,7 +43,9 @@ public class HistoricalDataSenderTest {
 		double offset = .1;
 		double price = 100.0;
 		boolean buy = false;
-		double limit = sender.getLimitPrice(buy, offset, price);
+		Order order = new Order();
+		order.m_action = "SELL";
+		double limit = sender.getOrderOnBook( 1, null, order).getLimitPrice(buy, offset, price);
 		assertEquals(90.0, limit, .001);
 	}
 	@Test
@@ -55,9 +59,10 @@ public class HistoricalDataSenderTest {
 
 	@Test
 	public void testIsExecutable() {
-		boolean test = sender.isExecutable(2.0, "BUY", 1.9);
+		boolean buy = true;
+		boolean test = sender.isExecutable(2.0, buy, 1.9);
 		assertTrue( "Should have been executable!", test);
-		test = sender.isExecutable(1.8, "BUY", 2.0);
+		test = sender.isExecutable(1.8, buy, 2.0);
 		assertFalse( "Should not have been executable!", test);
 	}
 
@@ -67,8 +72,42 @@ public class HistoricalDataSenderTest {
 		Order order = new Order();
 		order.m_action = "BUY";
 		order.m_lmtPrice = 2.0;
+		order.m_orderType = "LMT";
 		sender.addLimitOrder(reqId, lmtContract, order);
 		assertEquals(sender.restingOrders.size(), 1);
+	}
+	@Test
+	public void testFillOrBook(){
+		StockContract lmtContract = new StockContract("IBM");
+		Order order = new Order();
+		order.m_action = "BUY";
+		order.m_lmtPrice = 2.0;
+		order.m_orderType = "LMT";
+		assert(sender.fillOrBookOrder(reqId, lmtContract, order));
+		order.m_lmtPrice = 1.9;
+		assertFalse(sender.fillOrBookOrder(reqId, lmtContract, order));
+		order.m_orderType = "TRAIL";
+		order.m_action = "SELL";
+		order.m_trailingPercent = .01;
+		assertFalse(sender.fillOrBookOrder(reqId, lmtContract, order));
+		sender.checkRestingOrders(sender.lastBar);
+		assertEquals(0, sender.restingOrders.size() );
+		assertEquals(1.98, rh.exec.m_price , .001);
+	}
+	@Test
+	public void testTrailingFills(){
+		StockContract lmtContract = new StockContract("IBM");
+		Order order = new Order();
+		order.m_orderType = "TRAIL";
+		order.m_action = "SELL";
+		order.m_trailingPercent = .3;
+		//test an order that should adjust and then fill
+		//trail limit is 1.4, so it won't obviously fill
+		//but, if the price when to 2.5 trail would up to 1.75
+		//and the bar drops to 1.5 it would stop out at 1.75
+		sender.fillOrBookOrder(reqId, lmtContract, order);
+		sender.checkRestingOrders(sender.lastBar);
+		assertEquals(1.75, rh.exec.m_price , .001);
 	}
 
 }

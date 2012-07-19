@@ -7,6 +7,7 @@ import org.slf4j.*;
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.OrderOnBook;
 import com.ib.client.Contract;
 import com.ib.client.Order;
 import com.ib.client.TickType;
@@ -55,20 +56,38 @@ public class HistoricalDataSender {
 	protected synchronized void checkRestingOrders(final Bar bar){
 		final ArrayList<OrderOnBook> executed = new ArrayList<OrderOnBook>();
 		for(OrderOnBook order: restingOrders){
-			final boolean isBuy = order.lmtOrder.m_action.equals("BUY");
-			final double mktPrice = isBuy ? bar.low : bar.high;
-			if(isExecutable(order.lmtOrder.m_lmtPrice, order.lmtOrder.m_action, mktPrice)){
+			if(order.isTriggered( bar.high, bar.low )){
 				executed.add(order);
 				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 			}
-			else
-			if(order.lmtOrder.m_orderType.equals("TRAIL")){
-				//the "lmtPrice" was set during placement of order
-				//update it since it didn't fill in the prior if block
-				order.lmtOrder.m_lmtPrice = getLimitPrice(isBuy, order.lmtOrder.m_percentOffset, mktPrice);
+			else //If its a trailing order we need update the new lmt price
+			if(order.isTrail()){
+				order.updateTrailingLmtValue(bar.high, bar.low);
+		
+				//check if the swing could have caused an exit
+				if( order.isTriggered(  bar.high, bar.low ) ){
+					executed.add(order);
+					client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
+				}
 			}
 		}
 		restingOrders.removeAll(executed);
+	}
+	public boolean fillOrBookOrder(final int id, final Contract contract, final Order order){
+		if(order.m_orderType.equals("LMT")){
+			if( isExecutable(order.m_lmtPrice, order.m_action.equals("BUY"))){
+				return true;
+			}
+			else{
+				addLimitOrder(id, contract, order);
+			}
+		}
+		else
+		if( order.m_orderType.equals("TRAIL")){
+			//Always book trail orders - they should be filled filled by check resting orders
+			addLimitOrder(id, order);
+		}
+		return false;
 	}
 	/**
 	 * Allow fake clients to be plugged in
@@ -77,36 +96,23 @@ public class HistoricalDataSender {
 	public void setClient(final HistoricalDataClient socket){
 		client = socket;
 	}
-	public double getLimitPrice(final boolean buy, final double percentageOffset){
-		return getLimitPrice( buy, percentageOffset, lastBar.close);
+	public boolean isExecutable(final double price, final boolean isBuy){
+		return isExecutable(price, isBuy, lastBar.close);
 	}
-	public double getLimitPrice(final boolean buy, final double percentageOffset, final double referencePrice){
-		return buy  ? referencePrice  * (1* + percentageOffset) : referencePrice * ( 1- percentageOffset);
-	}
-	public boolean isExecutable(final double price, final String action){
-		return isExecutable(price, action, lastBar.close);
-	}
-	public boolean isExecutable(final double price, final String action, final double mktPrice){
-		if(price >= mktPrice && action.equals("BUY")) return true;
-		if(price <= mktPrice && action.equals("SELL")) return true;
+	public boolean isExecutable(final double price, final boolean isBuy, final double mktPrice){
+		if(price >= mktPrice && isBuy) return true;
+		if(price <= mktPrice && !isBuy) return true;
 		return false;
 	}
 	public void addLimitOrder(final int id, final Order order){
 		addLimitOrder(id, contract, order);
 	}
 	public synchronized void addLimitOrder(final int id, final Contract lmtContract, final Order order){
-		final OrderOnBook lmtOrder = new OrderOnBook(id, lmtContract, order);
-		restingOrders.add(lmtOrder);
+		LoggerFactory.getLogger("Trading").info( "booking order!" );
+		restingOrders.add( getOrderOnBook(id, lmtContract, order));
 	}
-	class OrderOnBook{
-		int orderId;
-		Contract lmtContract;
-		Order lmtOrder;
-		OrderOnBook(int id, Contract c, Order o){
-			orderId = id;
-			lmtContract = c;
-			lmtOrder = o;
-		}
+	OrderOnBook getOrderOnBook(final int id, final Contract lmtContract, final Order order){
+		return new OrderOnBook(id, lmtContract, order, lastBar.close);
 	}
 	
 }

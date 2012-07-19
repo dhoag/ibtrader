@@ -74,46 +74,36 @@ public class HistoricalDataClient extends EClientSocket {
 	@Override
 	public void placeOrder(final int id, final Contract contract, final Order order){
 		final HistoricalDataSender sender = mktDataFeed.get(contract.m_symbol);
-		if( sender!=null && order.m_orderType.equals("LMT")){
-			if(sender.isExecutable(order.m_lmtPrice, order.m_action)){
+		if( sender!=null ){
+			if( sender.fillOrBookOrder(id, contract, order) ){
 				fillOrder(id, contract, order);
 			}
-			else{
-				LoggerFactory.getLogger("Trading").info( "booking order!" );
-				sender.addLimitOrder(id, contract, order);
-			}
 		}
-		else
-		if(sender != null && order.m_orderType.equals("TRAIL")){
-			//Calculate the trailing limit price
-			//TODO this is all wrong, buys are immediatley hitting limit prices and selling
-			final double price = sender.getLimitPrice(order.m_action.equals("BUY"), order.m_trailingPercent);
-			//If price is near the current executable price, not the complete offset
-			if(sender.isExecutable(price, order.m_action)){
-				order.m_lmtPrice = price;
-				fillOrder(id, contract, order);
-			}
-			else{
-				order.m_lmtPrice = price;
-				sender.addLimitOrder(id, order);
-			}
-		}
-		else{
+		else{ //Just fill it - shouldn't ever be this case
 			fillOrder(id, contract, order);
 		}
+	}
+	/**
+	 * Create an execution and send it 
+	 * @param id
+	 * @param contract
+	 * @param order
+	 */
+	public void fillOrder(final int id, final Contract contract, final Order order) {
+		rh.execDetails(id, contract, getExecution(id,contract,order));
 	}
 	/**
 	 * @param id
 	 * @param contract
 	 * @param order
 	 */
-	protected void fillOrder(int id, Contract contract, Order order) {
-		Execution execution = new Execution();
+	protected Execution getExecution(final int id, final Contract contract, final Order order) {
+		final Execution execution = new Execution();
 		execution.m_side = order.m_action;
 		execution.m_orderId = id;
 		execution.m_price = order.m_lmtPrice;
 		execution.m_shares = order.m_totalQuantity;
-		rh.execDetails(id, contract, execution);
+		return execution;
 	}
 	@Override
 	public void reqAccountUpdates(final boolean keepGetting, final String accountName){

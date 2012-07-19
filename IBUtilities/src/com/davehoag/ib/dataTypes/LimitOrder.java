@@ -1,7 +1,5 @@
 package com.davehoag.ib.dataTypes;
 
-import com.ib.client.Contract;
-import com.ib.client.Order;
 
 public class LimitOrder{
 		String sym;
