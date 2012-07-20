@@ -18,7 +18,7 @@ import com.ib.client.TickType;
  */
 public class HistoricalDataSender {
 	final static String defaultHistoricalDataBarSize = "bar5sec";
-	final static int daysToBackTest = 3;
+	public static int daysToBackTest = 3;
 	
 	final int reqId;
 	final Contract contract;

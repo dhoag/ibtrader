@@ -142,7 +142,7 @@ public class IBClientRequestExecutor {
 		order.m_parentId = primaryOrder.m_orderId;
 		order.m_action = !buy ? "BUY" : "SELL";
 		order.m_orderType = "TRAIL";
-		order.m_trailingPercent = .5;
+		order.m_trailingPercent = .05;
 		order.m_totalQuantity = primaryOrder.m_totalQuantity;
 
 		order.m_clientId = IBConstants.clientId;

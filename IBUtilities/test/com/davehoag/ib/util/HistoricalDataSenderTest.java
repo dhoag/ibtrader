@@ -108,6 +108,7 @@ public class HistoricalDataSenderTest {
 		sender.fillOrBookOrder(reqId, lmtContract, order);
 		sender.checkRestingOrders(sender.lastBar);
 		assertEquals(1.75, rh.exec.m_price , .001);
+		assertEquals("SELL", rh.exec.m_side);
 	}
 
 }

@@ -4,6 +4,7 @@ import com.davehoag.ib.MACDStrategy;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.TradingStrategy;
 import com.davehoag.ib.util.HistoricalDataClient;
+import com.davehoag.ib.util.HistoricalDataSender;
 import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;
 
@@ -14,11 +15,14 @@ public class LaunchTrading {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		final String symbol = "SPY";
+		
+		final String symbol = args[0];
+		
 		ResponseHandler rh = new ResponseHandler();
 		
 		EClientSocket  m_client;
 		if( simulateTrading ){
+			HistoricalDataSender.daysToBackTest = Integer.parseInt(args[1]);
 			m_client = new HistoricalDataClient(rh);
 			rh.setExecutorService(new ImmediateExecutor());
 		}
