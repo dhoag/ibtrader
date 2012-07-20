@@ -10,7 +10,7 @@ import com.ib.client.EClientSocket;
 
 
 public class LaunchTrading {
-	static boolean simulateTrading = true;
+	static boolean simulateTrading = false;
 	/**
 	 * @param args
 	 */

@@ -37,7 +37,7 @@ public class OrderOnBook{
 		return false;
 	}
 	public double getLimitPrice(final boolean buy, final double percentageOffset, final double referencePrice){
-		return buy  ? referencePrice  * (1* + percentageOffset) : referencePrice * ( 1- percentageOffset);
+		return buy  ? referencePrice  * (1* + (percentageOffset / 100)) : referencePrice * ( 1- (percentageOffset/100));
 	}
 	public boolean isTriggered(final double high, final double low ){
 		if( isLimit() ){

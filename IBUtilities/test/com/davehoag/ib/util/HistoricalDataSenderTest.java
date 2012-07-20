@@ -40,7 +40,7 @@ public class HistoricalDataSenderTest {
 
 	@Test
 	public void testGetLimitPrice(){
-		double offset = .1;
+		double offset = 10.0;
 		double price = 100.0;
 		boolean buy = false;
 		Order order = new Order();

@@ -142,7 +142,7 @@ public class IBClientRequestExecutor {
 		order.m_parentId = primaryOrder.m_orderId;
 		order.m_action = !buy ? "BUY" : "SELL";
 		order.m_orderType = "TRAIL";
-		order.m_trailingPercent = .05;
+		order.m_trailingPercent = 1.25;
 		order.m_totalQuantity = primaryOrder.m_totalQuantity;
 
 		order.m_clientId = IBConstants.clientId;
@@ -337,11 +337,21 @@ public class IBClientRequestExecutor {
 	}
 	/**
 	 * Get 5 second bars and route to the request.
+	 * Legal ones for (STK) are: 100(Option Volume),101(Option Open Interest),
+	 * 104(Historical Volatility),105(Average Opt Volume),106(Option Implied Volatility),
+	 * 107(Close Implied Volatility),125(Bond analytic data),
+	 * 165(Misc. Stats),166(CScreen),225(Auction),232/221(Mark Price),
+	 * 233(RTVolume),236(inventory),258/47(Fundamentals),
+	 * 291(Close Implied Volatility),293(TradeCount),
+	 * 294(TradeRate),295(VolumeRate),318(LastRTHTrade),370(ParticipationMonitor),
+	 * 370(ParticipationMonitor),377(CttTickTag),377(CttTickTag),
+	 * 381(IB Rate),384(RfqTickRespTag),384(RfqTickRespTag),387(DMM),
+	 * 388(Issuer Fundamentals),391(IBWarrantImpVolCompeteTick),
+	 * 407(FuturesMargins),411(Real-Time Historical Volatility),428(Monetary Close Price)
 	 * @param symbol
 	 * @param rh
 	 */
 	public void reqRealTimeBars(final String symbol, final ResponseHandlerDelegate rh){
-		LoggerFactory.getLogger("MarketData").info( "Requesting realtime bars for " + symbol);
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
@@ -350,12 +360,14 @@ public class IBClientRequestExecutor {
 				rh.setReqId(reqId);
 				pushResponseHandler(reqId, rh);
 				LoggerFactory.getLogger("MarketData").info(
-						"Submitting request for market data " + reqId + " " + stock.m_symbol);
+						"Submitting request for real time bars" + reqId + " " + stock.m_symbol);
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
 				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
 				final boolean snapshot = false;
-				client.reqMktData(reqId, stock, "" + TickType.LAST + "," + TickType.BID + "," + TickType.ASK + "," + TickType.MODEL_OPTION, snapshot);
+				LoggerFactory.getLogger("MarketData").info(
+						"Submitting request for tick data" + reqId + " " + stock.m_symbol);
+				client.reqMktData(reqId, stock, "", snapshot);
 
 			}
 		};

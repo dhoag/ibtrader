@@ -71,8 +71,9 @@ public class ResponseHandler implements EWrapper {
 			LoggerFactory.getLogger("ResponseHandler").info( "[" + id + "]  "+ errorCode + " '" + errorMsg + "'");
 		else {
 			LoggerFactory.getLogger("ResponseHandler").error( "[" + id + "]  ERROR:" + errorCode + " '" + errorMsg + "'");
-			if(errorCode == 2105){
-				//Historical Market Data Service is stopped.
+			switch(errorCode ){
+			case 326: //Unable to connect
+			case 2105: //Historical Market Data Service is stopped.
 				requester.close();
 				System.exit(errorCode);
 			}
@@ -210,10 +211,13 @@ public class ResponseHandler implements EWrapper {
 		portfolio.update(contract.m_symbol, position);
 	}
 
+	/**
+	 * Comes across as "10:05"
+	 */
 	@Override
 	public void updateAccountTime(String timeStamp) {
 		LoggerFactory.getLogger("Misc").info( "Update time to " + timeStamp);
-		portfolio.setTime(Long.valueOf(timeStamp));
+		portfolio.setTime( System.currentTimeMillis() );
 	}
 
 	@Override

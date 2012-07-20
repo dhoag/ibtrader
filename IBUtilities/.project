@@ -3,6 +3,7 @@
 	<name>IBUtilities</name>
 	<comment></comment>
 	<projects>
+		<project>IB_9.67</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
