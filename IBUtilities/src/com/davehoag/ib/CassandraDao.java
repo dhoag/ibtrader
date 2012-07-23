@@ -7,6 +7,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
 
@@ -69,11 +71,12 @@ public class CassandraDao {
 	 * @param dateSecondsStr - Seconds since some date in the 70s - 
 	 * @param hasGap
 	 */
-	protected void insertHistoricalData(final String barSize, final String symbol, final String dateSecondsStr,
+	protected void insertHistoricalData(final String barSize, final String aSymbol, final String dateSecondsStr,
 			final double open, final double high, final double low,
 			final double close, final int volume, final int count,
 			final double WAP, final boolean hasGap)
 	{
+		final String symbol = StringUtils.upperCase(aSymbol);
 		
 		final DecimalFormat df = new DecimalFormat("#.##");
 		Long dateSeconds = Long.valueOf(dateSecondsStr);
@@ -146,8 +149,9 @@ public class CassandraDao {
      * @return
      * @throws ParseException 
      */
-    public Iterator<Bar> getData(final String symbol, long start, final long finish, final String cf) {
-    	
+    public Iterator<Bar> getData(final String aSymbol, long start, final long finish, final String cf) {
+		final String symbol = StringUtils.upperCase(aSymbol);
+
     	final long actualFinish =  getToday(start, finish);
     	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
     	LoggerFactory.getLogger("MarketData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));

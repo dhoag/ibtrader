@@ -58,15 +58,16 @@ public class HistoricalDataSender {
 		for(OrderOnBook order: restingOrders){
 			if(order.isTriggered( bar.high, bar.low )){
 				executed.add(order);
+				LoggerFactory.getLogger("Trading").debug("Filling a booked limit order ");
 				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 			}
 			else //If its a trailing order we need update the new lmt price
 			if(order.isTrail()){
 				order.updateTrailingLmtValue(bar.high, bar.low);
-		
 				//check if the swing could have caused an exit
 				if( order.isTriggered(  bar.high, bar.low ) ){
 					executed.add(order);
+					LoggerFactory.getLogger("Trading").debug("Filling a booked trailing limit order ");
 					client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 				}
 			}

@@ -113,7 +113,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		String actualDateStr = dateStr; 
 		if(barSize.equals("bar1day"))
 		try{ 
-			//dates are not in seconds, since I don't want quries to worry about bar size convert to seconds.
+			//dates are not in seconds, since I don't want queries to worry about bar size convert to seconds.
 			long dateInSeconds  = HistoricalDateManipulation.getTime(dateStr + " 08:30:00");
 			actualDateStr = "" + dateInSeconds;
 		}catch(ParseException ex){
