@@ -84,6 +84,11 @@ public class HistoricalDataClient extends EClientSocket {
 		}
 	}
 	/**
+	 * Noop for now, send realtime data later
+	 */
+	@Override
+	public void reqMktData(int tickReqId, Contract stock, String genericTypes, boolean snapshot){}
+	/**
 	 * Create an execution and send it 
 	 * @param id
 	 * @param contract

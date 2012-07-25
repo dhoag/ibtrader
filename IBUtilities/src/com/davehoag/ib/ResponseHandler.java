@@ -73,6 +73,7 @@ public class ResponseHandler implements EWrapper {
 			LoggerFactory.getLogger("ResponseHandler").error( "[" + id + "]  ERROR:" + errorCode + " '" + errorMsg + "'");
 			switch(errorCode ){
 			case 326: //Unable to connect
+			case 504: //Not connected
 			case 2105: //Historical Market Data Service is stopped.
 				requester.close();
 				System.exit(errorCode);

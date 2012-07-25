@@ -8,6 +8,8 @@ import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
@@ -28,6 +30,7 @@ public class IBClientRequestExecutor {
 	Runnable active;
 	int requests = 0;
 	final HashMap<Integer, ResponseHandlerDelegate> map = new HashMap<Integer, ResponseHandlerDelegate>();
+	final ResponseHandler responseHandler;
 	/**
 	 * Only want one thread sending the requests.
 	 */
@@ -35,6 +38,7 @@ public class IBClientRequestExecutor {
 		client = socket;
 		this.executor = Executors.newSingleThreadExecutor();
 		rh.setRequestor(this);
+		responseHandler = rh;
 	}
 	/**
 	 * Allow override - typically for testing
@@ -46,11 +50,12 @@ public class IBClientRequestExecutor {
 	/**
 	 * Got a disconnect from the TWS and I'm responding as best I can
 	 */
-	protected void forcedClose() {
+	protected synchronized void forcedClose() {
 		LoggerFactory.getLogger("RequestManager").error("Forced Exit");
 		client.eDisconnect();
 		((ExecutorService)executor).shutdownNow();
 		requests = 0;
+		notifyAll();
 	}
 
 	/**
@@ -84,16 +89,27 @@ public class IBClientRequestExecutor {
 	 * @param qty
 	 * @param price
 	 * @param rh
+	 * @return 
 	 */
-	public void executeOrder(final boolean buy, final String symbol, final int qty, final double price, final ResponseHandlerDelegate rh){
+	public void executeOrder(final LimitOrder lmtOrder, final ResponseHandlerDelegate rh){
+		final boolean buy = lmtOrder.isBuy();
+		final String symbol = lmtOrder.getSymbol();
+		final int qty = lmtOrder.getShares();
+		final double price = lmtOrder.getPrice();
+		final boolean openStopLoss = lmtOrder.getStopLoss() != null;
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
 				final Order order = createPrimaryOrder(buy, symbol, qty, price, rh);
 				final StockContract contract = new StockContract(symbol);
-				final Order stop = createStopOrder(buy, order, rh);
+				//Log to portfolio because we are assuming a fill		
+				responseHandler.getPortfolio().placedOrder( buy, order.m_permId, symbol, qty, price );
+				order.m_transmit = ! openStopLoss;
 				client.placeOrder(order.m_orderId, contract, order);
-				client.placeOrder(stop.m_orderId, contract, stop);
+				if( openStopLoss ) {
+					final Order stop = createStopOrder(buy, order, rh);
+					client.placeOrder(stop.m_orderId, contract, stop);
+				}
 			}
 		};
 		execute(r, 0);
@@ -365,9 +381,10 @@ public class IBClientRequestExecutor {
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
 				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
 				final boolean snapshot = false;
+				final int tickReqId = pushRequest();
 				LoggerFactory.getLogger("MarketData").info(
-						"Submitting request for tick data" + reqId + " " + stock.m_symbol);
-				client.reqMktData(reqId, stock, "", snapshot);
+						"Submitting request for tick data" + tickReqId + " " + stock.m_symbol);
+				client.reqMktData(tickReqId, stock, "", snapshot);
 
 			}
 		};

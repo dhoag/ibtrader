@@ -12,6 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.util.ImmediateExecutor;
 
 public class IBClientRequestExecutorTest  {
@@ -73,7 +74,8 @@ public class IBClientRequestExecutorTest  {
 	public void sumbitBuyOrder() {
 		executor.setExcutor(new ImmediateExecutor());
 		CaptureHistoricalDataMock mock = new CaptureHistoricalDataMock();
-		executor.executeOrder(true, "IBM", 100, 203.83, mock);
+		LimitOrder order = new LimitOrder("IBM", 100, 203.83, true);
+		executor.executeOrder(order, mock);
 		assertNotNull(mock.exec);
 	}
 

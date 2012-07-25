@@ -52,7 +52,12 @@ public class HistoricalDataSender {
 			handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
 			handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume, bar.wap, bar.tradeCount);
 		}
+		handler.connectionClosed();
 	}
+	/**
+	 * 
+	 * @param bar
+	 */
 	protected synchronized void checkRestingOrders(final Bar bar){
 		final ArrayList<OrderOnBook> executed = new ArrayList<OrderOnBook>();
 		for(OrderOnBook order: restingOrders){
@@ -74,6 +79,13 @@ public class HistoricalDataSender {
 		}
 		restingOrders.removeAll(executed);
 	}
+	/**
+	 * 
+	 * @param id
+	 * @param contract
+	 * @param order
+	 * @return
+	 */
 	public boolean fillOrBookOrder(final int id, final Contract contract, final Order order){
 		if(order.m_orderType.equals("LMT")){
 			if( isExecutable(order.m_lmtPrice, order.m_action.equals("BUY"))){

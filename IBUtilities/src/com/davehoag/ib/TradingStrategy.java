@@ -7,6 +7,7 @@ import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
+import com.ib.client.Order;
 
 public class TradingStrategy extends ResponseHandlerDelegate {
 	final NumberFormat nf = NumberFormat.getCurrencyInstance();
@@ -71,8 +72,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		final LimitOrder order = strategy.newBar(bar, portfolio);
 		if(order != null){
 			if(order.getSymbol() == null ) order.setSymbol(symbol);
-			portfolio.placedOrder(order.isBuy(), 0, order.getSymbol(), order.getShares(), order.getPrice() );
-			requester.executeOrder(order.isBuy(), order.getSymbol(), order.getShares(), order.getPrice(), this);
+			requester.executeOrder(order, this);
 		}
 
 	}

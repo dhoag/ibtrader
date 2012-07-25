@@ -88,7 +88,7 @@ public class HistoricalDataSenderTest {
 		assertFalse(sender.fillOrBookOrder(reqId, lmtContract, order));
 		order.m_orderType = "TRAIL";
 		order.m_action = "SELL";
-		order.m_trailingPercent = .01;
+		order.m_trailingPercent = 1;
 		assertFalse(sender.fillOrBookOrder(reqId, lmtContract, order));
 		sender.checkRestingOrders(sender.lastBar);
 		assertEquals(0, sender.restingOrders.size() );
@@ -100,7 +100,7 @@ public class HistoricalDataSenderTest {
 		Order order = new Order();
 		order.m_orderType = "TRAIL";
 		order.m_action = "SELL";
-		order.m_trailingPercent = .3;
+		order.m_trailingPercent = 30;
 		//test an order that should adjust and then fill
 		//trail limit is 1.4, so it won't obviously fill
 		//but, if the price when to 2.5 trail would up to 1.75

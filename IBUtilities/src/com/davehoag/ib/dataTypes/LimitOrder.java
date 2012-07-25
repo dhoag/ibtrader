@@ -6,6 +6,7 @@ public class LimitOrder{
 		int shares;
 		double orderPrice;
 		boolean buyOrder;
+		LimitOrder stopLoss;
  
 		public LimitOrder( final int qty, final double price, final boolean buy ){
 			this(null, qty, price, buy);
@@ -25,4 +26,6 @@ public class LimitOrder{
 		public String getSymbol(){ return sym; }
 		public boolean isBuy(){ return buyOrder; }
 		public int getShares(){ return shares; }
+		public LimitOrder getStopLoss(){ return stopLoss; }
+		public void setStopLoss( final LimitOrder order ){ stopLoss = order; }
 }

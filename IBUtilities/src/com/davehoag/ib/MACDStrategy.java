@@ -1,5 +1,7 @@
 package com.davehoag.ib;
 
+import org.slf4j.LoggerFactory;
+
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -15,8 +17,8 @@ public class MACDStrategy implements Strategy {
 	SimpleMovingAvg sma;
 	SimpleMovingAvg smaTrades;
 	int qty = 100;
-	int fastMovingAvg = 5;
-	int slowMovingAvg = 10;
+	int fastMovingAvg = 18;
+	int slowMovingAvg = 21;
 	boolean useEma = true;
 	boolean requireTradeConfirmation = false;
 
@@ -39,8 +41,9 @@ public class MACDStrategy implements Strategy {
 	 */
 	protected boolean inTradeWindow(final long time){
 		final int hour = HistoricalDateManipulation.getHour(time);
+
 		//don't trade the open or close
-		return hour > 8 & hour <= 14;
+		return !HistoricalDateManipulation.isEndOfDay(time) && (hour > 9 & hour <= 14);
 	}
 	public LimitOrder newBar(final Bar bar ,final Portfolio port){		
 		smaTrades.newTick(bar.tradeCount);
@@ -52,16 +55,20 @@ public class MACDStrategy implements Strategy {
 			//only trade if the # of trades is rising with the cross over
 			if(crossOverEvent){
 				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp()){
+					LoggerFactory.getLogger("MACD").debug(port.getTime() + "Open position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close + .05, true);
 				}
 				else if(holdings > 0 && !sma.isTrendingUp()){
+					LoggerFactory.getLogger("MACD").debug(port.getTime() + "Close position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close -.05, false);
 				}
 			}
 		}
 		else{
 			if( holdings > 0) {
-				 order = new LimitOrder(holdings, bar.close - .05, false);
+				 //end of the day, liquidate
+				LoggerFactory.getLogger("MACD").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
+				order = new LimitOrder(holdings, bar.close - .05, false);
 			}
 			else{
 				sma.reset();

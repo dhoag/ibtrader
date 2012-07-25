@@ -42,6 +42,9 @@ public class Portfolio {
 			dumpLog();
 		}
 	}
+	public String getTime(){
+		return HistoricalDateManipulation.getDateAsStr(currentTime);
+	}
 	public synchronized void confirm(final int orderId, final String symbol, final double price, final int qty){
 		
 		history.add("[" + orderId + "] " + new Date(currentTime*1000) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
@@ -89,7 +92,7 @@ public class Portfolio {
 	public synchronized void dumpLog(){
 		LoggerFactory.getLogger("Trading").info( "#### Display trade history ####");
 		for(String entry: history){
-			LoggerFactory.getLogger("Trading").info( entry);
+			LoggerFactory.getLogger("TradingHistory").info( entry);
 		}
 	}
 }

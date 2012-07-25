@@ -17,7 +17,7 @@ public class LaunchTrading {
 	public static void main(String[] args) {
 		
 		final String symbol = args[0];
-		
+		simulateTrading = args.length > 1;
 		ResponseHandler rh = new ResponseHandler();
 		
 		EClientSocket  m_client;
@@ -36,6 +36,7 @@ public class LaunchTrading {
 			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
+			
 		}
 		catch(Throwable t){
 			t.printStackTrace();
