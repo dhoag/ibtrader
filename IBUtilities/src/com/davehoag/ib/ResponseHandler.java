@@ -91,6 +91,7 @@ public class ResponseHandler implements EWrapper {
 	 */
 	@Override
 	public void connectionClosed() {
+		portfolio.displayValue();
 		requester.forcedClose();
 	}
 

@@ -10,12 +10,22 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class Portfolio {
 	HashMap<String, Integer> portfolio = new HashMap<String, Integer>();
+	HashMap<String, Double> lastPrice = new HashMap<String, Double>();
 	ArrayList<String> history = new ArrayList<String>();
 	double cash = 0;
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	Bar yesterday;
 	RiskLimits risk = new SimpleRiskLimits();
+	
+	public void displayValue(){
+		for(String symbol: portfolio.keySet()){
+			displayValue(symbol);
+		}
+	}
+	public void displayValue(final String symbol ){
+		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash()) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
+	}
 	/**
 	 * sometimes knowing yesterday's data is valuable. Could be null 
 	 * @param aOneDayBar
@@ -32,6 +42,9 @@ public class Portfolio {
 		LoggerFactory.getLogger("AccountManagement").info( "Updating account " + symbol + " " + qty);
 		portfolio.put(symbol, qty);
 	}
+	public void updatePrice(final String symbol, final double price){
+		lastPrice.put(symbol, price);
+	}
 	/**
 	 * IB API approach with time in seconds 
 	 * @param time
@@ -39,7 +52,7 @@ public class Portfolio {
 	public void setTime(final long time){
 		currentTime = time;
 		if(HistoricalDateManipulation.isEndOfDay(time)){
-			dumpLog();
+			//dumpLog();
 		}
 	}
 	public String getTime(){
@@ -90,7 +103,7 @@ public class Portfolio {
 		return currentQty.intValue() * price;
 	}
 	public synchronized void dumpLog(){
-		LoggerFactory.getLogger("Trading").info( "#### Display trade history ####");
+		LoggerFactory.getLogger("TradingHistory").info( "#### Display trade history ####");
 		for(String entry: history){
 			LoggerFactory.getLogger("TradingHistory").info( entry);
 		}

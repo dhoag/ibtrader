@@ -7,7 +7,15 @@ public class LimitOrder{
 		double orderPrice;
 		boolean buyOrder;
 		LimitOrder stopLoss;
- 
+		int id;
+		boolean trail = false;
+		/**
+		 * When the order is actually submitted set the id for reference
+		 * @param orderId
+		 */
+		public void setId(final int orderId){ id = orderId; }
+		public void markAsTrailingOrder(){ trail = true; }
+		public boolean isTrail(){ return trail; }
 		public LimitOrder( final int qty, final double price, final boolean buy ){
 			this(null, qty, price, buy);
 		}

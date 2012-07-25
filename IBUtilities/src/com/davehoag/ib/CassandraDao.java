@@ -45,6 +45,8 @@ public class CassandraDao {
 	
 	private final String [] priceKeys = { ":open", ":close", ":high", ":low", ":wap" };
 	private final String [] longKeys = { ":vol", ":tradeCount" };
+	//assume 5 second bars of which 60/5 appear per minute
+	private final int maxRecordsReturned = (60/5)*60*8*90;
 	final static CassandraDao dao = new CassandraDao();
 	public static CassandraDao getInstance(){
 		return dao;
@@ -154,7 +156,7 @@ public class CassandraDao {
 
     	final long actualFinish =  getToday(start, finish);
     	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
-    	LoggerFactory.getLogger("MarketData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	LoggerFactory.getLogger("HistoricalData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
     	return getDataIterator(symbol, actualFinish, actualStart, cf);
     }
 	/**
@@ -256,7 +258,7 @@ public class CassandraDao {
     	final HashMap<String, List<HColumn<Long, Double>>> result = new HashMap<String, List<HColumn<Long, Double>>>();
         RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace, stringSerializer, longSerializer, doubleSerializer);
         priceQuery.setColumnFamily(cf);
-        priceQuery.setRange(start, finish, false, 12*60*8);
+        priceQuery.setRange(start, finish, false, maxRecordsReturned);
         
         for(String key: priceKeys){
         	String rowKey = symbol + key;
@@ -276,7 +278,7 @@ public class CassandraDao {
     	final HashMap<String, List<HColumn<Long, Long>>> result = new HashMap<String, List<HColumn<Long, Long>>>();
         SliceQuery<String, Long, Long> priceQuery = HFactory.createSliceQuery(keyspace, stringSerializer, longSerializer, longSerializer);
         priceQuery.setColumnFamily(cf);
-        priceQuery.setRange(start, finish, false, 12*60*8);
+        priceQuery.setRange(start, finish, false, maxRecordsReturned);
         
         for(String key: longKeys ){
         	String rowKey = symbol + key;

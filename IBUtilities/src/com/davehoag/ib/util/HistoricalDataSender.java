@@ -36,7 +36,7 @@ public class HistoricalDataSender {
 	public void sendData() {
 		CassandraDao dao = new CassandraDao();
 
-    	LoggerFactory.getLogger("MarketData").info(  "Sending "  + contract.m_symbol +  " going back " + daysToBackTest);
+    	LoggerFactory.getLogger("HistoricalData").info(  "Sending "  + contract.m_symbol +  " going back " + daysToBackTest);
 
 		Iterator<Bar> data = dao.getData(contract.m_symbol, daysToBackTest, 0, defaultHistoricalDataBarSize);
 		//Each bar represents a forward looking 5 second period - thus the first first time is 8:30 and last is 2:55:55

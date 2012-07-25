@@ -10,7 +10,7 @@ import com.ib.client.EClientSocket;
 
 
 public class LaunchTrading {
-	static boolean simulateTrading = false;
+	public static boolean simulateTrading = false;
 	/**
 	 * @param args
 	 */
@@ -29,6 +29,9 @@ public class LaunchTrading {
 		else  m_client = new EClientSocket( rh );
 		
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
+		if( simulateTrading ){
+			clientInterface.setExcutor(new ImmediateExecutor());
+		}
 		clientInterface.connect();
 		clientInterface.initializePortfolio( );
 		try{

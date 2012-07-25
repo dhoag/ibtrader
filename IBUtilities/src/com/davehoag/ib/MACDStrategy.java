@@ -6,6 +6,7 @@ import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
+import com.davehoag.ib.tools.LaunchTrading;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 /**
  * Current design only supports 1 strategy per symbol. Need to route market data not directly to a strategy
@@ -20,7 +21,7 @@ public class MACDStrategy implements Strategy {
 	int fastMovingAvg = 18;
 	int slowMovingAvg = 21;
 	boolean useEma = true;
-	boolean requireTradeConfirmation = false;
+	boolean requireTradeConfirmation = true;
 
 	public MACDStrategy(){	
 		init(null);
@@ -57,10 +58,17 @@ public class MACDStrategy implements Strategy {
 				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp()){
 					LoggerFactory.getLogger("MACD").debug(port.getTime() + "Open position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close + .05, true);
+					if( ! LaunchTrading.simulateTrading ) {
+						//Put a safety net out
+						LimitOrder stopLoss = new LimitOrder(qty, 1.25, false);
+						stopLoss.markAsTrailingOrder();
+						order.setStopLoss(stopLoss);
+					}
 				}
 				else if(holdings > 0 && !sma.isTrendingUp()){
 					LoggerFactory.getLogger("MACD").debug(port.getTime() + "Close position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close -.05, false);
+					//TODO need to close stop limit orders if they exist
 				}
 			}
 		}
@@ -69,6 +77,7 @@ public class MACDStrategy implements Strategy {
 				 //end of the day, liquidate
 				LoggerFactory.getLogger("MACD").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
 				order = new LimitOrder(holdings, bar.close - .05, false);
+				//TODO need to close stop limit orders if they exist
 			}
 			else{
 				sma.reset();

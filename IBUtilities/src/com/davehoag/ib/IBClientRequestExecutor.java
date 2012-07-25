@@ -11,6 +11,7 @@ import java.util.concurrent.Executors;
 
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.StockContract;
+import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
 import com.ib.client.TickType;
@@ -53,7 +54,8 @@ public class IBClientRequestExecutor {
 	protected synchronized void forcedClose() {
 		LoggerFactory.getLogger("RequestManager").error("Forced Exit");
 		client.eDisconnect();
-		((ExecutorService)executor).shutdownNow();
+		if(executor instanceof ExecutorService)
+			((ExecutorService)executor).shutdownNow();
 		requests = 0;
 		notifyAll();
 	}
@@ -64,7 +66,8 @@ public class IBClientRequestExecutor {
 	public void close() {
 		LoggerFactory.getLogger("RequestManager").info( "Shutting down");
 		client.eDisconnect();
-		((ExecutorService)executor).shutdown();
+		if(executor instanceof ExecutorService)
+			((ExecutorService)executor).shutdown();
 	}
 
 	/**
@@ -102,12 +105,14 @@ public class IBClientRequestExecutor {
 			public void run() {
 				final Order order = createPrimaryOrder(buy, symbol, qty, price, rh);
 				final StockContract contract = new StockContract(symbol);
+				lmtOrder.setId(order.m_orderId);
 				//Log to portfolio because we are assuming a fill		
-				responseHandler.getPortfolio().placedOrder( buy, order.m_permId, symbol, qty, price );
+				responseHandler.getPortfolio().placedOrder( buy, order.m_orderId, symbol, qty, price );
 				order.m_transmit = ! openStopLoss;
 				client.placeOrder(order.m_orderId, contract, order);
 				if( openStopLoss ) {
-					final Order stop = createStopOrder(buy, order, rh);
+					final Order stop = createStopOrder( lmtOrder.getStopLoss(), order.m_orderId, rh);
+					lmtOrder.getStopLoss().setId(stop.m_orderId);
 					client.placeOrder(stop.m_orderId, contract, stop);
 				}
 			}
@@ -143,23 +148,28 @@ public class IBClientRequestExecutor {
 		return order;
 	}
 	/**
-	 * Use trailing stops
-	 * @param buy
-	 * @param primaryOrder
+	 * 
+	 * @param stopOrder
+	 * @param primaryOrderId
 	 * @param rh
 	 * @return
 	 */
-	protected Order createStopOrder(final boolean buy, final Order primaryOrder, final ResponseHandlerDelegate rh){
+	protected Order createStopOrder(final LimitOrder stopOrder, final int primaryOrderId, final ResponseHandlerDelegate rh){
 		Order order = new Order();
-		order.m_permId = primaryOrder.m_permId + 1;
+		order.m_permId = primaryOrderId + 1;
 		order.m_orderId = order.m_permId;
 		pushResponseHandler(order.m_orderId, rh);
 
-		order.m_parentId = primaryOrder.m_orderId;
-		order.m_action = !buy ? "BUY" : "SELL";
-		order.m_orderType = "TRAIL";
-		order.m_trailingPercent = 1.25;
-		order.m_totalQuantity = primaryOrder.m_totalQuantity;
+		order.m_parentId = primaryOrderId;
+		order.m_action = stopOrder.isBuy() ? "BUY" : "SELL";
+		if( stopOrder.isTrail() ){
+			order.m_orderType = "TRAIL";
+			order.m_trailingPercent = stopOrder.getPrice();
+		}
+		else{
+			throw new UnsupportedOperationException("Only trailing orders are currently supported");
+		}
+		order.m_totalQuantity = stopOrder.getShares();
 
 		order.m_clientId = IBConstants.clientId;
 		order.m_transmit = true;
@@ -207,7 +217,7 @@ public class IBClientRequestExecutor {
 		final Integer id = Integer.valueOf(reqId);
 		final ResponseHandlerDelegate rd = map.get(id);
 		if(rd != null) {
-			rd.info( "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
+			LoggerFactory.getLogger("PerfMetrics").debug( "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
 		}
 		else
 			LoggerFactory.getLogger("RequestManager").info( "[" + reqId + "] Ending request " );

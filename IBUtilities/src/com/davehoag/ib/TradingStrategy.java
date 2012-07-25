@@ -5,6 +5,7 @@ import org.slf4j.*;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
 import com.ib.client.Order;
@@ -64,9 +65,10 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
 		updatePortfolioTime(time);
-		if( time % 60 == 0) { 
+		portfolio.updatePrice(symbol, close);
+		if( time % (60*30) == 0) { 
 			LoggerFactory.getLogger("MarketData").info( "Realtime bar : " + reqId + " " + bar);
-			LoggerFactory.getLogger("Portfolio").info( "Time: " + time + " C: " + nf.format(portfolio.getCash()) + " value " + nf.format( portfolio.getValue(symbol, close)));
+			portfolio.displayValue(symbol);
 		}
 	
 		final LimitOrder order = strategy.newBar(bar, portfolio);
@@ -92,7 +94,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 				}
 				portfolio.setYesterday( yest );
 			} catch(Exception ex){
-				LoggerFactory.getLogger("MarketData").warn( "Error getting yesterday", ex);
+				LoggerFactory.getLogger("MarketData").warn( "Can't getting yesterday's bar", ex);
 			}
 			
 		}
