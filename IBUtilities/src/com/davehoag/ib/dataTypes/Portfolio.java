@@ -4,6 +4,8 @@ import java.text.NumberFormat;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Stack;
+
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -11,17 +13,34 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 public class Portfolio {
 	HashMap<String, Integer> portfolio = new HashMap<String, Integer>();
 	HashMap<String, Double> lastPrice = new HashMap<String, Double>();
+	HashMap<Integer, LimitOrder> orders = new HashMap<Integer, LimitOrder>();
 	ArrayList<String> history = new ArrayList<String>();
+	ArrayList<LimitOrder> openCloseLog = new ArrayList<LimitOrder>();
 	double cash = 0;
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	Bar yesterday;
 	RiskLimits risk = new SimpleRiskLimits();
+	Stack<LimitOrder> positionToUnwind = new Stack<LimitOrder>();
 	
 	public void displayValue(){
 		for(String symbol: portfolio.keySet()){
 			displayValue(symbol);
 		}
+	}
+	/**
+	 *TODO need to get this working for porfolios holding multiple stocks
+	 *right now assumes a single stock, unlike the rest of this class...:(
+	 */
+	public void displayTradeStats(){
+		double profit = 0;
+		int winningTrades = 0;
+		for(LimitOrder closingOrder : openCloseLog){
+			double tradeProfit =closingOrder.getProfit(); 
+			profit += tradeProfit;
+			if(tradeProfit > 0) winningTrades++;
+		}
+		LoggerFactory.getLogger("Portfolio").info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
 	}
 	public void displayValue(final String symbol ){
 		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash()) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
@@ -59,35 +78,71 @@ public class Portfolio {
 		return HistoricalDateManipulation.getDateAsStr(currentTime);
 	}
 	public synchronized void confirm(final int orderId, final String symbol, final double price, final int qty){
-		
-		history.add("[" + orderId + "] " + new Date(currentTime*1000) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
+		final LimitOrder order = orders.get(orderId);
+		if(order != null){
+			order.confirm();
+			//set to the actual fill price, may be different than order price
+			order.setPrice(price);
+		}
+		history.add("[" + orderId + "] " + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
 	}
-	public void placedOrder(final boolean isBuy, final int orderId, final String symbol, final int qty, final double price){
-		if(isBuy){
-			bought(orderId, symbol, qty, price);
+	public void placedOrder(final LimitOrder lmtOrder){
+		orders.put(lmtOrder.getId(), lmtOrder);
+		if(lmtOrder.isBuy()){
+			bought(lmtOrder);
 		}
 		else {
-			sold(orderId, symbol, qty, price);
+			sold(lmtOrder);
 		}
 	}
-	public synchronized void bought(final int orderId, final String symbol, final int qty, final double price){
+	public synchronized void bought(final LimitOrder lmtOrder){
+		final int orderId = lmtOrder.getId();
+		final String symbol = lmtOrder.getSymbol();
+		final int qty = lmtOrder.getShares();
+		final double price = lmtOrder.getPrice();
+		
 		if( ! risk.acceptTrade(true, qty, this, price)){
 			throw new IllegalStateException("Not willing to make  trade - too risky");
 		}
 		final Integer originalQty = portfolio.get(symbol);
-		final Integer newQty = originalQty != null ? (originalQty.intValue() + qty) : qty;
+		final int newQty = originalQty != null ? (originalQty.intValue() + qty) : qty;
+		openCloseAccounting(newQty, originalQty, lmtOrder);
 		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + new Date(currentTime * 1000) + " Buy " + qty + " of " + symbol + " @ " + nf.format(price));
+		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime) + " Buy " + qty + " of " + symbol + " @ " + nf.format(price));
 		cash -= qty * price;
 	}
-	public synchronized void sold(final int orderId, final String symbol, final int qty, final double price){
+	/**
+	 * If the order is unwinding an open position, record as such
+	 * @param newQty
+	 * @param originalQty
+	 * @param lmtOrder
+	 */
+	protected void openCloseAccounting(final int newQty, final int originalQty, final LimitOrder lmtOrder){
+		if(Math.abs(newQty) > Math.abs(originalQty)){
+			//Opening a long or short position
+			positionToUnwind.push(lmtOrder);
+		}
+		else {
+			LimitOrder unwound = positionToUnwind.pop();
+			if(unwound.getShares() != lmtOrder.getShares()) throw new IllegalStateException("Should only be selling the qty we bought");
+			lmtOrder.setOnset(unwound);
+			openCloseLog.add(lmtOrder);
+		}
+	}
+	public synchronized void sold(final LimitOrder lmtOrder){
+		final int orderId = lmtOrder.getId();
+		final String symbol = lmtOrder.getSymbol();
+		final int qty = lmtOrder.getShares();
+		final double price = lmtOrder.getPrice();
+
 		if( ! risk.acceptTrade(false, qty, this, price)){
 			throw new IllegalStateException("Not willing to make  trade - too risky");
 		}
 		final Integer originalQty = portfolio.get(symbol);
-		final Integer newQty = originalQty != null ? (originalQty.intValue() - qty) : -qty;
+		final int newQty = originalQty != null ? (originalQty - qty) : -qty;
+		openCloseAccounting(newQty, originalQty, lmtOrder);
 		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + new Date(currentTime * 1000) + " Sell " + qty + " of " + symbol + " @ " + nf.format(price));
+		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Sell " + qty + " of " + symbol + " @ " + nf.format(price));
 		cash += qty * price;
 	}
 	public int getShares(final String symbol){

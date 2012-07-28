@@ -107,7 +107,7 @@ public class IBClientRequestExecutor {
 				final StockContract contract = new StockContract(symbol);
 				lmtOrder.setId(order.m_orderId);
 				//Log to portfolio because we are assuming a fill		
-				responseHandler.getPortfolio().placedOrder( buy, order.m_orderId, symbol, qty, price );
+				responseHandler.getPortfolio().placedOrder( lmtOrder );
 				order.m_transmit = ! openStopLoss;
 				client.placeOrder(order.m_orderId, contract, order);
 				if( openStopLoss ) {
