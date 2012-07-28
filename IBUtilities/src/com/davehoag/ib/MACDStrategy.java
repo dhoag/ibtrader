@@ -56,18 +56,19 @@ public class MACDStrategy implements Strategy {
 			//only trade if the # of trades is rising with the cross over
 			if(crossOverEvent){
 				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp()){
-					LoggerFactory.getLogger("MACD").debug(port.getTime() + "Open position " + bar.symbol + " " + qty);
-					order = new LimitOrder(qty, bar.close + .05, true);
+					LoggerFactory.getLogger("MACD").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
+					order = new LimitOrder(qty, bar.close + .02, true);
+					
 					if( ! LaunchTrading.simulateTrading ) {
 						//Put a safety net out
-						LimitOrder stopLoss = new LimitOrder(qty, 1.25, false);
+						LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent()*2, false);
 						stopLoss.markAsTrailingOrder();
 						order.setStopLoss(stopLoss);
 					}
 				}
 				else if(holdings > 0 && !sma.isTrendingUp()){
-					LoggerFactory.getLogger("MACD").debug(port.getTime() + "Close position " + bar.symbol + " " + qty);
-					order = new LimitOrder(qty, bar.close -.05, false);
+					LoggerFactory.getLogger("MACD").debug(port.getTime() + " Close position " + bar.symbol + " " + qty);
+					order = new LimitOrder(qty, bar.close -.02, false);
 					//TODO need to close stop limit orders if they exist
 				}
 			}

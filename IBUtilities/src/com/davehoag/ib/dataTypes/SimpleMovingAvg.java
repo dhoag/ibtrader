@@ -1,5 +1,7 @@
 package com.davehoag.ib.dataTypes;
 
+import flanagan.analysis.Stat;
+
 public class SimpleMovingAvg {
 	final double [] fastLeg;
 	final double [] slowLeg;
@@ -126,6 +128,14 @@ public class SimpleMovingAvg {
 	}
 	public double getSlowEma(){
 		return slowEma;
+	}
+	/**
+	 * For the data in the slow leg, what's the typical percent change between ticks
+	 * @return
+	 */
+	public double getVolatilityPercent(){
+	
+		return Stat.volatilityPerCentChange(slowLeg);
 	}
 	protected double getAvg(final double [] list){
 		double sum = 0;
