@@ -156,7 +156,7 @@ public class CassandraDao {
 
     	final long actualFinish =  getToday(start, finish);
     	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
-    	LoggerFactory.getLogger("HistoricalData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	LoggerFactory.getLogger("HistoricalData").info( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
     	return getDataIterator(symbol, actualFinish, actualStart, cf);
     }
 	/**
