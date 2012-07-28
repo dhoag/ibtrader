@@ -198,8 +198,8 @@ public class CassandraDao {
 			}
     	};
 		} catch (Exception ex){
-			LoggerFactory.getLogger("MarketData").warn( "No data found in DAO for " + symbol + ". " + ex);
-			
+			LoggerFactory.getLogger("DAO").warn( "Exception fetching data in DAO for " + symbol + ". " + ex);
+			ex.printStackTrace();
 			return new Iterator<Bar>(){
 				public boolean hasNext() {
 					return false;

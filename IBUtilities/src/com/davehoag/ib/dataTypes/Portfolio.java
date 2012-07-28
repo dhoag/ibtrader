@@ -17,6 +17,7 @@ public class Portfolio {
 	ArrayList<String> history = new ArrayList<String>();
 	ArrayList<LimitOrder> openCloseLog = new ArrayList<LimitOrder>();
 	double cash = 0;
+	double maxDrawdown;
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	Bar yesterday;
@@ -41,6 +42,7 @@ public class Portfolio {
 			if(tradeProfit > 0) winningTrades++;
 		}
 		LoggerFactory.getLogger("Portfolio").info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
+		LoggerFactory.getLogger("Portfolio").info( "Drawdown " + maxDrawdown );
 	}
 	public void displayValue(final String symbol ){
 		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash()) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
@@ -105,11 +107,15 @@ public class Portfolio {
 			throw new IllegalStateException("Not willing to make  trade - too risky");
 		}
 		final Integer originalQty = portfolio.get(symbol);
-		final int newQty = originalQty != null ? (originalQty.intValue() + qty) : qty;
-		openCloseAccounting(newQty, originalQty, lmtOrder);
+		final int origQtyInt = originalQty != null ? (originalQty.intValue()) : 0;
+		final int newQty = origQtyInt + qty;
+		openCloseAccounting(newQty, origQtyInt, lmtOrder);
 		portfolio.put(symbol, newQty);
 		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime) + " Buy " + qty + " of " + symbol + " @ " + nf.format(price));
 		cash -= qty * price;
+		if(cash < maxDrawdown){
+			maxDrawdown = cash;
+		}
 	}
 	/**
 	 * If the order is unwinding an open position, record as such
@@ -139,8 +145,9 @@ public class Portfolio {
 			throw new IllegalStateException("Not willing to make  trade - too risky");
 		}
 		final Integer originalQty = portfolio.get(symbol);
-		final int newQty = originalQty != null ? (originalQty - qty) : -qty;
-		openCloseAccounting(newQty, originalQty, lmtOrder);
+		final int origQtyInt = originalQty != null ? (originalQty.intValue()) : 0;
+		final int newQty =  origQtyInt - qty;
+		openCloseAccounting(newQty, origQtyInt, lmtOrder);
 		portfolio.put(symbol, newQty);
 		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Sell " + qty + " of " + symbol + " @ " + nf.format(price));
 		cash += qty * price;

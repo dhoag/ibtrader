@@ -39,7 +39,7 @@ public class LaunchTrading {
 			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
-			
+			strat.displayTradeStats();
 		}
 		catch(Throwable t){
 			t.printStackTrace();

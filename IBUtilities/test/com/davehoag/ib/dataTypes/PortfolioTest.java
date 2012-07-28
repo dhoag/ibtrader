@@ -19,24 +19,30 @@ public class PortfolioTest {
 
 	@Test
 	public void testBought() {
-		p.bought(1, "IBM", 100, 12.2);
+		LimitOrder order = new LimitOrder("IBM", 100, 12.2, true);
+
+		p.bought(order);
 		assertEquals(-1220.0, p.cash, .001);
-		p.bought(1, "IBM", 100, 10.0);
+		LimitOrder order2 = new LimitOrder("IBM", 100, 10.0, false);
+		p.bought(order2);
 		assertEquals(-2220.0, p.cash, .001);
 	}
 
 	@Test
 	public void testSold() {
-		p.sold(1, "IBM", 100, 12.2);
+		LimitOrder order = new LimitOrder("IBM", 100, 12.2, false);
+		p.sold(order);
 		assertEquals(1220.0, p.cash, .001);
-		p.sold(1, "IBM", 100, 10.0);
+		order.setPrice(10.0);
+		p.sold(order);
 		assertEquals(2220.0, p.cash, .001);
 	}
 
 
 	@Test
 	public void testValue() {
-		p.bought(1, "IBM", 100, 12.2);
+		LimitOrder order = new LimitOrder("IBM", 100, 12.2, true);
+		p.bought(order);
 		assertEquals(1000.0, p.getValue("IBM", 10), .0001);
 	}
 
