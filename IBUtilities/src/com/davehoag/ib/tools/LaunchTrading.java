@@ -1,8 +1,9 @@
 package com.davehoag.ib.tools;
 import com.davehoag.ib.IBClientRequestExecutor;
-import com.davehoag.ib.MACDStrategy;
 import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.Strategy;
 import com.davehoag.ib.TradingStrategy;
+import com.davehoag.ib.strategies.MACDStrategy;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.HistoricalDataSender;
 import com.davehoag.ib.util.ImmediateExecutor;
@@ -17,12 +18,13 @@ public class LaunchTrading {
 	public static void main(String[] args) {
 		
 		final String symbol = args[0];
-		simulateTrading = args.length > 1;
+		final String strategyName = args[1];
+		simulateTrading = args.length > 2;
 		ResponseHandler rh = new ResponseHandler();
 		
 		EClientSocket  m_client;
 		if( simulateTrading ){
-			HistoricalDataSender.daysToBackTest = Integer.parseInt(args[1]);
+			HistoricalDataSender.daysToBackTest = Integer.parseInt(args[2]);
 			m_client = new HistoricalDataClient(rh);
 			rh.setExecutorService(new ImmediateExecutor());
 		}
@@ -35,7 +37,7 @@ public class LaunchTrading {
 		clientInterface.connect();
 		clientInterface.initializePortfolio( );
 		try{
-			MACDStrategy macd = new MACDStrategy();
+			Strategy macd = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
 			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();

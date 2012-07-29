@@ -1,7 +1,8 @@
-package com.davehoag.ib;
+package com.davehoag.ib.strategies;
 
 import org.slf4j.LoggerFactory;
 
+import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;

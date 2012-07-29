@@ -89,9 +89,6 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			try { 
 				initialTimeStamp = time;
 				final Bar yest = CassandraDao.getInstance().getYesterday(symbol, time);
-				if(yest != null){
-					initialTimeStamp = yest.originalTime;
-				}
 				portfolio.setYesterday( yest );
 			} catch(Exception ex){
 				LoggerFactory.getLogger("MarketData").warn( "Can't getting yesterday's bar", ex);

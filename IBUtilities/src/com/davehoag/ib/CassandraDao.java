@@ -146,7 +146,7 @@ public class CassandraDao {
 		if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY )  actualToday -= 1*24*60*60;
     	final long openTime = HistoricalDateManipulation.getOpen(actualToday);
 
-    	LoggerFactory.getLogger("MarketData").debug( "Get " + symbol + " open of day: " + actualToday + " " + new Date(actualToday *1000));
+    	LoggerFactory.getLogger("HistoricalData").debug( "Get " + symbol + " open of day: " + actualToday + " " + new Date(actualToday *1000));
     	Iterator<Bar> bars = getData( symbol, openTime, openTime, "bar5sec");
     	if(bars.hasNext()) return bars.next();
     	return null;
@@ -163,8 +163,8 @@ public class CassandraDao {
 		final String symbol = StringUtils.upperCase(aSymbol);
 
     	final long actualFinish =  determineEndDate(start  < 1000, finish);
-    	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
-    	LoggerFactory.getLogger("HistoricalData").info( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	final long actualStart = start < 1000 ? HistoricalDateManipulation.getOpen(actualFinish - 24*60*60*start) : start;
+    	LoggerFactory.getLogger("HistoricalData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
     	return getDataIterator(symbol, actualFinish, actualStart, cf);
     }
 	/**
@@ -261,7 +261,7 @@ public class CassandraDao {
     	final long openTime = HistoricalDateManipulation.getOpen(yesterday);
     	final Iterator<Bar> bars = getData(symbol, openTime, openTime, "bar1day");
     	if(bars.hasNext()) return bars.next();
-    	LoggerFactory.getLogger("MarketData").warn( "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
+    	LoggerFactory.getLogger("HistoricalData").warn( "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
     	return null;
     }
     /**

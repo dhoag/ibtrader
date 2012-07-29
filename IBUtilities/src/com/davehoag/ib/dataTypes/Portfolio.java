@@ -21,8 +21,8 @@ public class Portfolio {
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	Bar yesterday;
-	RiskLimits risk = new SimpleRiskLimits();
-	Stack<LimitOrder> positionToUnwind = new Stack<LimitOrder>();
+	SimpleRiskLimits risk = new SimpleRiskLimits();
+	HashMap<String, Stack<LimitOrder>> positionToUnwind = new HashMap<String, Stack<LimitOrder>>();
 	
 	public void displayValue(){
 		for(String symbol: portfolio.keySet()){
@@ -43,6 +43,14 @@ public class Portfolio {
 		}
 		LoggerFactory.getLogger("Portfolio").info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
 		LoggerFactory.getLogger("Portfolio").info( "Drawdown " + maxDrawdown );
+	}
+	public double getProfit(){
+		double profit = 0;
+		for(LimitOrder closingOrder : openCloseLog){
+			double tradeProfit =closingOrder.getProfit(); 
+			profit += tradeProfit;
+		}
+		return profit;
 	}
 	public void displayValue(final String symbol ){
 		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash()) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
@@ -97,7 +105,7 @@ public class Portfolio {
 			sold(lmtOrder);
 		}
 	}
-	public synchronized void bought(final LimitOrder lmtOrder){
+	private synchronized void bought(final LimitOrder lmtOrder){
 		final int orderId = lmtOrder.getId();
 		final String symbol = lmtOrder.getSymbol();
 		final int qty = lmtOrder.getShares();
@@ -124,18 +132,33 @@ public class Portfolio {
 	 * @param lmtOrder
 	 */
 	protected void openCloseAccounting(final int newQty, final int originalQty, final LimitOrder lmtOrder){
+		if(positionToUnwind.get(lmtOrder.getSymbol()) == null) positionToUnwind.put(lmtOrder.getSymbol(), new Stack<LimitOrder>());
 		if(Math.abs(newQty) > Math.abs(originalQty)){
+			if(originalQty != 0 && ! risk.allowRebuys ) throw new IllegalStateException("Risk! Not allowing increases in existing positions");
 			//Opening a long or short position
-			positionToUnwind.push(lmtOrder);
+			positionToUnwind.get(lmtOrder.getSymbol()).push(lmtOrder);
 		}
 		else {
-			LimitOrder unwound = positionToUnwind.pop();
-			if(unwound.getShares() != lmtOrder.getShares()) throw new IllegalStateException("Should only be selling the qty we bought");
-			lmtOrder.setOnset(unwound);
-			openCloseLog.add(lmtOrder);
+			int closedQty = 0;
+			int sellQty= lmtOrder.getShares();
+			LimitOrder closingOrder = lmtOrder;
+			while(closedQty < sellQty){
+				LimitOrder unwound = positionToUnwind.get(lmtOrder.getSymbol()).pop();
+				if(unwound.getShares() != sellQty && ! risk.allowRebuys) throw new IllegalStateException("Should only be selling the qty we bought");
+				openCloseLog.add(closingOrder);
+				closedQty += unwound.getShares();
+				if(closedQty > sellQty) throw new IllegalStateException("Closed more open qty than was in the sell!!");
+				LimitOrder placeholder = lmtOrder.clone();
+				closingOrder.setOnset(unwound);
+				if(closedQty < sellQty) {
+					closingOrder.markAsCloseMultiple();
+					placeholder.markAsCloseMultiple();
+				}
+				closingOrder = placeholder;
+			}
 		}
 	}
-	public synchronized void sold(final LimitOrder lmtOrder){
+	private synchronized void sold(final LimitOrder lmtOrder){
 		final int orderId = lmtOrder.getId();
 		final String symbol = lmtOrder.getSymbol();
 		final int qty = lmtOrder.getShares();

@@ -1,7 +1,8 @@
 package com.davehoag.ib.dataTypes;
 
 public class SimpleRiskLimits implements RiskLimits {
-
+	boolean allowRebuys = true;
+	
 	@Override
 	public boolean acceptTrade(boolean buy, int qty, Portfolio port, double price) {
 		return true;
