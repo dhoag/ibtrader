@@ -62,7 +62,8 @@ public class CassandraDao {
 				System.out.println(aBar);
 				if(count++ > 10) break;
 			}
-			System.out.println( "OPEN " + dao.getOpen("SPY", 5));
+			System.out.println( "OPEN " + dao.getOpen("SPY", 0));
+			System.out.println( "OPEN -5 " + dao.getOpen("SPY", 5));
 			System.out.println("Yesterday " + dao.getYesterday("SPY", seconds));
 					
 		} catch(Throwable t){
@@ -132,15 +133,20 @@ public class CassandraDao {
      * @param today
      * @return
      */
-    public Bar getOpen(final String symbol, long today){
+    public Bar getOpen(final String symbol, final long todayInSec){
     	//first assume today could be the number of days to go back from today
-    	
-    	long actualToday = today;
-    	if(today < 1000){
-    		actualToday =  getToday(today, 0) - today*24*60*60;
+    	long actualToday = todayInSec;
+    	if(todayInSec < 1000){
+    		actualToday =  (System.currentTimeMillis()/1000)- todayInSec*24*60*60;
     	}
+    	Calendar today = Calendar.getInstance();
+    	today.setTimeInMillis(actualToday *1000);
+		if( today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) actualToday -= 2*24*60*60;
+		else 
+		if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY )  actualToday -= 1*24*60*60;
+    	final long openTime = HistoricalDateManipulation.getOpen(actualToday);
+
     	LoggerFactory.getLogger("MarketData").debug( "Get " + symbol + " open of day: " + actualToday + " " + new Date(actualToday *1000));
-    	long openTime = HistoricalDateManipulation.getOpen(actualToday);
     	Iterator<Bar> bars = getData( symbol, openTime, openTime, "bar5sec");
     	if(bars.hasNext()) return bars.next();
     	return null;
@@ -156,7 +162,7 @@ public class CassandraDao {
     public Iterator<Bar> getData(final String aSymbol, long start, final long finish, final String cf) {
 		final String symbol = StringUtils.upperCase(aSymbol);
 
-    	final long actualFinish =  getToday(start, finish);
+    	final long actualFinish =  determineEndDate(start  < 1000, finish);
     	final long actualStart = start < 1000 ? actualFinish - 24*60*60*start : start;
     	LoggerFactory.getLogger("HistoricalData").info( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
     	return getDataIterator(symbol, actualFinish, actualStart, cf);
@@ -224,11 +230,12 @@ public class CassandraDao {
 	 * @param finish
 	 * @return
 	 */
-	protected long getToday(final long start, final long finish) {
+	protected long determineEndDate(boolean offsetWeekend, final long finish) {
 		long todayInSeconds = finish;
     	if(finish < 1000) {
         	final Calendar today = Calendar.getInstance();
-        	if( start  < 1000 ){
+        	
+        	if( offsetWeekend ){
         		if( today.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY ) today.add(Calendar.HOUR, -2*24);
         		else 
         		if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) today.add(Calendar.HOUR, -24);
@@ -241,16 +248,18 @@ public class CassandraDao {
     /**
      * 
      * @param symbol
-     * @param seconds
+     * @param seconds A timestamp from today. If today is the weekend back it up to Friday.
      * @return 
      */
     public Bar getYesterday(final String symbol, final long seconds){
     	Calendar today = Calendar.getInstance();
     	today.setTimeInMillis(seconds *1000);
-    	int offset = 1;
-    	if(today.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY ) offset = 3;
-    	if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) offset = 2;
-    	Iterator<Bar> bars = getData(symbol, offset, seconds, "bar1day");
+    	long yesterday = seconds - 24*60*60;
+		if( today.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY || today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) yesterday -= 2*24*60*60;
+		else 
+		if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY )  yesterday -= 1*24*60*60;
+    	final long openTime = HistoricalDateManipulation.getOpen(yesterday);
+    	final Iterator<Bar> bars = getData(symbol, openTime, openTime, "bar1day");
     	if(bars.hasNext()) return bars.next();
     	LoggerFactory.getLogger("MarketData").warn( "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
     	return null;
