@@ -345,7 +345,7 @@ public class IBClientRequestExecutor {
 					final int reqId = pushRequest();
 					pushResponseHandler(reqId, rh);
 					rh.info(
-							"Submitting request for historical data " + reqId + " " + date + " " + stock.m_symbol);
+							"["+ reqId + "] Submitting request for historical data " + date + " " + stock.m_symbol);
 					rh.resetRecordCount();
 					client.reqHistoricalData(reqId, stock, date, rh.getDuration(), rh.getBar(),
 							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);

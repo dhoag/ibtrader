@@ -84,7 +84,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	 */
 	@Override
 	public void info(  final String msg) {
-		LoggerFactory.getLogger("HistoricalData" ).info( "Symbol: " + sym + " " + msg);
+		LoggerFactory.getLogger("HistoricalData" ).info( msg + " " + sym);
 	}
 	/**
 	 * Delegated response from the ResponseHandler that is actually getting the call

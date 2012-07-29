@@ -20,19 +20,22 @@ public class PullStockData {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		String symbol = args[0];
-		String startDateStr = args[1];
-		String barSize = args[2];
+		int i = 0;
+		String startDateStr = args[i++];
+		String barSize = args[i++];
 
 		ResponseHandler rh = new ResponseHandler();
 		EClientSocket  m_client = new EClientSocket( rh );
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		try {
-			StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
-			if( ! sh.isValidSize(barSize) ) throw new IllegalArgumentException("Bar size unknown " + barSize );
-			sh.setBarSize( barSize );
-			clientInterface.reqHistoricalData(symbol, startDateStr, sh);
+			for(; i < args.length;i++){
+				final String symbol = args[i];
+				StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
+				if( ! sh.isValidSize(barSize) ) throw new IllegalArgumentException("Bar size unknown " + barSize );
+				sh.setBarSize( barSize );
+				clientInterface.reqHistoricalData(symbol, startDateStr, sh);
+			}
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {
 			LoggerFactory.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);

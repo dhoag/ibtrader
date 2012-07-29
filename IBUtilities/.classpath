@@ -5,6 +5,7 @@
 	<classpathentry kind="con" path="org.eclipse.m2e.MAVEN2_CLASSPATH_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/flanagan-stats"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/flanagan"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/IB_9.67"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="target/classes"/>

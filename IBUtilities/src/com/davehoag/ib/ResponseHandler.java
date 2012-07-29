@@ -321,7 +321,8 @@ public class ResponseHandler implements EWrapper {
 		// end of data
 		if (open < 0 && high < 0) {
 			requester.endRequest(reqId);
-			LoggerFactory.getLogger("HistoricalData").info( "[" + reqId + "] Completed historical data request having written: " + ew.getCountOfRecords());
+			//delegate so specific delegate can add additional details to the message 
+			ew.info( "[" + reqId + "] Completed historical data request having written: " + ew.getCountOfRecords());
 			return;
 		}
 

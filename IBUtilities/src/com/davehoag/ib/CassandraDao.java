@@ -53,7 +53,8 @@ public class CassandraDao {
 	}
 	public static void main(String [] args){
 		try{
-			System.out.println(Calendar.getInstance().getTimeInMillis() / 1000);
+			long seconds = Calendar.getInstance().getTimeInMillis() / 1000;
+			System.out.println(seconds);
 			Iterator<Bar> bars = dao.getData("SPY", 5, 0, "bar5sec");
 			int count = 0;
 			while(bars.hasNext()){
@@ -62,6 +63,7 @@ public class CassandraDao {
 				if(count++ > 10) break;
 			}
 			System.out.println( "OPEN " + dao.getOpen("SPY", 5));
+			System.out.println("Yesterday " + dao.getYesterday("SPY", seconds));
 					
 		} catch(Throwable t){
 			t.printStackTrace();
@@ -243,7 +245,12 @@ public class CassandraDao {
      * @return 
      */
     public Bar getYesterday(final String symbol, final long seconds){
-    	Iterator<Bar> bars = getData(symbol, 1, seconds, "bar1day");
+    	Calendar today = Calendar.getInstance();
+    	today.setTimeInMillis(seconds *1000);
+    	int offset = 1;
+    	if(today.get(Calendar.DAY_OF_WEEK) == Calendar.MONDAY ) offset = 3;
+    	if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) offset = 2;
+    	Iterator<Bar> bars = getData(symbol, offset, seconds, "bar1day");
     	if(bars.hasNext()) return bars.next();
     	LoggerFactory.getLogger("MarketData").warn( "No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
     	return null;
