@@ -4,6 +4,7 @@ import java.text.NumberFormat;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Stack;
 
 import org.slf4j.LoggerFactory;
@@ -24,14 +25,23 @@ public class Portfolio {
 	SimpleRiskLimits risk = new SimpleRiskLimits();
 	HashMap<String, Stack<LimitOrder>> positionToUnwind = new HashMap<String, Stack<LimitOrder>>();
 	
+	/**
+	 * 
+	 * @param symbol
+	 * @return
+	 */
+	public Iterator<LimitOrder> getPositionsToUnwind(String symbol){
+		return positionToUnwind.get(symbol).iterator();
+	}
+	/**
+	 * 
+	 */
 	public void displayValue(){
 		for(String symbol: portfolio.keySet()){
 			displayValue(symbol);
 		}
 	}
 	/**
-	 *TODO need to get this working for porfolios holding multiple stocks
-	 *right now assumes a single stock, unlike the rest of this class...:(
 	 */
 	public void displayTradeStats(){
 		double profit = 0;
@@ -44,6 +54,9 @@ public class Portfolio {
 		LoggerFactory.getLogger("Portfolio").info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
 		LoggerFactory.getLogger("Portfolio").info( "Drawdown " + maxDrawdown );
 	}
+	/**
+	 * Walk through all open/closed trades and calculate the total profit
+	 */
 	public double getProfit(){
 		double profit = 0;
 		for(LimitOrder closingOrder : openCloseLog){
