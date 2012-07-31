@@ -43,7 +43,7 @@ public class Portfolio {
 	}
 	/**
 	 */
-	public void displayTradeStats(){
+	public void displayTradeStats(String strategyName){
 		double profit = 0;
 		int winningTrades = 0;
 		for(LimitOrder closingOrder : openCloseLog){
@@ -51,8 +51,8 @@ public class Portfolio {
 			profit += tradeProfit;
 			if(tradeProfit > 0) winningTrades++;
 		}
-		LoggerFactory.getLogger("Portfolio").info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
-		LoggerFactory.getLogger("Portfolio").info( "Drawdown " + maxDrawdown );
+		LoggerFactory.getLogger(strategyName).info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
+		LoggerFactory.getLogger(strategyName).info( "Drawdown " + maxDrawdown );
 	}
 	/**
 	 * Walk through all open/closed trades and calculate the total profit

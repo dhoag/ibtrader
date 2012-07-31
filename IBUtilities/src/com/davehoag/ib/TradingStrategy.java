@@ -26,7 +26,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		portfolio =port;
 		strategy = strat;
 	}
-	public void displayTradeStats(){ portfolio.displayTradeStats(); }
+	public void displayTradeStats(){ portfolio.displayTradeStats(strategy.getClass().getSimpleName() + ":" + symbol); }
 	public void setPortfolio(Portfolio p){
 		portfolio = p;
 	}
