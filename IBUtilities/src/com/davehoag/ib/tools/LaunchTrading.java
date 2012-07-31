@@ -37,10 +37,13 @@ public class LaunchTrading {
 		clientInterface.connect();
 		clientInterface.initializePortfolio( );
 		try{
+			//repeat the next 3 lines for each symbol you want to trade
 			Strategy macd = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
 			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
+			
 			clientInterface.waitForCompletion();
+			//probably want to enumerate for each strat you set above
 			strat.displayTradeStats();
 		}
 		catch(Throwable t){

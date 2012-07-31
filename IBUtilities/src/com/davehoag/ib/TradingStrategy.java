@@ -9,6 +9,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
 import com.ib.client.Order;
+import com.ib.client.OrderState;
 
 public class TradingStrategy extends ResponseHandlerDelegate {
 	final NumberFormat nf = NumberFormat.getCurrencyInstance();
@@ -20,6 +21,16 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	Portfolio portfolio;
 	long initialTimeStamp;
 
+	/**
+	 * One strategy, one symbol, one IBClient, and one portfolio per "TradingStrategy" instance.
+	 * If you want to have multiple strategies on a given symbol then either build that in the 
+	 * "strategy" that is passed in or overhaul this class.
+	 * 
+	 * @param sym
+	 * @param strat
+	 * @param exec
+	 * @param port
+	 */
 	public TradingStrategy(final String sym, final Strategy strat, final IBClientRequestExecutor exec, final Portfolio port){
 		super(exec);
 		symbol = sym;
@@ -78,7 +89,13 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		}
 
 	}
+	/**
+	 * Called only when a request for all open orders is made??
+	 */
+	@Override
+	public void openOrder(int orderId, Contract contract, Order order, OrderState orderState) {
 
+	}
 	/**
 	 * @param time
 	 */

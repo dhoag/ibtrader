@@ -58,6 +58,9 @@ public class SimulateTrading implements Runnable {
 	 * @param strategyName
 	 */
 	protected  void testStrategy(final String symbol, final String strategyName) {
+		//Safely building a whole stack for this simulation avoiding concurrency challenges
+		//TODO test solutions ability to share response handler, m_client, portfolio and clientInterface
+		 
 		ResponseHandler rh = new ResponseHandler();
 		HistoricalDataClient m_client = new HistoricalDataClient(rh);
 		rh.setExecutorService(new ImmediateExecutor());
