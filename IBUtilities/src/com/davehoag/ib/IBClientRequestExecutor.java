@@ -87,6 +87,13 @@ public class IBClientRequestExecutor {
 		}
 	}
 	/**
+	 * Pass right through, no delay on this one
+	 * @param id
+	 */
+	public void cancelOrder(int id){
+		client.cancelOrder(id);
+	}
+	/**
 	 * 
 	 * @param contract
 	 * @param qty
@@ -114,6 +121,7 @@ public class IBClientRequestExecutor {
 					final Order stop = createStopOrder( lmtOrder.getStopLoss(), order.m_orderId, rh);
 					lmtOrder.getStopLoss().setId(stop.m_orderId);
 					client.placeOrder(stop.m_orderId, contract, stop);
+					responseHandler.getPortfolio().stopOrder(lmtOrder.getStopLoss());
 				}
 			}
 		};

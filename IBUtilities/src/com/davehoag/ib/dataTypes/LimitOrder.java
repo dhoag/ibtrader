@@ -33,10 +33,19 @@ public class LimitOrder implements Cloneable{
 			final int shares = closeMultiple ? open.getShares() : getShares();
 			return getPrice() * shares - (open.getPrice() * open.getShares() );
 		}
+		/**
+		 * Fill message was received and the price was updated to the passed in value.
+		 * TODO support partial fills
+		 */
 		public void confirm(){ 
 			confirmed = true;
 			timeConfirmed = System.currentTimeMillis();
 		}
+		/**
+		 * Check if order has been confirmed
+		 * @return True if this order has been completely filled
+		 */
+		public boolean isConfirmed(){ return confirmed; }
 		public void markAsTrailingOrder(){ trail = true; }
 		public void markAsCloseMultiple(){ closeMultiple = true; }
 		public void setOnset(final LimitOrder or){ onset = or; }

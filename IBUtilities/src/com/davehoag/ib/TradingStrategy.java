@@ -1,11 +1,12 @@
 package com.davehoag.ib;
 
 import java.text.NumberFormat;
+import java.util.ArrayList;
+
 import org.slf4j.*;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
-import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
 import com.ib.client.Order;
@@ -17,7 +18,6 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	boolean positionOnTheBooks = false;
 	Strategy strategy;
 	final String symbol;
-	public int defaultQty = 100;
 	Portfolio portfolio;
 	long initialTimeStamp;
 
@@ -48,18 +48,13 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		if(contract.m_symbol.equals(symbol)){
 			
-			//TODO need some logic to account for all orders not actually trading or trading at different prices
-		//	portfolio.confirm(execution.m_execId, execution.m_price, execution.m_side);
+			requester.endRequest(reqId);
+			portfolio.confirm(execution.m_orderId, contract.m_symbol ,execution.m_price, execution.m_shares);
 			LoggerFactory.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
 		}
 		else{
 			LoggerFactory.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
-		}
-		
-		//TODO for now assuming full fills, not partials
-		requester.endRequest(reqId);
-		portfolio.confirm(execution.m_orderId, contract.m_symbol ,execution.m_price, execution.m_shares);
-		
+		}		
 	}
 	/**
 	 * This method is called once all executions have been sent to a client in response to reqExecutions().
@@ -82,12 +77,28 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			portfolio.displayValue(symbol);
 		}
 	
-		final LimitOrder order = strategy.newBar(bar, portfolio);
+		strategy.newBar(bar, portfolio, this);
+
+	}
+	/**
+	 * Cancel all of the orders for which we didn't get a confirm message related to the symbol
+	 * of this particular trading strategy
+	 */
+	public void cancelOpenOrders(){
+		ArrayList<Integer> orderIds = portfolio.getOpenOrderIds(symbol);
+		for(int i : orderIds){
+			requester.cancelOrder(i);
+		}
+	}
+	/**
+	 * Place an order, buy/sell ...whatever
+	 * @param order
+	 */
+	public void executeOrder(final LimitOrder order){
 		if(order != null){
 			if(order.getSymbol() == null ) order.setSymbol(symbol);
 			requester.executeOrder(order, this);
-		}
-
+		}	
 	}
 	/**
 	 * Called only when a request for all open orders is made??

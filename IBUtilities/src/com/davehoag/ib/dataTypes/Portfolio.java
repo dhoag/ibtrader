@@ -100,12 +100,41 @@ public class Portfolio {
 	public String getTime(){
 		return HistoricalDateManipulation.getDateAsStr(currentTime);
 	}
+	/**
+	 * Look for open orders
+	 * @param symbol Open orders for the given symbol
+	 * @return
+	 */
+	public ArrayList<Integer> getOpenOrderIds(String symbol){
+		ArrayList<Integer> result = new ArrayList<Integer>();
+		for(LimitOrder order: orders.values() ){
+			if(order.getSymbol().equals(symbol) && ! order.isConfirmed()){
+				result.add(order.getId());
+			}
+		}
+		return result;
+	}
+	/**
+	 * Confirm orders for the given symbol
+	 * @param orderId
+	 * @param symbol
+	 * @param price
+	 * @param qty
+	 */
 	public synchronized void confirm(final int orderId, final String symbol, final double price, final int qty){
 		final LimitOrder order = orders.get(orderId);
 		if(order != null){
 			order.confirm();
 			//set to the actual fill price, may be different than order price
 			order.setPrice(price);
+			//did this bypass the placedOrder method and thus the portfolio accounting?
+			if(order.isTrail()){
+				placedOrder(order);
+			}
+		}
+		else
+		{
+			LoggerFactory.getLogger("Portfolio").error("Confirming an order [" + orderId + "] " + symbol + " " + price + " " + qty + " I don't know about!!");
 		}
 		history.add("[" + orderId + "] " + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
 	}
@@ -205,5 +234,12 @@ public class Portfolio {
 		for(String entry: history){
 			LoggerFactory.getLogger("TradingHistory").info( entry);
 		}
+	}
+	/**
+	 * Record that there is a pending order out there that may or may not ever get hit
+	 * @param stopLoss
+	 */
+	public void stopOrder(LimitOrder stopLoss) {
+		orders.put(stopLoss.getId(), stopLoss);
 	}
 }

@@ -18,6 +18,16 @@ public class PortfolioTest {
 	}
 
 	@Test
+	public void testConfirm(){
+		LimitOrder order = new LimitOrder("IBM", 100, 12.2, true);
+		order.id = 1000;
+		p.stopOrder(order);
+		order.markAsTrailingOrder();
+		p.confirm(order.id, order.sym, order.orderPrice, order.shares);
+		
+		assertEquals(-1220.0, p.cash, .001);
+	}
+	@Test
 	public void testBought() {
 		LimitOrder order = new LimitOrder("IBM", 100, 12.2, true);
 
