@@ -95,10 +95,9 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	 * @param order
 	 */
 	public void executeOrder(final LimitOrder order){
-		if(order != null){
-			if(order.getSymbol() == null ) order.setSymbol(symbol);
-			requester.executeOrder(order, this);
-		}	
+		if(order.getSymbol() == null ) order.setSymbol(symbol);
+		if(order.getStopLoss() != null) order.getStopLoss().setSymbol(symbol);
+		requester.executeOrder(order, this);
 	}
 	/**
 	 * Called only when a request for all open orders is made??
