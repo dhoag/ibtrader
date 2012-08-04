@@ -1,7 +1,9 @@
 package com.davehoag.ib.tools;
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
+import java.util.concurrent.RecursiveTask;
 
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.ResponseHandler;
@@ -17,9 +19,12 @@ import com.davehoag.ib.util.ImmediateExecutor;
  * @author dhoag
  *
  */
-public class SimulateTrading implements Runnable {
+public class SimulateTrading extends RecursiveTask<TradingStrategy> {
+	private static final long serialVersionUID = 4997373692668656258L;
+	static ForkJoinPool forkJoinPool = new ForkJoinPool();
 	String symb;
 	String stratName;
+	TradingStrategy strat;
 	/**
 	 * Take args : Simple:IBM MACD:QQQ
 	 * @param args
@@ -28,8 +33,7 @@ public class SimulateTrading implements Runnable {
 		LaunchTrading.simulateTrading = true;
 		int i = 0;
 		HistoricalDataSender.daysToBackTest = Integer.parseInt(args[i++]);
-		ForkJoinPool th = new ForkJoinPool();
-		ArrayList<ForkJoinTask> simulations = new ArrayList<ForkJoinTask>();
+		ArrayList<ForkJoinTask<TradingStrategy>> simulations = new ArrayList<ForkJoinTask<TradingStrategy>>();
 		for(; i < args.length; i++){
 			int idx = args[i].indexOf(":");
 			
@@ -37,21 +41,30 @@ public class SimulateTrading implements Runnable {
 			final String symbol  = args[i].substring(idx+1);
 			SimulateTrading runnable = new SimulateTrading();
 			runnable.setTestParameters(symbol, strategyName);
-			ForkJoinTask<?> task = th.submit(runnable);
+			ForkJoinTask<TradingStrategy> task = forkJoinPool.submit(runnable);
 			simulations.add(task);
 		}
 		
-		for(ForkJoinTask t : simulations){
+		for(ForkJoinTask<TradingStrategy> t : simulations){
 			t.join();
 		}
-        System.exit(0);
+		for(ForkJoinTask<TradingStrategy> t : simulations){
+			try {
+				t.get().displayTradeStats();
+			} catch (InterruptedException | ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		System.exit(0);
 	}
 
 	public void setTestParameters(String sym, String strat){
 		symb = sym; stratName = strat;
 	}
-	public void run(){
+	@Override
+	public TradingStrategy compute(){
 		testStrategy(symb, stratName);
+		return strat;
 	}
 	/**
 	 * @param symbol
@@ -71,11 +84,9 @@ public class SimulateTrading implements Runnable {
 		clientInterface.initializePortfolio( );
 		try{
 			Strategy macd = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
-			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
+			strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
-			//TODO put strat in a "future" that can be used to evaluate each ones performance?
-			strat.displayTradeStats();
 		}
 		catch(Throwable t){
 			t.printStackTrace();
