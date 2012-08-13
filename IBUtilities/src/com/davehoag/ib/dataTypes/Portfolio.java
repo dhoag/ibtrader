@@ -256,4 +256,11 @@ public class Portfolio {
 	public void stopOrder(LimitOrder stopLoss) {
 		orders.put(stopLoss.getId(), stopLoss);
 	}
+	/**
+	 * Received a cancel from TWS
+	 * @param id
+	 */
+	public void canceledOrder(int id) {
+		orders.remove(id);
+	}
 }

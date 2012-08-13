@@ -184,6 +184,7 @@ public class ResponseHandler implements EWrapper {
 		Runnable r = new Runnable(){
 			public void run(){ 
 				//delegate to the registered handler
+				//TODO figure out the response handler based on orderid
 				final ResponseHandlerDelegate ew = requester.getResponseHandler(orderId);
 				if(ew != null) ew.openOrder(orderId, contract, order, orderState);
 				else LoggerFactory.getLogger("RealTimeBar").warn( "[" + orderId + "] Reveived openOrder but no delegate registered " );

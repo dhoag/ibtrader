@@ -156,6 +156,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 		}
 		else{
 			LoggerFactory.getLogger("Trading").error( "Order failed failed: " + id+ " " + errorCode + " "+ errorMsg);
+			portfolio.canceledOrder( id );
 		}
 	}
 	/**
