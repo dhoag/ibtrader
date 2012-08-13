@@ -45,6 +45,7 @@ public class TrailingExitsStrategy implements Strategy {
 		//don't trade the open or close
 		return !HistoricalDateManipulation.isEndOfDay(time) && (hour > 9 & hour <= 14);
 	}
+	@Override
 	public void newBar(final Bar bar ,final Portfolio port, TradingStrategy executionEngine){		
 		smaTrades.newTick(bar.tradeCount);
 		final boolean crossOverEvent = sma.newTick(bar.wap) ;

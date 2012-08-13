@@ -40,6 +40,7 @@ public class Portfolio {
 		for(String symbol: portfolio.keySet()){
 			displayValue(symbol);
 		}
+		LoggerFactory.getLogger("Portfolio").info("Overall value: " + getNetValue());
 	}
 	/**
 	 */
@@ -64,6 +65,19 @@ public class Portfolio {
 			profit += tradeProfit;
 		}
 		return profit;
+	}
+	/**
+	 * Determine the overall financial value of this portfolio
+	 * @return
+	 */
+	public double getNetValue(){
+		double value = 0;
+		for(String symbol: lastPrice.keySet()){
+			final double positionValue = getValue(symbol, lastPrice.get(symbol));
+			value+=positionValue;
+		}
+		final double cashFromTrading = getCash();
+		return value - cashFromTrading;
 	}
 	public void displayValue(final String symbol ){
 		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash()) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
