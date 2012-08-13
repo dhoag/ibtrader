@@ -400,6 +400,7 @@ public class IBClientRequestExecutor {
 				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
 				final boolean snapshot = false;
 				final int tickReqId = pushRequest();
+				pushResponseHandler(tickReqId, rh);
 				LoggerFactory.getLogger("MarketData").info(
 						"Submitting request for tick data" + tickReqId + " " + stock.m_symbol);
 				client.reqMktData(tickReqId, stock, "", snapshot);

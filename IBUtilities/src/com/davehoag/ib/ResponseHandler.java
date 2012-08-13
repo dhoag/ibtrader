@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.davehoag.ib.dataTypes.StockContract;
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
@@ -209,8 +210,8 @@ public class ResponseHandler implements EWrapper {
 	public void updatePortfolio(Contract contract, int position,
 			double marketPrice, double marketValue, double averageCost,
 			double unrealizedPNL, double realizedPNL, String accountName) {
-		
-		portfolio.update(contract.m_symbol, position);
+		if(contract.m_secType.equals(StockContract.TYPE) )
+			portfolio.update(contract.m_symbol, position);
 	}
 
 	/**

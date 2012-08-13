@@ -7,9 +7,10 @@ import com.ib.client.Contract;
  *
  */
 public class StockContract extends Contract {
+	public final static String TYPE = "STK";
 	   public StockContract(final String symbol) {
 	      m_symbol = symbol;
-	      m_secType = "STK";
+	      m_secType = TYPE;
 	      m_exchange = "SMART";
 	      m_currency = "USD";
 	   }

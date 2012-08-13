@@ -11,6 +11,7 @@ import com.ib.client.Contract;
 import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
+import com.ib.client.TickType;
 
 public class TradingStrategy extends ResponseHandlerDelegate {
 	final NumberFormat nf = NumberFormat.getCurrencyInstance();
@@ -122,6 +123,29 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			}
 			
 		}
+	}
+
+	@Override
+	public void tickString(int tickerId, int tickType, String value) {
+		//ignore for now
+		//System.out.println("Symbol " + symbol + "tickString " + tickerId + " " + tickType + " " + value);
+	}
+	@Override
+	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {
+		String priceType;
+		switch(field){
+		case TickType.ASK: priceType = "Ask"; break;
+		case TickType.BID: priceType = "Bid"; break;
+		case TickType.LAST: priceType = "Last"; portfolio.updatePrice(symbol, price ); break;
+		default: priceType = "High,Low,Close";
+		}
+//		System.out.println("Symbol " + symbol + " tickPrice " + tickerId + " " + priceType + " " + price + " " + canAutoExecute );
+		
+	}
+	@Override
+	public void tickSize(int tickerId, int field, int size) {
+		//ignore for now
+		//System.out.println("Symbol " + symbol + " tickSize " + tickerId + " " + field + " " + size );
 	}
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {

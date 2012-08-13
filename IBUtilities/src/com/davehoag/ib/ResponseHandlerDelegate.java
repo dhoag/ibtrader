@@ -85,16 +85,10 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	}
 
 	@Override
-	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {
-		// TODO Auto-generated method stub
-
-	}
+	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {	}
 
 	@Override
-	public void tickSize(int tickerId, int field, int size) {
-		// TODO Auto-generated method stub
-
-	}
+	public void tickSize(int tickerId, int field, int size) {	}
 
 	@Override
 	public void tickOptionComputation(int tickerId, int field, double impliedVol, double delta,
@@ -110,10 +104,7 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	}
 
 	@Override
-	public void tickString(int tickerId, int tickType, String value) {
-		// TODO Auto-generated method stub
-
-	}
+	public void tickString(int tickerId, int tickType, String value) {	}
 
 	@Override
 	public void tickEFP(int tickerId, int tickType, double basisPoints, String formattedBasisPoints,
