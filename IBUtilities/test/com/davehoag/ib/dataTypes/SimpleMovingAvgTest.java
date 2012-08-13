@@ -24,6 +24,16 @@ public class SimpleMovingAvgTest {
 		assertEquals( 22.207,val, .001);
 	}
 	@Test
+	public void testVolatility(){
+		double [] seeds = { 10.0, 12.0, 12*1.2, 12*1.2*1.2 };
+		SimpleMovingAvg sma = new SimpleMovingAvg(3, 4, seeds);
+		assertEquals(20, sma.getVolatilityPercent(),.011);
+		sma.newTick(12*1.2*1.2*1.4);
+		assertTrue(sma.recentJumpExceedsAverage());
+		sma.newTick(12*1.2*1.2*1.4);
+		assertFalse(sma.recentJumpExceedsAverage());
+	}
+	@Test
 	public void testGetAvg() {
 		double fast = sma.getFastAvg();
 		double slow = sma.getSlowAvg();

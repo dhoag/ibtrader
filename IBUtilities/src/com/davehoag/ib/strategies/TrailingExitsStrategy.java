@@ -20,7 +20,7 @@ public class TrailingExitsStrategy implements Strategy {
 	int fastMovingAvg = 18;
 	int slowMovingAvg = 21;
 	boolean useEma = true;
-	boolean requireTradeConfirmation = true;
+	boolean requireTradeConfirmation = false;
 
 	public TrailingExitsStrategy(){	
 		init(null);
@@ -54,7 +54,7 @@ public class TrailingExitsStrategy implements Strategy {
 		if( inTradeWindow(bar.originalTime) ) {
 			//only trade if the # of trades is rising with the cross over
 			if(crossOverEvent){
-				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp()){
+				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp() && sma.recentJumpExceedsAverage()){
 					LoggerFactory.getLogger("TrailingExits").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close + .02, true);
 
@@ -63,6 +63,17 @@ public class TrailingExitsStrategy implements Strategy {
 					order.setStopLoss(stopLoss);
 					executionEngine.executeOrder(order);
 				}
+				else
+				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && ! sma.isTrendingUp() && sma.recentJumpExceedsAverage()){
+					LoggerFactory.getLogger("TrailingExits").debug(port.getTime() + " Open short position " + bar.symbol + " " + qty);
+					order = new LimitOrder(qty, bar.close + .02, false);
+
+					LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent(), true);
+					stopLoss.markAsTrailingOrder();
+					order.setStopLoss(stopLoss);
+					executionEngine.executeOrder(order);
+				}
+
 			}
 		}
 		else{
@@ -70,7 +81,7 @@ public class TrailingExitsStrategy implements Strategy {
 				executionEngine.cancelOpenOrders();
 				 //end of the day, liquidate
 				LoggerFactory.getLogger("TrailingExits").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
-				order = new LimitOrder(holdings, bar.close - .05, false);
+				order = new LimitOrder(holdings, bar.close - .05, holdings  < 0);
 			}
 			else{
 				sma.reset();

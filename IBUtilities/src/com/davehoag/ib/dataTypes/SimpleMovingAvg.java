@@ -82,6 +82,9 @@ public class SimpleMovingAvg {
 		}
 		return false;
 	}
+	public double getMostRecentTick(){
+		return lastSlow == 0? slowLeg[slowLeg.length - 1] : slowLeg[ lastSlow - 1];
+	}
 	/**
 	 * 
 	 */
@@ -130,12 +133,31 @@ public class SimpleMovingAvg {
 		return slowEma;
 	}
 	/**
+	 * See if the price swing is accelerating
+	 * @return
+	 */
+	public boolean recentJumpExceedsAverage(){
+		final double latestTick = getMostRecentTick();
+		final int priorIdx = lastSlow <= 1 ? slowLeg.length - 2 + lastSlow : lastSlow - 2;
+		final double priorTick = slowLeg[priorIdx];
+		final double changePercent = Math.abs((latestTick - priorTick) / priorTick);
+		return (100*changePercent) > getVolatilityPercent();
+	}
+	/**
 	 * For the data in the slow leg, what's the typical percent change between ticks
 	 * @return
 	 */
 	public double getVolatilityPercent(){
-	
-		return Stat.volatilityPerCentChange(slowLeg);
+		double change = 0;
+		double lastPrice = 0;
+		for(double price : slowLeg){
+			if(lastPrice != 0) {
+				change += Math.abs((price - lastPrice)/lastPrice);
+			}
+			lastPrice = price; 
+		}
+		return 100*change / (slowLeg.length - 1);
+//		return Stat.volatilityPerCentChange(slowLeg);
 	}
 	protected double getAvg(final double [] list){
 		double sum = 0;
