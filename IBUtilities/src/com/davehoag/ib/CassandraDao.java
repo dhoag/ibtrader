@@ -52,23 +52,53 @@ public class CassandraDao {
 		return dao;
 	}
 	public static void main(String [] args){
+		String symbol = "";
 		try{
-			long seconds = Calendar.getInstance().getTimeInMillis() / 1000;
-			System.out.println(seconds);
-			Iterator<Bar> bars = dao.getData("SPY", 5, 0, "bar5sec");
-			int count = 0;
-			while(bars.hasNext()){
-				Bar aBar =bars.next();
-				System.out.println(aBar);
-				if(count++ > 10) break;
+			final String barSize = args[0];
+			for(int i = 1; i < args.length; i++){
+				symbol = StringUtils.upperCase( args[i]);
+				long dateInSecs = dao.findMostRecentDate(symbol, barSize);
+				System.out.print("Most recent date " + symbol + " " + barSize + " " + new Date(dateInSecs*1000));
+				System.out.println(" records " + dao.countRecordsForCurrentDay(symbol, barSize, dateInSecs));
 			}
-			System.out.println( "OPEN " + dao.getOpen("SPY", 0));
-			System.out.println( "OPEN -5 " + dao.getOpen("SPY", 5));
-			System.out.println("Yesterday " + dao.getYesterday("SPY", seconds));
-					
 		} catch(Throwable t){
+			System.err.println("Error with " + symbol);
 			t.printStackTrace();
 		}
+	}
+	/**
+	 * Count the records in the dao for the given bar size & symbol
+	 * @param symbol
+	 * @param barSize
+	 * @param day
+	 * @return
+	 */
+	public int countRecordsForCurrentDay(String symbol, String barSize, long day){
+		long startOfDay = HistoricalDateManipulation.getOpen(day);
+		int count = 0;
+		Iterator<Bar> bars = dao.getData(symbol, startOfDay, startOfDay+6*60*60+30*60, barSize);
+		while(bars.hasNext()){
+			count++; bars.next();
+		}
+		return count;
+	}
+	/**
+	 * A utility method to what data I have in the system for the given bar size
+	 * @param symbol
+	 * @param barSize
+	 * @return
+	 */
+	public long findMostRecentDate(String symbol, String barSize){
+		long timeInSecs = System.currentTimeMillis() / 1000; 
+		for(int i = 0; i < 100; i++){
+			timeInSecs -= i*24*60*60;
+			long openTime = getOpenTime(timeInSecs);
+			final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol, openTime, openTime, barSize);
+			final int recordCount = priceData.get(symbol+":open").size();
+			if( recordCount > 0) return openTime;
+		}
+		LoggerFactory.getLogger("HistoricalData").error("Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
+		return 0;
 	}
 	/**
 	 * Store the market data in Cassandra
@@ -134,7 +164,19 @@ public class CassandraDao {
      * @return
      */
     public Bar getOpen(final String symbol, final long todayInSec){
-    	//first assume today could be the number of days to go back from today
+    	final long openTime = getOpenTime(todayInSec);
+
+    	LoggerFactory.getLogger("HistoricalData").debug( "Get " + symbol + " open of day: "  + new Date(openTime *1000));
+    	Iterator<Bar> bars = getData( symbol, openTime, openTime, "bar5sec");
+    	if(bars.hasNext()) return bars.next();
+    	return null;
+    }
+	/**
+	 * @param todayInSec
+	 * @return
+	 */
+	protected long getOpenTime(final long todayInSec) {
+		//first assume today could be the number of days to go back from today
     	long actualToday = todayInSec;
     	if(todayInSec < 1000){
     		actualToday =  (System.currentTimeMillis()/1000)- todayInSec*24*60*60;
@@ -144,13 +186,8 @@ public class CassandraDao {
 		if( today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY ) actualToday -= 2*24*60*60;
 		else 
 		if(today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY )  actualToday -= 1*24*60*60;
-    	final long openTime = HistoricalDateManipulation.getOpen(actualToday);
-
-    	LoggerFactory.getLogger("HistoricalData").debug( "Get " + symbol + " open of day: " + actualToday + " " + new Date(actualToday *1000));
-    	Iterator<Bar> bars = getData( symbol, openTime, openTime, "bar5sec");
-    	if(bars.hasNext()) return bars.next();
-    	return null;
-    }
+		return HistoricalDateManipulation.getOpen(actualToday);
+	}
     /**
      * 
      * @param symbol
@@ -159,13 +196,13 @@ public class CassandraDao {
      * @return
      * @throws ParseException 
      */
-    public Iterator<Bar> getData(final String aSymbol, long start, final long finish, final String cf) {
+    public Iterator<Bar> getData(final String aSymbol, long start, final long finish, final String barSize) {
 		final String symbol = StringUtils.upperCase(aSymbol);
 
     	final long actualFinish =  determineEndDate(start  < 1000, finish);
     	final long actualStart = start < 1000 ? HistoricalDateManipulation.getOpen(actualFinish - 24*60*60*start) : start;
-    	LoggerFactory.getLogger("HistoricalData").debug( "Getting " + cf + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
-    	return getDataIterator(symbol, actualFinish, actualStart, cf);
+    	LoggerFactory.getLogger("HistoricalData").debug( "Getting " + barSize + " " + symbol +  " data between " + new Date(actualStart*1000) + " and " + new Date(actualFinish*1000));
+    	return getDataIterator(symbol, actualFinish, actualStart, barSize);
     }
 	/**
 	 * @param symbol
