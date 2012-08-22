@@ -1,8 +1,13 @@
 package com.davehoag.ib.tools;
 
+import java.text.DateFormat;
 import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.slf4j.LoggerFactory;
 
+import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.StoreHistoricalData;
@@ -34,7 +39,10 @@ public class PullStockData {
 				StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
 				if( ! sh.isValidSize(barSize) ) throw new IllegalArgumentException("Bar size unknown " + barSize );
 				sh.setBarSize( barSize );
-				clientInterface.reqHistoricalData(symbol, startDateStr, sh);
+				
+				final String optimalStartDate = getOptimalStartDate(startDateStr, barSize, symbol);
+
+				clientInterface.reqHistoricalData(symbol, optimalStartDate, sh);
 			}
 			clientInterface.waitForCompletion();
 		} catch (ParseException e) {
@@ -44,6 +52,23 @@ public class PullStockData {
 			clientInterface.close();
 		}
         System.exit(0);
+	}
+
+	/**
+	 * @param startDateStr
+	 * @param barSize
+	 * @param symbol
+	 */
+	protected static String getOptimalStartDate(String startDateStr, String barSize, final String symbol) {
+		String optimalStartDate = startDateStr;
+		if(System.getProperty("forceUpdate") == null){
+			long firstRecord = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
+			DateFormat df = new SimpleDateFormat("yyyyMMdd");
+			//The optimal start date is the first day for which we don't have data
+			if(firstRecord != 0)
+				optimalStartDate = df.format(new Date((firstRecord+(24*60*60))*1000));
+		}
+		return optimalStartDate;
 	}
 
 }

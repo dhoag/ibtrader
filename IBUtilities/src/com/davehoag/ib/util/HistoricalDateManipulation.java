@@ -110,9 +110,10 @@ public class HistoricalDateManipulation {
 			final int dayOfWeek = topDay.get(Calendar.DAY_OF_WEEK); 
 			if( dayOfWeek != Calendar.SUNDAY && dayOfWeek != Calendar.SATURDAY)
 			{
-				topDay.add( Calendar.HOUR, 7);
-				for(int i = 0; i < 10; i++){
+				topDay.add( Calendar.HOUR, 8);
+				for(int i = 0; i < 8; i++){
 					topDay.add( Calendar.HOUR, 1);
+					//Add the historicalData end time, want 9am - 3pm
 					result.add(getDateAsStr(topDay.getTime()));
 				}
 			}
