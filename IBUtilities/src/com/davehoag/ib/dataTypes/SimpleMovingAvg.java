@@ -12,6 +12,9 @@ public class SimpleMovingAvg {
 	boolean trendingUp;
 	boolean initialized;
 	boolean useEmaForCrossOvers;
+	public boolean isInitialized(){
+		return initialized;
+	}
 	public void setUseEmaForCrossOvers(boolean option){
 		useEmaForCrossOvers = option;
 	}
@@ -85,6 +88,9 @@ public class SimpleMovingAvg {
 	public double getMostRecentTick(){
 		return lastSlow == 0? slowLeg[slowLeg.length - 1] : slowLeg[ lastSlow - 1];
 	}
+	public double getOldestTick(){
+		return slowLeg[lastSlow];
+	}
 	/**
 	 * 
 	 */
@@ -142,6 +148,15 @@ public class SimpleMovingAvg {
 		final double priorTick = slowLeg[priorIdx];
 		final double changePercent = Math.abs((latestTick - priorTick) / priorTick);
 		return (100*changePercent) > getVolatilityPercent();
+	}
+	/**
+	 * Get the percentage change from the oldest tick to the most recent for the slow leg 
+	 * @return
+	 */
+	public double getSlowChange(){
+		final double latestTick = getMostRecentTick();
+		final double oldestTick = getOldestTick();
+		return (latestTick - oldestTick) / oldestTick;
 	}
 	/**
 	 * For the data in the slow leg, what's the typical percent change between ticks
