@@ -158,6 +158,11 @@ public class SimpleMovingAvg {
 		final double oldestTick = getOldestTick();
 		return (latestTick - oldestTick) / oldestTick;
 	}
+	public double getSlowDelta(){
+		final double latestTick = getMostRecentTick();
+		final double oldestTick = getOldestTick();
+		return (latestTick - oldestTick) ;
+	}
 	/**
 	 * For the data in the slow leg, what's the typical percent change between ticks
 	 * @return
