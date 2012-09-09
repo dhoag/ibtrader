@@ -14,9 +14,13 @@ public class Bar {
 	public int tradeCount;
 	public long volume;
 	public boolean hasGaps = false;
+	public Date getTime(){
+		Date d = originalTime != 0 ? new Date(originalTime * 1000) : Calendar.getInstance().getTime();
+		return d;
+	}
 	public String toString(){
 		
-		Date d = originalTime != 0 ? new Date(originalTime * 1000) : Calendar.getInstance().getTime();
+		Date d = getTime();
 		
 		return symbol + " "+ d + " O:" + open + " C: " + close + " H:" + high + " L:" + low + " W:" + wap + " V:" + volume + " TC:" + tradeCount;
 	}
