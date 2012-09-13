@@ -1,7 +1,11 @@
 package com.davehoag.ib.chart;
-import java.awt.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Paint;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -11,48 +15,51 @@ import java.util.Date;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
-import javax.swing.JPanel;
-import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 
+import org.apache.commons.lang.StringUtils;
+import org.jfree.chart.ChartColor;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.StandardChartTheme;
+import org.jfree.chart.annotations.XYShapeAnnotation;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.axis.SegmentedTimeline;
-import org.jfree.chart.demo.TimeSeriesChartDemo1;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.labels.HighLowItemLabelGenerator;
 import org.jfree.chart.labels.StandardXYToolTipGenerator;
-import org.jfree.chart.labels.XYToolTipGenerator;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
+import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.HighLowRenderer;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
-import org.jfree.chart.renderer.xy.XYItemRenderer;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.time.Second;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
 import org.jfree.data.time.TimeSeriesDataItem;
-import org.jfree.data.time.ohlc.*;
-import org.jfree.data.xy.DefaultXYDataset;
+import org.jfree.data.time.ohlc.OHLCItem;
+import org.jfree.data.time.ohlc.OHLCSeries;
+import org.jfree.data.time.ohlc.OHLCSeriesCollection;
 import org.jfree.data.xy.OHLCDataset;
 import org.jfree.data.xy.XYBarDataset;
-import org.jfree.data.xy.XYDataset;
 import org.jfree.ui.ApplicationFrame;
-import org.jfree.ui.DateChooserPanel;
-import org.jfree.ui.RectangleInsets;
+import org.jfree.ui.Layer;
 import org.jfree.ui.RefineryUtilities;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
 import com.davehoag.ib.util.HistoricalDateManipulation;
+/**
+ * Plot historical data 
+ * @author David Hoag
+ *
+ */
 public class HistoricalDataChart extends ApplicationFrame {
     private static final long serialVersionUID = 1L;
     private static final double barWidth = 3.0;
@@ -62,8 +69,10 @@ public class HistoricalDataChart extends ApplicationFrame {
     TimeSeries volumeSeries;
     ChartPanel panel;
     JFreeChart chart;
-    JTextField start;
-    JTextField end;
+    JTextField startTF;
+    JTextField endTF;
+    JTextField symbolTF;
+    XYPlot pricePlot;
 
     {
         // set a theme using the new shadow generator feature available in
@@ -91,13 +100,14 @@ public class HistoricalDataChart extends ApplicationFrame {
     
     protected void addInputFields(){
         super.add(new JLabel("Start & End Dates:"));
-        start = new JTextField();
+        startTF = new JTextField();
         DateFormat df = new SimpleDateFormat( "yyyyMMdd");
         String dateText = df.format(new Date(System.currentTimeMillis()));
-        start.setText(dateText);
-        end = new JTextField();
-        end.setText(dateText);
-        super.add(start); super.add(end);
+        startTF.setText(dateText);
+        endTF = new JTextField();
+        endTF.setText(dateText);
+        symbolTF = new JTextField(); symbolTF.setText("QQQ");
+        super.add(startTF); super.add(endTF); super.add(symbolTF);
         JButton refresh = new JButton("Get");
         refresh.addActionListener(getRefreshDelegate());
         super.add(refresh);
@@ -118,24 +128,25 @@ public class HistoricalDataChart extends ApplicationFrame {
      */
     public void refresh(){
     	try { 
-	    	Thread t = new Thread( paintHistoricalData() );
+    		final String startStr = startTF.getText();
+    		final long startTime = HistoricalDateManipulation.getTime(startStr+ " 08:30:00");
+    		final String endStr = endTF.getText();
+    		final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:00:00");
+    		final String aSymbol = StringUtils.upperCase(symbolTF.getText());
+	    	Thread t = new Thread( paintHistoricalData(aSymbol, startTime, endTime) );
 	    	t.start();
     	}
     	catch(ParseException pe){
-    		start.setBackground(Color.RED);
-    		end.setBackground(Color.RED);
+    		startTF.setBackground(Color.RED);
+    		endTF.setBackground(Color.RED);
     	}
     }
 
 	/**
 	 * @return
 	 */
-	protected Runnable paintHistoricalData() throws ParseException {
-		String startStr = start.getText();
-		final long startTime = HistoricalDateManipulation.getTime(startStr+ " 08:30:00");
-		String endStr = end.getText();
-		final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:00:00");
-		final String aSymbol = "QQQ";
+	protected Runnable paintHistoricalData(final String aSymbol, final long startTime, final long endTime) throws ParseException {
+
 		data.removeAllSeries();
 		volumeData.removeAllSeries();
 		
@@ -159,7 +170,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 			    	volumeSeries = new TimeSeries(di);
 				}
 				else {
-					System.out.println("Adding " + aBar);
 			    	series.add(sec, open , high, low, close);
 			    	volumeSeries.add(sec, aBar.volume);
 				}
@@ -171,13 +181,46 @@ public class HistoricalDataChart extends ApplicationFrame {
 
 	    	data.addSeries(series);
 	    	volumeData.addSeries(volumeSeries);
-	    	chart.getXYPlot().getDomainAxis().setLowerBound(first.originalTime*1000);
-	    	chart.getXYPlot().getDomainAxis().setUpperBound(last.originalTime*1000);
-	    	chart.getXYPlot().getRangeAxis().setLowerBound(lowestLow);
-	    	chart.getXYPlot().getRangeAxis().setUpperBound(highestHigh);
+	    	updateAxis(first, last, highestHigh, lowestLow);
+	    	chart.removeLegend();
 	    	
 	    	HistoricalDataChart.this.repaint();
-    	}; };
+    	}
+
+		/**
+		 * @param first
+		 * @param last
+		 * @param highestHigh
+		 * @param lowestLow
+		 */
+		protected void updateAxis(final Bar first, final Bar last, final double highestHigh, final double lowestLow) {
+			System.out.println("Low " + lowestLow + " " + highestHigh);
+			final CombinedDomainXYPlot plot = (CombinedDomainXYPlot)chart.getXYPlot();
+			
+	    	final ValueAxis timeAxis = plot.getDomainAxis();
+	    	timeAxis.setLowerBound(first.originalTime*1000);
+	    	timeAxis.setUpperBound(last.originalTime*1000);
+	    	double halfway = ( last.originalTime*1000 + first.originalTime*1000)/2;
+	    	double markerSpot = (highestHigh + lowestLow) / 2;
+	    	
+	    	ValueMarker marker = new ValueMarker(markerSpot);
+	    	System.out.println("Adding value marker " + marker.getValue());
+	    	marker.setLabel("Test");
+	    	marker.setPaint(ChartColor.DARK_BLUE);
+	    	pricePlot.addRangeMarker(marker, Layer.FOREGROUND);
+	    	
+	    	System.out.println("halfway " + halfway);
+	    	XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(halfway , markerSpot , 1000*5000, .2));
+	    	shape.setToolTipText("Test Text");
+	    	pricePlot.addAnnotation(shape);
+	    	
+	    	final ValueAxis priceAxis = plot.getRangeAxis(0);
+		    if(priceAxis != null){
+		    	System.out.println(priceAxis.getClass());
+		    	priceAxis.setLowerBound(lowestLow);
+		    	priceAxis.setUpperBound(highestHigh);
+	    	}
+		}; };
 	}
 	public ChartPanel createPriceVolumePanels(){
 		createDataset();
@@ -195,7 +238,7 @@ public class HistoricalDataChart extends ApplicationFrame {
       // this.upperDataSet.addSeries( this.priceTimeSeries );
       //  this.lowerDataSet.addSeries( this.volumeTimeSeries );
         
-        XYPlot upperPlot = createPricePanel(dataset);
+        pricePlot = createPricePanel(dataset);
         XYPlot lowerPlot = createVolumePanel(volume);
 
         // Create the domain axis that will be used by both plots.
@@ -215,18 +258,20 @@ public class HistoricalDataChart extends ApplicationFrame {
         // and the lower plot.
         
         CombinedDomainXYPlot cplot = new CombinedDomainXYPlot( domainAxis );
-        cplot.add( upperPlot, 3 );
+        cplot.add( pricePlot, 3 );
         cplot.add( lowerPlot, 1 );
         cplot.setGap( 8.0 );
         cplot.setDomainGridlinePaint( Color.white );
         cplot.setDomainGridlinesVisible( true );
-        cplot.setDomainPannable( false );
+        cplot.setDomainPannable( true );
+        cplot.setRangePannable(true);
+        
 
         // Create the new chart
         
         JFreeChart jchart = new JFreeChart( "Contract Name", cplot );
         ChartUtilities.applyCurrentTheme( jchart );
-        
+        jchart.removeLegend();
         return jchart;
     }
 
@@ -235,7 +280,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @return
 	 */
 	protected XYPlot createPricePanel(OHLCDataset dataset) {
-		HighLowRenderer upperRenderer = new HighLowRenderer();
+		HighLowRenderer upperRenderer = new OpenCloseRenderer();
         upperRenderer.setBaseToolTipGenerator(new HighLowItemLabelGenerator());
         upperRenderer.setSeriesShape( 0, new Rectangle2D.Double( -1.0, -1.0, barWidth, 2.0 ) );
         upperRenderer.setSeriesPaint( 0, Color.blue );
@@ -245,7 +290,7 @@ public class HistoricalDataChart extends ApplicationFrame {
         NumberAxis upperRangeAxis = new NumberAxis( "Price" );
         upperRangeAxis.setAutoRange( true );
         upperRangeAxis.setAutoRangeIncludesZero( false );
-        XYPlot upperPlot = new XYPlot( dataset, null, upperRangeAxis, 
+        final XYPlot upperPlot = new XYPlot( dataset, null, upperRangeAxis, 
                                        upperRenderer );
         upperPlot.setBackgroundPaint( Color.lightGray );
         upperPlot.setDomainGridlinePaint( Color.white );
