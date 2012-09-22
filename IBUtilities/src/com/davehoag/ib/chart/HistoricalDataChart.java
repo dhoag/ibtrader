@@ -188,6 +188,7 @@ public class HistoricalDataChart extends ApplicationFrame {
     	}
 
 		/**
+		 * Add annotations to the historical chart
 		 * @param first
 		 * @param last
 		 * @param highestHigh
@@ -210,7 +211,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	    	pricePlot.addRangeMarker(marker, Layer.FOREGROUND);
 	    	
 	    	System.out.println("halfway " + halfway);
-	    	XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(halfway , markerSpot , 1000*5000, .2));
+	    	XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(halfway , markerSpot , 100*5000, .2));
 	    	shape.setToolTipText("Test Text");
 	    	pricePlot.addAnnotation(shape);
 	    	

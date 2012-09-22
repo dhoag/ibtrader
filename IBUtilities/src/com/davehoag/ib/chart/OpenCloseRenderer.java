@@ -26,6 +26,12 @@ public class OpenCloseRenderer extends HighLowRenderer {
 	 */
 	private static final long serialVersionUID = 2220795815275007290L;
 
+	/**
+	 * Provide my own implementation of this method simply to change the colors on bars that
+	 * represent up price movements versus those that are down.
+	 * 
+	 */
+	@Override
 	public void drawItem(Graphics2D g2, XYItemRendererState state, Rectangle2D dataArea,
 			PlotRenderingInfo info, XYPlot plot, ValueAxis domainAxis, ValueAxis rangeAxis,
 			XYDataset dataset, int series, int item, CrosshairState crosshairState, int pass) {
