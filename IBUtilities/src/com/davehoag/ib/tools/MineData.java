@@ -41,7 +41,8 @@ public class MineData {
 		BarIterator data = CassandraDao.getInstance().getData(oneStock, start, finish, barSize);
 		BarIterator data2 = CassandraDao.getInstance().getData(twoStock, start, finish, barSize);
 		double [] results = new double[31];
-		for(int i = 1; i <= 31; i++ ){
+		int [] datesToCheck = { 6, 22 }; 
+		for(int i = 20; i <= 21; i++ ){
 			results[i-1] = analyzeDateOptions(data, data2, i);
 			data.reset();
 			data2.reset();
@@ -99,8 +100,8 @@ public class MineData {
 					int qty = port.getShares(best.getSymbol());
 					if(qty == 0){
 						//time to rotate to the better trend
-						sellExistingPosition(port, worse);
-						openNewLongPosition(port, best);
+						sellExistingPosition(port, worse, dayOfMonth);
+						openNewLongPosition(port, best, dayOfMonth);
 					}
 				}
 			}
@@ -111,22 +112,25 @@ public class MineData {
 		port.updatePrice(srTwo.getSymbol(), srTwo.getMostRecent().close);
 		port.displayTradeStats("Day " + dayOfMonth);
 		port.displayValue();
+		port.dumpLog();
 		return port.getNetValue();
 	}
 	/**
 	 * @param port
 	 * @param best
 	 */
-	protected static void openNewLongPosition(final Portfolio port, final SimpleReturn best) {
-		final Bar bestBar = best.getMostRecent();
-		double money = port.getCash();
-		double qtyD = Math.floor(money / (bestBar.wap*100));
+	protected static void openNewLongPosition(final Portfolio port, final SimpleReturn best, final int dayOfMonth) {
+		final Bar [] bars = best.getDayOfMonthBars(dayOfMonth);
+		final Bar bestBar = bars[1];
+		final double money = port.getCash();
+		final double qtyD = Math.floor(money / (bestBar.wap*100));
 		
-		int buyQty = (int)(qtyD * 100);
+		final int buyQty = (int)(qtyD * 100);
 		final LimitOrder order = new LimitOrder(best.getSymbol(), buyQty, bestBar.wap, true);
-		int orderId = (int) bestBar.originalTime;
+		final int orderId = (int) bestBar.originalTime;
 		order.setId(orderId);
 		port.setTime(bestBar.originalTime);
+		System.out.println("Buying " + bestBar.getTime());
 		port.placedOrder(order);
 		port.confirm(order.getId(), order.getSymbol(), order.getPrice(), order.getShares());
 	}
@@ -134,14 +138,15 @@ public class MineData {
 	 * @param port
 	 * @param worse
 	 */
-	protected static void sellExistingPosition(Portfolio port, final SimpleReturn worse) {
-		Bar [] bars = worse.getDayOfMonthBars(31);
+	protected static void sellExistingPosition(Portfolio port, final SimpleReturn worse, final int dayOfMonth) {
+		final Bar [] bars = worse.getDayOfMonthBars(dayOfMonth);
 
-		int priorQty = port.getShares(worse.getSymbol());
+		final int priorQty = port.getShares(worse.getSymbol());
 		if(priorQty != 0){ //sell the losing shares at yesterday's close
 			port.setTime(bars[1].originalTime);
+			System.out.println("Selling " + bars[1].getTime());
 			int orderId = 100;
-			final LimitOrder order = new LimitOrder(worse.getSymbol(), priorQty, bars[1].close, false);
+			final LimitOrder order = new LimitOrder(worse.getSymbol(), priorQty, bars[1].wap, false);
 			order.setId(orderId);
 			port.placedOrder(order);
 			port.confirm(order.getId(), order.getSymbol(), order.getPrice(), order.getShares());
