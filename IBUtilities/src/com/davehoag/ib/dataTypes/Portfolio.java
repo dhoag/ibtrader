@@ -24,7 +24,7 @@ public class Portfolio {
 	Bar yesterday;
 	SimpleRiskLimits risk = new SimpleRiskLimits();
 	HashMap<String, Stack<LimitOrder>> positionToUnwind = new HashMap<String, Stack<LimitOrder>>();
-	
+
 	/**
 	 * 
 	 * @param symbol
@@ -77,10 +77,10 @@ public class Portfolio {
 			value+=positionValue;
 		}
 		final double cashFromTrading = getCash();
-		return value - cashFromTrading;
+		return value + cashFromTrading;
 	}
 	public void displayValue(final String symbol ){
-		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash()) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
+		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash())+ " " + lastPrice.get(symbol) + " * " + getShares(symbol) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
 	}
 	/**
 	 * sometimes knowing yesterday's data is valuable. Could be null 
@@ -237,6 +237,9 @@ public class Portfolio {
 	}
 	public double getCash(){
 		return cash;
+	}
+	public void setCash(double d){
+		cash = d;
 	}
 	public double getValue(String symbol, final double price){
 		final Integer currentQty = portfolio.get(symbol);

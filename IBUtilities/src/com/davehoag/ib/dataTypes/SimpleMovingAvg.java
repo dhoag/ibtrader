@@ -1,7 +1,5 @@
 package com.davehoag.ib.dataTypes;
 
-import flanagan.analysis.Stat;
-
 public class SimpleMovingAvg {
 	final double [] fastLeg;
 	final double [] slowLeg;

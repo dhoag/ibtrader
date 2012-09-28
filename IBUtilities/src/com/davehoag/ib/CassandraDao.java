@@ -222,7 +222,7 @@ public class CassandraDao {
 	 * @param symbol
 	 * @param start
 	 *            < 1000 and finish is zero, go back that many days
-	 * 
+	 * @param finish
 	 * @return
 	 * @throws ParseException
 	 */
