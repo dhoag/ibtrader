@@ -12,6 +12,9 @@ public class SimpleReturn implements Iterator<Bar>, Iterable<Bar>{
 	Bar [] data;
 	int last = 0;
 	boolean initialized;
+	public boolean isInitialized(){
+		return initialized;
+	}
 	public SimpleReturn(int size){
 		data = new Bar[size];
 	}

@@ -42,7 +42,7 @@ public class MineData {
 		BarIterator data2 = CassandraDao.getInstance().getData(twoStock, start, finish, barSize);
 		double [] results = new double[31];
 		int [] datesToCheck = { 6, 22 }; 
-		for(int i = 20; i <= 21; i++ ){
+		for(int i = 22; i <= 23; i++ ){
 			results[i-1] = analyzeDateOptions(data, data2, i);
 			data.reset();
 			data2.reset();
@@ -55,58 +55,56 @@ public class MineData {
 	 * @param data
 	 * @param data2
 	 */
-	protected static double analyzeDateOptions(BarIterator data, BarIterator data2, final int dayOfMonth) {
+	protected static double analyzeDateOptions(final BarIterator data, final BarIterator data2, final int dayOfMonth) {
 		SimpleReturn srOne = new SimpleReturn(5*5*2);
 		SimpleReturn srTwo = new SimpleReturn(5*5*2);
 		int count = 0;
 		int currentMonth=0;
-		Portfolio port = new Portfolio();
+		final Portfolio port = new Portfolio();
 		port.setCash(100000);
-		while(true){
-			if(data.hasNext() && data2.hasNext()){
-				if(count < 4){//seed with 2 full months of data
-					Bar b = data.next();
-					Calendar c = Calendar.getInstance();
-					c.setTime(new Date(b.originalTime*1000));
-					if(c.get(Calendar.HOUR) == 4 || c.get(Calendar.HOUR) == 16) {
-						b = data.next();
-					}
-					Bar b2 = data2.next();
-					c = Calendar.getInstance();
-					c.setTime(new Date(b2.originalTime*1000));
-					if(c.get(Calendar.HOUR) == 4 || c.get(Calendar.HOUR) == 16) {
-						b2 = data2.next();
-					}
-					//ignore my bad day data
-					if(b2.originalTime != b.originalTime){
-						throw new IllegalStateException("Analysis invalid " + b + " " + b2);
-					}
-					srOne.newBar(b);
-					srTwo.newBar(b2);
-					int barMonth = c.get(Calendar.MONTH);
-					if(currentMonth != barMonth){
-						currentMonth = barMonth;
-						count++;
-					}
+		while(data.hasNext() && data2.hasNext()){
+			if(count < 4){//seed with 2 full months of data
+				Bar b = data.next();
+				Calendar c = Calendar.getInstance();
+				c.setTime(new Date(b.originalTime*1000));
+				if(c.get(Calendar.HOUR) == 4 || c.get(Calendar.HOUR) == 16) {
+					b = data.next();
 				}
-				else{
-					//only add one more month of data
-					count = 3;
-					double oneReturn = srOne.getDayOfMonthReturn(dayOfMonth);
-					double twoReturn = srTwo.getDayOfMonthReturn(dayOfMonth);
-					
-					final SimpleReturn best = oneReturn > twoReturn ? srOne : srTwo;
-					final SimpleReturn worse = oneReturn < twoReturn ? srOne : srTwo;
-					int qty = port.getShares(best.getSymbol());
-					if(qty == 0){
-						//time to rotate to the better trend
-						sellExistingPosition(port, worse, dayOfMonth);
-						openNewLongPosition(port, best, dayOfMonth);
-					}
+				Bar b2 = data2.next();
+				c = Calendar.getInstance();
+				c.setTime(new Date(b2.originalTime*1000));
+				if(c.get(Calendar.HOUR) == 4 || c.get(Calendar.HOUR) == 16) {
+					b2 = data2.next();
+				}
+				//ignore my bad day data
+				if(b2.originalTime != b.originalTime){
+					throw new IllegalStateException("Analysis invalid " + b + " " + b2);
+				}
+				srOne.newBar(b);
+				srTwo.newBar(b2);
+				int barMonth = c.get(Calendar.MONTH);
+				if(currentMonth != barMonth){
+					currentMonth = barMonth;
+					count++;
 				}
 			}
-			else
-				break;
+			else{
+				//only add one more month of data
+				count = 3;
+				double oneReturn = srOne.getDayOfMonthReturn(dayOfMonth);
+				double twoReturn = srTwo.getDayOfMonthReturn(dayOfMonth);
+				
+				final SimpleReturn best = oneReturn > twoReturn ? srOne : srTwo;
+				final SimpleReturn worse = oneReturn < twoReturn ? srOne : srTwo;
+				int qty = port.getShares(best.getSymbol());
+				if(qty == 0){
+					System.out.println(srOne.getSymbol() + " " + oneReturn);
+					System.out.println(srTwo.getSymbol() + " " + twoReturn);
+					//time to rotate to the better trend
+					sellExistingPosition(port, worse, dayOfMonth);
+					openNewLongPosition(port, best, dayOfMonth);
+				}
+			}
 		}
 		port.updatePrice(srOne.getSymbol(), srOne.getMostRecent().close);
 		port.updatePrice(srTwo.getSymbol(), srTwo.getMostRecent().close);
@@ -130,7 +128,6 @@ public class MineData {
 		final int orderId = (int) bestBar.originalTime;
 		order.setId(orderId);
 		port.setTime(bestBar.originalTime);
-		System.out.println("Buying " + bestBar.getTime());
 		port.placedOrder(order);
 		port.confirm(order.getId(), order.getSymbol(), order.getPrice(), order.getShares());
 	}
@@ -138,13 +135,12 @@ public class MineData {
 	 * @param port
 	 * @param worse
 	 */
-	protected static void sellExistingPosition(Portfolio port, final SimpleReturn worse, final int dayOfMonth) {
+	protected static void sellExistingPosition(final Portfolio port, final SimpleReturn worse, final int dayOfMonth) {
 		final Bar [] bars = worse.getDayOfMonthBars(dayOfMonth);
 
 		final int priorQty = port.getShares(worse.getSymbol());
 		if(priorQty != 0){ //sell the losing shares at yesterday's close
 			port.setTime(bars[1].originalTime);
-			System.out.println("Selling " + bars[1].getTime());
 			int orderId = 100;
 			final LimitOrder order = new LimitOrder(worse.getSymbol(), priorQty, bars[1].wap, false);
 			order.setId(orderId);

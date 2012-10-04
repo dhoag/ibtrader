@@ -49,6 +49,18 @@ public class HistoricalDateManipulation {
 		return hour;
 	}
 	/**
+	 * Get the day of month represented by the seconds
+	 * @param time
+	 * @return
+	 */
+	public static int getDay(final long time){
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		cal.setTime(d);
+		final int hour = cal.get(cal.DAY_OF_MONTH);
+		return hour;
+	}
+	/**
 	 * 
 	 * @param time
 	 * @return
