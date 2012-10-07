@@ -139,9 +139,11 @@ public class CassandraDao {
 			long openTime = getOpenTime(timeInSecs);
 			final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
 					openTime, openTime, barSize);
-			final int recordCount = priceData.get(symbol + ":open").size();
-			if (recordCount > 0)
-				return openTime;
+			final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
+			if( entry != null){
+				final int recordCount = entry.size();
+				if (recordCount > 0)	return openTime;
+			}
 		}
 		LoggerFactory.getLogger("HistoricalData").error(
 				"Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
