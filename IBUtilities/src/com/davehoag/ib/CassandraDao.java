@@ -1,5 +1,7 @@
 package com.davehoag.ib;
 
+import static me.prettyprint.hector.api.factory.HFactory.createMutator;
+
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.Calendar;
@@ -8,6 +10,23 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import me.prettyprint.cassandra.serializers.BooleanSerializer;
+import me.prettyprint.cassandra.serializers.DoubleSerializer;
+import me.prettyprint.cassandra.serializers.LongSerializer;
+import me.prettyprint.cassandra.serializers.StringSerializer;
+import me.prettyprint.hector.api.Cluster;
+import me.prettyprint.hector.api.Keyspace;
+import me.prettyprint.hector.api.beans.ColumnSlice;
+import me.prettyprint.hector.api.beans.HColumn;
+import me.prettyprint.hector.api.beans.OrderedRows;
+import me.prettyprint.hector.api.beans.Row;
+import me.prettyprint.hector.api.factory.HFactory;
+import me.prettyprint.hector.api.mutation.MutationResult;
+import me.prettyprint.hector.api.mutation.Mutator;
+import me.prettyprint.hector.api.query.QueryResult;
+import me.prettyprint.hector.api.query.RangeSlicesQuery;
+import me.prettyprint.hector.api.query.SliceQuery;
+
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.LoggerFactory;
 
@@ -15,24 +34,9 @@ import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
-import me.prettyprint.cassandra.serializers.BooleanSerializer;
-import me.prettyprint.cassandra.serializers.DoubleSerializer;
-import me.prettyprint.cassandra.serializers.LongSerializer;
-import me.prettyprint.cassandra.serializers.StringSerializer;
-import me.prettyprint.hector.api.beans.ColumnSlice;
-import me.prettyprint.hector.api.beans.HColumn;
-import me.prettyprint.hector.api.beans.Row;
-import me.prettyprint.hector.api.beans.Rows;
-import me.prettyprint.hector.api.factory.HFactory;
-import me.prettyprint.hector.api.mutation.Mutator;
-import me.prettyprint.hector.api.query.RangeSlicesQuery;
-import me.prettyprint.hector.api.query.SliceQuery;
-import me.prettyprint.hector.api.Cluster;
-import me.prettyprint.hector.api.Keyspace;
-
 /**
  * 
- * @author dhoag
+ * @author David Hoag
  * 
  */
 public class CassandraDao {
@@ -55,22 +59,53 @@ public class CassandraDao {
 	}
 
 	public static void main(String[] args) {
+		//displayRecordsForMostRecentDate(args);
+		//insertSampleData();
+		deleteSampleData();
+	}
+	public static void deleteSampleData(){
+		dao.delete("bar5min", 120123122, "IBM");
+		dao.delete("bar5min", 120156567, "IBM");
+	}
+	public static void insertSampleData(){
+		dao.insertHistoricalData("bar5min", "IBM", "120123122", 10.2, 12.45, 9.2, 10.5, 100032, 20, 10.43, false);
+		dao.insertHistoricalData("bar5min", "IBM", "120156567", 10.2, 12.45, 9.2, 10.5, 100032, 20, 10.43, false);
+	}
+	/**
+	 * @param args
+	 */
+	protected static void displayRecordsForMostRecentDate(String[] args) {
 		String symbol = "";
-		try {
-			final String barSize = args[0];
-			for (int i = 1; i < args.length; i++) {
-				symbol = StringUtils.upperCase(args[i]);
-				long dateInSecs = dao.findMostRecentDate(symbol, barSize);
-				System.out.print("Most recent date " + symbol + " " + barSize + " "
-						+ new Date(dateInSecs * 1000));
-				System.out.println(" records " + dao.countRecordsForCurrentDay(symbol, barSize, dateInSecs));
-			}
+		final String barSize = args[0];
+		for (int i = 1; i < args.length; i++) {
+			symbol = args[i];
+			long dateInSecs = dao.findMostRecentDate(symbol, barSize);
+			System.out.print("Most recent date " + symbol + " " + barSize + " "
+					+ new Date(dateInSecs * 1000));
+			System.out.println(" records " + dao.getRecordsOnDate(symbol, barSize, dateInSecs));
+		}
+	}
+	protected static void cleanUpDayData(){
+		
+	}
+	/**
+	 * 
+	 * @param symbol
+	 * @param barSize
+	 * @param dateInSecs
+	 * @return the number of records for the given parameters
+	 */
+	public int getRecordsOnDate(final String symbol, final String barSize, final long dateInSecs ){
+		try{
+			String upperSymbol = StringUtils.upperCase(symbol);
+			int result = countRecordsForCurrentDay(upperSymbol, barSize, dateInSecs);
+			return result;
 		} catch (Throwable t) {
 			System.err.println("Error with " + symbol);
 			t.printStackTrace();
 		}
+		return 0;
 	}
-
 	/**
 	 * Count the records in the dao for the given bar size & symbol
 	 * 
@@ -167,18 +202,6 @@ public class CassandraDao {
 		m.execute();
 	}
 
-	<V> void printFirstRow(Rows<String, Long, V> rows) {
-
-		for (Row<String, Long, V> row2 : rows) {
-			ColumnSlice<Long, V> slice = row2.getColumnSlice();
-			for (HColumn<Long, V> column : slice.getColumns()) {
-				Long secs = column.getName();
-				Date d = new Date(secs.longValue() * 1000);
-				System.out.println(d + " " + column.getValue());
-			}
-		}
-	}
-
 	/**
 	 * Get the open (8:30 bar) for the specified date of today. If "today" is <
 	 * 1000 assume its an offset of how many days to go back
@@ -237,7 +260,6 @@ public class CassandraDao {
 						+ " and " + new Date(actualFinish * 1000));
 		return getDataIterator(symbol, actualFinish, actualStart, barSize);
 	}
-
 	/**
 	 * @param symbol
 	 * @param actualFinish
@@ -328,15 +350,36 @@ public class CassandraDao {
 		priceQuery.setRange(start, finish, false, maxRecordsReturned);
 
 		for (String key : priceKeys) {
-			String rowKey = symbol + key;
+			final String rowKey = symbol + key;
 			priceQuery.setKeys(rowKey, rowKey);
-			List<HColumn<Long, Double>> column = priceQuery.execute().get().getByKey(rowKey).getColumnSlice()
-					.getColumns();
-			result.put(rowKey, column);
+			final QueryResult<OrderedRows<String, Long, Double>> queryResults = priceQuery.execute();
+			final OrderedRows<String, Long, Double> rows = queryResults.get();
+			final Row<String, Long, Double> row = rows.getByKey(rowKey);
+			if(row != null){
+				final List<HColumn<Long, Double>> column = row.getColumnSlice().getColumns();
+				result.put(rowKey, column);
+			}
 		}
 		return result;
 	}
 
+	/**
+	 * Delete multiple columns from the data;
+	 */
+	public void delete(String barSize, long seconds, String... keys) {
+		Mutator<String> m = HFactory.createMutator(keyspace, stringSerializer);
+		for (String key : keys) {
+			for(String priceKey: priceKeys){
+				m.addDeletion(key + priceKey, barSize, seconds, longSerializer);
+			}
+			for(String longKey: longKeys){
+				m.addDeletion(key + longKey, barSize, seconds, longSerializer);
+			}
+			m.addDeletion(key + ":hasGap", barSize, seconds, longSerializer);
+		}
+		MutationResult result = m.execute();
+		System.out.println(result.getExecutionTimeMicro());
+	}
 	/**
 	 * Get the volume & tradeCount data
 	 * 
