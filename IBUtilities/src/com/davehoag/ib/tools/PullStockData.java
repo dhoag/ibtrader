@@ -16,7 +16,7 @@ import com.ib.client.EClientSocket;
  * http://individuals.interactivebrokers.com/php/apiguide/interoperability/dde_excel/tabhistorical.htm
  * http://www.interactivebrokers.com/php/apiUsersGuide/apiguide/api/historical_data_limitations.htm
  * 
- * @author dhoag
+ * @author David Hoag
  *
  */
 public class PullStockData {
@@ -53,8 +53,10 @@ public class PullStockData {
 		}
         System.exit(0);
 	}
-
 	/**
+	 * Set a system property forceUpdate to avoid looking at current data and simply start updating
+	 * from the given start date.
+	 * 
 	 * @param startDateStr
 	 * @param barSize
 	 * @param symbol

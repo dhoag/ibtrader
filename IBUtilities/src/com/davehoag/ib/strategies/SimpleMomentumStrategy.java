@@ -10,7 +10,8 @@ import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleReturn;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 /**
- * Need two instances (and only two) this strategy running at any given time
+ * Need two instances (and only two) this strategy running at any given time. 
+ * 
  * @author dhoag
  *
  */
@@ -180,7 +181,6 @@ public class SimpleMomentumStrategy implements Strategy {
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 

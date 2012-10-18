@@ -267,13 +267,23 @@ public class IBClientRequestExecutor {
 	 *            
 	 */
 	protected synchronized void execute(final Runnable r, final int seconds) {
+		execute(r,seconds,null);
+	}
+	/**
+	 * Wait before - no need to penalize the request after the historical data request.
+	 * @param seconds
+	 *            The amount of time to wait *before* the runnable is executed
+	 *            
+	 */
+	protected synchronized void execute(final Runnable r, final int seconds, final StoreHistoricalData histData) {
 		LoggerFactory.getLogger("RequestManager").debug( "Enqueing request");
 		
 		boolean result = tasks.offer(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					if (seconds > 0) {
+					final boolean skip = histData != null ? histData.isSkippingDate(((HistoricalDataRequest)r).date) : false;
+					if (seconds > 0 && ! skip) {
 						// Send the request then wait for 10 seconds
 						synchronized (this) {
 							try {
@@ -283,7 +293,7 @@ public class IBClientRequestExecutor {
 							}
 						}
 					}
-					r.run();
+					if(!skip) r.run();
 				} finally {
 					scheduleNext();
 				}
@@ -347,27 +357,37 @@ public class IBClientRequestExecutor {
 		final int markerRequestId = pushRequest();
 		boolean first = true;
 		for (final String date : dates) {
-			final Runnable r = new Runnable() {
-				@Override
-				public void run() {
-					final int reqId = pushRequest();
-					pushResponseHandler(reqId, rh);
-					rh.info(
-							"["+ reqId + "] Submitting request for historical data " + date + " " + stock.m_symbol);
-					rh.resetRecordCount();
-					client.reqHistoricalData(reqId, stock, date, rh.getDuration(), rh.getBar(),
-							IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);
-
-				}
-			};
+			final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
 			if(first) {
 				execute(r,0);
 				first = false;
 			}
-			else //wait 10 seconds for the next request.
-				execute(r, 11);
+			else {//wait 11 seconds for the next request.
+				execute(r, 11, rh);
+			}
 		}
 		scheduleClosingRequest(markerRequestId);
+	}
+	class HistoricalDataRequest implements Runnable{
+		String date; StoreHistoricalData rh; StockContract stock;
+		HistoricalDataRequest(String dateStr, StoreHistoricalData store, StockContract st){
+			date = dateStr; rh = store; stock = st;
+		}
+		boolean skip(){
+			return  rh.isSkippingDate(date);
+		}
+		@Override
+		public void run() {
+			if(!skip()) { 
+				final int reqId = pushRequest();
+				pushResponseHandler(reqId, rh);
+				rh.info(
+						"["+ reqId + "] Submitting request for historical data " + date + " " + stock.m_symbol);
+				rh.resetRecordCount();
+				client.reqHistoricalData(reqId, stock, date, rh.getDuration(), rh.getBar(),
+						IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);
+			}
+		}
 	}
 	/**
 	 * Get 5 second bars and route to the request.

@@ -17,11 +17,27 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 public class StoreHistoricalData extends ResponseHandlerDelegate {
 	final String sym; 
 	String barSize =  "bar5sec";
+	long currentOpen = 0;
+	boolean skip = false;
 
 	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
 		super(ibInterface);
 		sym = symbol;
-		
+	}
+	public boolean isSkippingDate(final String dateStr){
+		long newOpen;
+		try {
+			newOpen = HistoricalDateManipulation.getOpen(HistoricalDateManipulation.getTime(dateStr));
+			System.out.println( dateStr);
+		} catch (ParseException e) {
+			e.printStackTrace();
+			return false;
+		}
+		if(currentOpen != newOpen){
+			skip = false;
+			currentOpen = newOpen;
+		}
+		return skip;
 	}
 	public boolean isValidSize(final String size){
 		switch(size){
@@ -124,8 +140,11 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	@Override
 	public void error(int id, int errorCode, String errorMsg) {
 		LoggerFactory.getLogger("HistoricalData" ).error( "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
-		if(errorCode == 162){
-			//eventually skip that day
+		switch(errorCode){
+		case 162:
+		case 321: //skip that day?
+			System.out.println("Skiping current day " + HistoricalDateManipulation.getDateAsStr(currentOpen));
+			skip = true;
 		}
 	}
 }
