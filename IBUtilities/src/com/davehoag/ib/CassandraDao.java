@@ -61,7 +61,9 @@ public class CassandraDao {
 	public static void main(String[] args) {
 		//displayRecordsForMostRecentDate(args);
 		//insertSampleData();
-		deleteSampleData();
+		//deleteSampleData();
+		cleanUpDayData("SPY");
+		cleanUpDayData("AGG");
 	}
 	public static void deleteSampleData(){
 		dao.delete("bar5min", 120123122, "IBM");
@@ -77,6 +79,7 @@ public class CassandraDao {
 	protected static void displayRecordsForMostRecentDate(String[] args) {
 		String symbol = "";
 		final String barSize = args[0];
+		
 		for (int i = 1; i < args.length; i++) {
 			symbol = args[i];
 			long dateInSecs = dao.findMostRecentDate(symbol, barSize);
@@ -85,8 +88,34 @@ public class CassandraDao {
 			System.out.println(" records " + dao.getRecordsOnDate(symbol, barSize, dateInSecs));
 		}
 	}
-	protected static void cleanUpDayData(){
-		
+	/**
+	 * Modify a bunch of records due to a change in how I store daily bars.
+	 * 
+	 * @param aSymbol
+	 */
+	protected static void cleanUpDayData(final String aSymbol) {
+		int count1 =0; int count2 = 0;
+		try {
+			final BarIterator bars = dao.getData(aSymbol, "20110101 08:00:00", "20130101 08:00:00", "bar1day");
+			for(Bar aBar: bars){
+				final int hour = HistoricalDateManipulation.getHour(aBar.originalTime);
+				if(hour != 8 ){
+					count1++;
+					final long openTime = dao.getOpenTime(aBar.originalTime);
+					String newTime = String.valueOf(openTime);
+				//	System.out.println("new " + newTime);
+					dao.insertHistoricalData("bar1day", aSymbol, newTime, aBar.open, aBar.high, aBar.low, aBar.close, aBar.volume, aBar.tradeCount, aBar.wap, aBar.hasGaps);
+					dao.delete("bar1day", aBar.originalTime, aSymbol);
+					//System.out.println(aBar);
+				}
+				else{
+					count2++;
+				}
+			}
+		} catch (final ParseException e) {
+			e.printStackTrace();
+		}
+		System.out.println("8am " + count2 + " 4pm" + count1);
 	}
 	/**
 	 * 
@@ -161,7 +190,7 @@ public class CassandraDao {
 	 */
 	protected void insertHistoricalData(final String barSize, final String aSymbol,
 			final String dateSecondsStr, final double open, final double high, final double low,
-			final double close, final int volume, final int count, final double WAP, final boolean hasGap) {
+			final double close, final long volume, final long count, final double WAP, final boolean hasGap) {
 		final String symbol = StringUtils.upperCase(aSymbol);
 
 		final DecimalFormat df = new DecimalFormat("#.##");
@@ -240,6 +269,9 @@ public class CassandraDao {
 		else if (today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)
 			actualToday -= 1 * 24 * 60 * 60;
 		return HistoricalDateManipulation.getOpen(actualToday);
+	}
+	public BarIterator getData(final String aSymbol, String start, final String finish, final String barSize) throws ParseException {
+		return getData(aSymbol, HistoricalDateManipulation.getTime(start), HistoricalDateManipulation.getTime(finish), barSize);
 	}
 
 	/**
@@ -368,9 +400,9 @@ public class CassandraDao {
 	/**
 	 * Delete multiple columns from the data;
 	 */
-	public void delete(String barSize, long seconds, String... keys) {
+	public void delete(String barSize, long seconds, String... symbols) {
 		Mutator<String> m = HFactory.createMutator(keyspace, stringSerializer);
-		for (String key : keys) {
+		for (String key : symbols) {
 			for(String priceKey: priceKeys){
 				m.addDeletion(key + priceKey, barSize, seconds, longSerializer);
 			}
@@ -380,7 +412,6 @@ public class CassandraDao {
 			m.addDeletion(key + ":hasGap", barSize, seconds, longSerializer);
 		}
 		MutationResult result = m.execute();
-		System.out.println(result.getExecutionTimeMicro());
 	}
 	/**
 	 * Get the volume & tradeCount data
