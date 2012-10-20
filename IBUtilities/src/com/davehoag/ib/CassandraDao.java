@@ -64,6 +64,7 @@ public class CassandraDao {
 		//deleteSampleData();
 		cleanUpDayData("SPY");
 		cleanUpDayData("AGG");
+		cleanUpDayData("QQQ");
 	}
 	public static void deleteSampleData(){
 		dao.delete("bar5min", 120123122, "IBM");
