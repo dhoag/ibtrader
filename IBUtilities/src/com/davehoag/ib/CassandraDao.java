@@ -62,9 +62,20 @@ public class CassandraDao {
 		//displayRecordsForMostRecentDate(args);
 		//insertSampleData();
 		//deleteSampleData();
+		/*
 		cleanUpDayData("SPY");
 		cleanUpDayData("AGG");
 		cleanUpDayData("QQQ");
+		*/
+		long day = dao.findMostRecentDate("QQQ", "bar1day");
+		System.out.println(HistoricalDateManipulation.getDateAsStr(day));
+		day = dao.findMostRecentDate("QQQ", "bar5sec");
+		System.out.println(HistoricalDateManipulation.getDateAsStr(day));
+		Bar aBar = dao.getOpen("QQQ", day);
+		BarIterator bars = dao.getDataReversed("QQQ", aBar, 3);
+		for(Bar b: bars){
+			System.out.println(b);
+		}
 	}
 	public static void deleteSampleData(){
 		dao.delete("bar5min", 120123122, "IBM");
@@ -162,13 +173,13 @@ public class CassandraDao {
 	 * @param barSize
 	 * @return
 	 */
-	public long findMostRecentDate(String symbol, String barSize) {
+	public long findMostRecentDateOri(final String symbol, final String barSize) {
 		long timeInSecs = System.currentTimeMillis() / 1000;
 		for (int i = 0; i < 100; i++) {
 			timeInSecs -= i * 24 * 60 * 60;
 			long openTime = getOpenTime(timeInSecs);
 			final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
-					openTime, openTime, barSize);
+					openTime, openTime, barSize ,true, 1);
 			final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
 			if( entry != null){
 				final int recordCount = entry.size();
@@ -178,6 +189,43 @@ public class CassandraDao {
 		LoggerFactory.getLogger("HistoricalData").error(
 				"Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
 		return 0;
+	}
+	/**
+	 * A utility method to what data I have in the system for the given bar size
+	 * 
+	 * @param symbol
+	 * @param barSize
+	 * @return
+	 */
+	public long findMostRecentDate(final String symbol, final String barSize) {
+		long timeInSecs = System.currentTimeMillis() / 1000;
+		long openTime = getOpenTime(timeInSecs);
+		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
+				openTime - 24*60*60*100,openTime, barSize ,true, 1);
+		final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
+		if( entry != null){
+			final int recordCount = entry.size();
+			if (recordCount > 0)	return entry.get(0).getName();
+		}
+		LoggerFactory.getLogger("HistoricalData").error(
+				"Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
+		return 0;
+	}
+	public BarIterator getDataReversed(final String symbol, final Bar aBar, final int count){
+		long start = aBar.originalTime - 1;
+		final HashMap<String, List<HColumn<Long, Double>>> priceData;
+		final HashMap<String, List<HColumn<Long, Long>>> volData;
+		priceData = getPriceHistoricalData(symbol,
+				start -24*60*60*count, start, aBar.barSize ,true, count);
+
+		volData = getHistoricalData(symbol, start -24*60*60*count, start, aBar.barSize, true, count);
+		try {
+			return new BarIterator(symbol, priceData,volData, aBar.barSize);
+		} catch (Exception ex) {
+			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
+			ex.printStackTrace();
+			return new BarIterator(symbol);
+		}
 	}
 
 	/**
@@ -317,6 +365,26 @@ public class CassandraDao {
 	}
 
 	/**
+	 * @param symbol
+	 * @param actualFinish
+	 * @param actualStart
+	 * @return
+	 */
+	protected BarIterator getReverseDataIterator(final String symbol, final long actualFinish,
+			final long actualStart, final String barSize, int count) {
+		try {
+			final HashMap<String, List<HColumn<Long, Double>>> priceData;
+			final HashMap<String, List<HColumn<Long, Long>>> volData;
+			priceData = getPriceHistoricalData(symbol, actualStart, actualFinish, barSize);
+			volData = getHistoricalData(symbol, actualStart, actualFinish, barSize);
+			return new BarIterator(symbol, priceData,volData, barSize);
+		} catch (Exception ex) {
+			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
+			ex.printStackTrace();
+			return new BarIterator(symbol);
+		}
+	}
+	/**
 	 * If finish < 1000 figure to use today as the date. If start is also <
 	 * 1000, then we are counting back N # of days ,so if it's monday or sunday
 	 * move the date back to Saturday as the starting point from which to count
@@ -369,6 +437,10 @@ public class CassandraDao {
 		return null;
 	}
 
+	public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol,
+			final long start, final long finish, final String cf) {
+		return getPriceHistoricalData(symbol, start, finish, cf,false,  maxRecordsReturned);
+	}
 	/**
 	 * Get the price data
 	 * 
@@ -377,12 +449,17 @@ public class CassandraDao {
 	 * @throws ParseException
 	 */
 	public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol,
-			final long start, final long finish, final String cf) {
+			final long start, final long finish, final String cf, final boolean reverse, final int count) {
 		final HashMap<String, List<HColumn<Long, Double>>> result = new HashMap<String, List<HColumn<Long, Double>>>();
 		RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace,
 				stringSerializer, longSerializer, doubleSerializer);
 		priceQuery.setColumnFamily(cf);
-		priceQuery.setRange(start, finish, false, maxRecordsReturned);
+		if(reverse){
+			priceQuery.setRange(finish, start, reverse, count);
+		}
+		else {
+			priceQuery.setRange(start, finish, reverse, count);
+		}
 
 		for (String key : priceKeys) {
 			final String rowKey = symbol + key;
@@ -414,6 +491,10 @@ public class CassandraDao {
 		}
 		MutationResult result = m.execute();
 	}
+	public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol,
+			final long start, final long finish, final String cf) {
+		return getHistoricalData(symbol, start, finish, cf, false, maxRecordsReturned);
+	}
 	/**
 	 * Get the volume & tradeCount data
 	 * 
@@ -422,12 +503,17 @@ public class CassandraDao {
 	 * @throws ParseException
 	 */
 	public HashMap<String, List<HColumn<Long, Long>>> getHistoricalData(final String symbol,
-			final long start, final long finish, final String cf) {
+			final long start, final long finish, final String cf, final boolean reverse, final int count ) {
 		final HashMap<String, List<HColumn<Long, Long>>> result = new HashMap<String, List<HColumn<Long, Long>>>();
 		SliceQuery<String, Long, Long> priceQuery = HFactory.createSliceQuery(keyspace, stringSerializer,
 				longSerializer, longSerializer);
 		priceQuery.setColumnFamily(cf);
-		priceQuery.setRange(start, finish, false, maxRecordsReturned);
+		if(reverse){
+			priceQuery.setRange(finish, start, reverse, count);
+		}
+		else {
+			priceQuery.setRange(start, finish, reverse, count);
+		}
 
 		for (String key : longKeys) {
 			String rowKey = symbol + key;
