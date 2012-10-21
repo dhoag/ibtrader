@@ -14,12 +14,14 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 	final HashMap<String, List<HColumn<Long, Long>>> volData;
 	int count = 0;
 	final String symbol;
+	String barSize;
 
 	public BarIterator(final String sym, final HashMap<String, List<HColumn<Long, Double>>> price, 
-			final HashMap<String, List<HColumn<Long, Long>>> vol) throws Exception {
+			final HashMap<String, List<HColumn<Long, Long>>> vol, final String barSz) throws Exception {
 		priceData = price;
 		volData = vol;
 		symbol = sym;
+		barSize = barSz;
 	}
 	public void reset(){
 		count = 0;
@@ -42,6 +44,7 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 
 	public Bar next() {
 		final Bar bar = new Bar();
+		bar.barSize = barSize;
 		bar.symbol = symbol;
 		bar.close = priceData.get(symbol + ":close").get(count).getValue().doubleValue();
 		bar.open = priceData.get(symbol + ":open").get(count).getValue().doubleValue();

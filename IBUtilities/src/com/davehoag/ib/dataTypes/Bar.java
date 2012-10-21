@@ -4,6 +4,7 @@ import java.util.Date;
 import java.util.Calendar;
 
 public class Bar {
+	public String barSize;
 	public long originalTime;
 	public String symbol = "NONE";
 	public double high;
