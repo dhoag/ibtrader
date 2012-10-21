@@ -308,7 +308,7 @@ public class CassandraDao {
 			final HashMap<String, List<HColumn<Long, Long>>> volData;
 			priceData = getPriceHistoricalData(symbol, actualStart, actualFinish, barSize);
 			volData = getHistoricalData(symbol, actualStart, actualFinish, barSize);
-			return new BarIterator(symbol, priceData,volData);
+			return new BarIterator(symbol, priceData,volData, barSize);
 		} catch (Exception ex) {
 			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
 			ex.printStackTrace();
