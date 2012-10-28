@@ -2,6 +2,8 @@ package com.davehoag.ib.strategies;
 
 import java.util.Calendar;
 
+import org.slf4j.LoggerFactory;
+
 import com.davehoag.ib.Strategy;
 import com.davehoag.ib.TradingStrategy;
 import com.davehoag.ib.dataTypes.Bar;
@@ -77,12 +79,21 @@ public class SimpleMomentumStrategy implements Strategy {
 					oldestBar = aBar;
 				}
 				else {
-					latestBar = aBar;
+					setLatestBar(aBar);
 					symbol = aBar.symbol;
 					evaluateMomentum(holdings, executionEngine);
 				}
 			}
 		}
+	}
+	/**
+	 * Update the latestBar to the passed in value and notify the 
+	 * thread from the other stock data feed that this is complete
+	 * @param aBar
+	 */
+	public synchronized void setLatestBar(final Bar aBar){
+		latestBar = aBar;
+		notify();
 	}
 	/**
 	 * Trading day! figure out if we should trade 
@@ -101,9 +112,16 @@ public class SimpleMomentumStrategy implements Strategy {
 					int currentQty = getCurrentPosition(holdings);
 					if(currentQty == 0){
 						other.sellExistingPosition(holdings, executionEngine);
-						
 						//need a way to wait for confirmation
 						openNewLongPosition(holdings, executionEngine);
+					}
+				}
+				else {//giving position
+					int currentQty = other.getCurrentPosition(holdings);
+					if(currentQty == 0){
+						sellExistingPosition(holdings, executionEngine);
+						//need a way to wait for confirmation
+						other.openNewLongPosition(holdings, executionEngine);
 					}
 				}
 			}
@@ -124,6 +142,9 @@ public class SimpleMomentumStrategy implements Strategy {
 	public boolean takePositions(){
 		final SimpleMomentumStrategy other = getOther();
 		final boolean take = getReturn() > other.getReturn();
+		LoggerFactory.getLogger("SimpleMomentum").info( other.symbol + "\n" + other.latestBar + "\n" + other.oldestBar);
+		LoggerFactory.getLogger("SimpleMomentum").info( symbol + "\n" + latestBar + "\n" + oldestBar);
+		LoggerFactory.getLogger("SimpleMomentum").info( symbol + getReturn() + " " + other.symbol + " " + other.getReturn());
 		changeToLast();
 		other.changeToLast();
 		return take;
@@ -140,10 +161,28 @@ public class SimpleMomentumStrategy implements Strategy {
 		oldestBar = latestBar;
 	}
 	/**
-	 * 
+	 * Need to compare the same two bars with each other
+	 * Other bars may come in, before finalizing evaluation
+	 * but it doesn't matter.
+	 * The one that waits won't attempt to compare for trading
 	 */
-	public boolean isCurrent(long seconds){
-		return latestBar.originalTime >= seconds;
+	private synchronized boolean isCurrent(long seconds){
+		boolean waited = false;
+		//perhaps I don't have a target day bar or I do and its from a prior period
+		while(latestBar == null || latestBar.originalTime < seconds) 
+		try {
+			System.out.println("waiting for match");
+			wait();
+			//if we ever end up here we are simply waiting, but we won't 
+			//evaluate as the initiator thread will do the evaluation
+			waited = true;
+		} catch (InterruptedException e) {
+			System.err.println("Thread Interrupted!"+e);
+			e.printStackTrace();
+			System.exit(-1);
+		}
+		//never waited, 
+		return !waited;
 	}
 	/**
 	 * Estimate return if we went long on the target date

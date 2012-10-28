@@ -33,6 +33,7 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 		LaunchTrading.simulateTrading = true;
 		int i = 0;
 		HistoricalDataSender.daysToBackTest = Integer.parseInt(args[i++]);
+		initExecutionEnv();
 		ArrayList<ForkJoinTask<TradingStrategy>> simulations = new ArrayList<ForkJoinTask<TradingStrategy>>();
 		for(; i < args.length; i++){
 			int idx = args[i].indexOf(":");
@@ -57,7 +58,19 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 		}
 		System.exit(0);
 	}
-
+	static IBClientRequestExecutor clientInterface ;
+	static ResponseHandler rh; 
+	static void initExecutionEnv(){
+		rh = new ResponseHandler();
+		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		rh.setExecutorService(new ImmediateExecutor());
+		
+		clientInterface = new IBClientRequestExecutor(m_client, rh);
+		clientInterface.setExcutor(new ImmediateExecutor());
+		clientInterface.connect();
+		clientInterface.initializePortfolio( );
+		rh.getPortfolio().setCash(100000.0);
+	}
 	public void setTestParameters(String sym, String strat){
 		symb = sym; stratName = strat;
 	}
@@ -74,14 +87,6 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 		//Safely building a whole stack for this simulation avoiding concurrency challenges
 		//TODO test solutions ability to share response handler, m_client, portfolio and clientInterface
 		 
-		ResponseHandler rh = new ResponseHandler();
-		HistoricalDataClient m_client = new HistoricalDataClient(rh);
-		rh.setExecutorService(new ImmediateExecutor());
-		
-		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
-		clientInterface.setExcutor(new ImmediateExecutor());
-		clientInterface.connect();
-		clientInterface.initializePortfolio( );
 		try{
 			Strategy macd = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
 			strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );

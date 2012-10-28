@@ -26,6 +26,10 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 	public void reset(){
 		count = 0;
 	}
+	/**
+	 * Create empty iterator, perhaps pass in barSize in the future
+	 * @param sym
+	 */
 	public BarIterator(String sym) {
 		priceData = null;
 		volData = null;

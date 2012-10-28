@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
+import com.davehoag.ib.dataTypes.PagingBarIterator;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 /**
@@ -51,7 +52,8 @@ public class CassandraDao {
 	private final String[] priceKeys = { ":open", ":close", ":high", ":low", ":wap" };
 	private final String[] longKeys = { ":vol", ":tradeCount" };
 	// assume 5 second bars of which 60/5 appear per minute
-	private final int maxRecordsReturned = (60 / 5) * 60 * 8 * 90;
+	private final int maxRecordsReturned = (60 / 5) * 60 * 8 * 1;
+	//private final int maxRecordsReturned = 10;
 	final static CassandraDao dao = new CassandraDao();
 
 	public static CassandraDao getInstance() {
@@ -72,7 +74,16 @@ public class CassandraDao {
 		day = dao.findMostRecentDate("QQQ", "bar5sec");
 		System.out.println(HistoricalDateManipulation.getDateAsStr(day));
 		Bar aBar = dao.getOpen("QQQ", day);
-		BarIterator bars = dao.getDataReversed("QQQ", aBar, 3);
+		BarIterator bars = dao.getNext("QQQ", aBar, day -24*60*60*3,  3, true);
+		for(Bar b: bars){
+			System.out.println(b);
+		}
+		bars = dao.getNext("QQQ", aBar, day +24*60*60*3,  3, false);
+		for(Bar b: bars){
+			System.out.println(b);
+		}
+
+		bars = dao.getData("QQQ", 8, 0, "bar5sec");
 		for(Bar b: bars){
 			System.out.println(b);
 		}
@@ -211,14 +222,32 @@ public class CassandraDao {
 				"Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
 		return 0;
 	}
-	public BarIterator getDataReversed(final String symbol, final Bar aBar, final int count){
-		long start = aBar.originalTime - 1;
+	/**
+	 * 
+	 * @param symbol
+	 * @param aBar
+	 * @param end A number either larger or smaller than the time found in the bar depending upon direction
+	 * @param count
+	 * @param reverse
+	 * @return
+	 */
+	public BarIterator getNext(final String symbol, final Bar aBar, final long end, final int count, final boolean reverse){
 		final HashMap<String, List<HColumn<Long, Double>>> priceData;
 		final HashMap<String, List<HColumn<Long, Long>>> volData;
-		priceData = getPriceHistoricalData(symbol,
-				start -24*60*60*count, start, aBar.barSize ,true, count);
-
-		volData = getHistoricalData(symbol, start -24*60*60*count, start, aBar.barSize, true, count);
+		if( reverse ){ 
+			long start = aBar.originalTime - 1;
+			priceData = getPriceHistoricalData(symbol,
+					end, start, aBar.barSize ,reverse, count);
+		
+			volData = getHistoricalData(symbol, end, start, aBar.barSize, reverse, count);
+		}
+		else {
+			long start = aBar.originalTime + 1;
+			priceData = getPriceHistoricalData(symbol,
+					start, end, aBar.barSize ,reverse, count);
+		
+			volData = getHistoricalData(symbol, start, end, aBar.barSize, reverse, count);
+		}
 		try {
 			return new BarIterator(symbol, priceData,volData, aBar.barSize);
 		} catch (Exception ex) {
@@ -356,7 +385,9 @@ public class CassandraDao {
 			final HashMap<String, List<HColumn<Long, Long>>> volData;
 			priceData = getPriceHistoricalData(symbol, actualStart, actualFinish, barSize);
 			volData = getHistoricalData(symbol, actualStart, actualFinish, barSize);
-			return new BarIterator(symbol, priceData,volData, barSize);
+			final PagingBarIterator result = new PagingBarIterator(symbol, priceData,volData, barSize, actualFinish);
+			result.setPagingSize(maxRecordsReturned);
+			return result;
 		} catch (Exception ex) {
 			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
 			ex.printStackTrace();
@@ -364,26 +395,6 @@ public class CassandraDao {
 		}
 	}
 
-	/**
-	 * @param symbol
-	 * @param actualFinish
-	 * @param actualStart
-	 * @return
-	 */
-	protected BarIterator getReverseDataIterator(final String symbol, final long actualFinish,
-			final long actualStart, final String barSize, int count) {
-		try {
-			final HashMap<String, List<HColumn<Long, Double>>> priceData;
-			final HashMap<String, List<HColumn<Long, Long>>> volData;
-			priceData = getPriceHistoricalData(symbol, actualStart, actualFinish, barSize);
-			volData = getHistoricalData(symbol, actualStart, actualFinish, barSize);
-			return new BarIterator(symbol, priceData,volData, barSize);
-		} catch (Exception ex) {
-			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
-			ex.printStackTrace();
-			return new BarIterator(symbol);
-		}
-	}
 	/**
 	 * If finish < 1000 figure to use today as the date. If start is also <
 	 * 1000, then we are counting back N # of days ,so if it's monday or sunday
@@ -437,6 +448,14 @@ public class CassandraDao {
 		return null;
 	}
 
+	/**
+	 * No limit on data sent and in chronological order
+	 * @param symbol
+	 * @param start
+	 * @param finish
+	 * @param cf
+	 * @return
+	 */
 	public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol,
 			final long start, final long finish, final String cf) {
 		return getPriceHistoricalData(symbol, start, finish, cf,false,  maxRecordsReturned);

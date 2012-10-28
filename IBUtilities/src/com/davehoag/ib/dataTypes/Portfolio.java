@@ -41,6 +41,7 @@ public class Portfolio {
 			displayValue(symbol);
 		}
 		LoggerFactory.getLogger("Portfolio").info("Overall value: " + getNetValue());
+		dumpLog();
 	}
 	/**
 	 */
