@@ -4,6 +4,7 @@ import java.util.Calendar;
 
 import org.slf4j.LoggerFactory;
 
+import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.Strategy;
 import com.davehoag.ib.TradingStrategy;
 import com.davehoag.ib.dataTypes.Bar;
@@ -51,25 +52,11 @@ public class SimpleMomentumStrategy implements Strategy {
 	 * @return
 	 */
 	public int getTargetDay(Bar aBar, int desiredDay){
-		Calendar c = Calendar.getInstance();
-		c.setTime(aBar.getTime());
-		c.setLenient(false);
-		int maxNumDays = c.getActualMaximum(Calendar.DAY_OF_MONTH);
-		desiredDay = desiredDay > maxNumDays ? maxNumDays: desiredDay;
-		c.set(Calendar.DAY_OF_MONTH, desiredDay);
-		int dayOfWeek = c.get(Calendar.DAY_OF_WEEK);
-		int result = c.get(Calendar.DAY_OF_MONTH);
-		if(dayOfWeek == Calendar.SUNDAY)  result -=2;
-		if(dayOfWeek == Calendar.SATURDAY) result -=1;
-		if(result < 0) {
-			result = c.get(Calendar.DAY_OF_MONTH);
-			if(dayOfWeek == Calendar.SUNDAY)  result +=1;
-			if(dayOfWeek == Calendar.SATURDAY) result +=2;
-		}
-		return result;
+		return HistoricalDateManipulation.getTargetDay(aBar.getTime(), desiredDay);
 	}
 	@Override
-	public void newBar(Bar aBar, Portfolio holdings, TradingStrategy executionEngine) {
+	public void newBar(final Bar aBar, final Portfolio holdings, final TradingStrategy executionEngine) {
+		if(oldestBar == null) lookupHistoricalBar(aBar); 
 		final String timestamp = HistoricalDateManipulation.getDateAsStr( aBar.originalTime );
 		//pick a high volatility window to trade
 		if(timestamp.endsWith("08:35:00")){
@@ -86,6 +73,18 @@ public class SimpleMomentumStrategy implements Strategy {
 			}
 		}
 	}
+	private void lookupHistoricalBar(final Bar aBar) {
+		Calendar c = Calendar.getInstance();
+		c.setTime(aBar.getTime());
+		c.add(Calendar.MONTH, -1);
+		
+		int target = HistoricalDateManipulation.getTargetDay(c.getTime(), desiredDay);
+		c.set(Calendar.DAY_OF_MONTH, target);
+		long seconds = HistoricalDateManipulation.getOpen(c.getTimeInMillis()/ 1000);
+		Bar historicalBar = CassandraDao.getInstance().getBar(aBar.symbol, seconds, aBar.barSize);
+		oldestBar = historicalBar;
+	}
+
 	/**
 	 * Update the latestBar to the passed in value and notify the 
 	 * thread from the other stock data feed that this is complete

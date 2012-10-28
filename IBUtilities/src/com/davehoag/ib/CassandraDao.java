@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.logging.Logger;
 
 import me.prettyprint.cassandra.serializers.BooleanSerializer;
 import me.prettyprint.cassandra.serializers.DoubleSerializer;
@@ -124,7 +125,7 @@ public class CassandraDao {
 				final int hour = HistoricalDateManipulation.getHour(aBar.originalTime);
 				if(hour != 8 ){
 					count1++;
-					final long openTime = dao.getOpenTime(aBar.originalTime);
+					final long openTime = HistoricalDateManipulation.getOpenTime(aBar.originalTime);
 					String newTime = String.valueOf(openTime);
 				//	System.out.println("new " + newTime);
 					dao.insertHistoricalData("bar1day", aSymbol, newTime, aBar.open, aBar.high, aBar.low, aBar.close, aBar.volume, aBar.tradeCount, aBar.wap, aBar.hasGaps);
@@ -188,7 +189,7 @@ public class CassandraDao {
 		long timeInSecs = System.currentTimeMillis() / 1000;
 		for (int i = 0; i < 100; i++) {
 			timeInSecs -= i * 24 * 60 * 60;
-			long openTime = getOpenTime(timeInSecs);
+			long openTime = HistoricalDateManipulation.getOpenTime(timeInSecs);
 			final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
 					openTime, openTime, barSize ,true, 1);
 			final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
@@ -210,7 +211,7 @@ public class CassandraDao {
 	 */
 	public long findMostRecentDate(final String symbol, final String barSize) {
 		long timeInSecs = System.currentTimeMillis() / 1000;
-		long openTime = getOpenTime(timeInSecs);
+		long openTime = HistoricalDateManipulation.getOpenTime(timeInSecs);
 		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
 				openTime - 24*60*60*100,openTime, barSize ,true, 1);
 		final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
@@ -223,6 +224,23 @@ public class CassandraDao {
 		return 0;
 	}
 	/**
+	 * Find the bar for the specific window and time period
+	 * @param symbol
+	 * @param seconds
+	 * @param barSize
+	 * @return
+	 */
+	public Bar getBar(final String symbol, final long seconds, final String barSize){
+		BarIterator iterator = getData(symbol, seconds, seconds, barSize);
+		if(iterator.hasNext()) {
+			Bar b = iterator.next();
+			if(b.originalTime == seconds){ return b; }
+			Logger.getLogger("HistoricalData").warning("Bar found with wrong time: looking for " + seconds + " found: " + b.originalTime);
+		}
+		
+		return null;
+	}
+	/**
 	 * 
 	 * @param symbol
 	 * @param aBar
@@ -232,24 +250,36 @@ public class CassandraDao {
 	 * @return
 	 */
 	public BarIterator getNext(final String symbol, final Bar aBar, final long end, final int count, final boolean reverse){
+		return getNext(symbol, aBar.originalTime, aBar.barSize, end, count, reverse);
+	}
+	/**
+	 * 
+	 * @param symbol
+	 * @param aBar
+	 * @param end A number either larger or smaller than the time found in the bar depending upon direction
+	 * @param count
+	 * @param reverse
+	 * @return
+	 */
+	public BarIterator getNext(final String symbol, final long originalTime, final String barSize, final long end, final int count, final boolean reverse){
 		final HashMap<String, List<HColumn<Long, Double>>> priceData;
 		final HashMap<String, List<HColumn<Long, Long>>> volData;
 		if( reverse ){ 
-			long start = aBar.originalTime - 1;
+			long start = originalTime - 1;
 			priceData = getPriceHistoricalData(symbol,
-					end, start, aBar.barSize ,reverse, count);
+					end, start, barSize ,reverse, count);
 		
-			volData = getHistoricalData(symbol, end, start, aBar.barSize, reverse, count);
+			volData = getHistoricalData(symbol, end, start, barSize, reverse, count);
 		}
 		else {
-			long start = aBar.originalTime + 1;
+			long start = originalTime + 1;
 			priceData = getPriceHistoricalData(symbol,
-					start, end, aBar.barSize ,reverse, count);
+					start, end, barSize ,reverse, count);
 		
-			volData = getHistoricalData(symbol, start, end, aBar.barSize, reverse, count);
+			volData = getHistoricalData(symbol, start, end, barSize, reverse, count);
 		}
 		try {
-			return new BarIterator(symbol, priceData,volData, aBar.barSize);
+			return new BarIterator(symbol, priceData,volData, barSize);
 		} catch (Exception ex) {
 			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
 			ex.printStackTrace();
@@ -320,34 +350,13 @@ public class CassandraDao {
 	 * @return
 	 */
 	public Bar getOpen(final String symbol, final long todayInSec) {
-		final long openTime = getOpenTime(todayInSec);
+		final long openTime = HistoricalDateManipulation.getOpenTime(todayInSec);
 
 		LoggerFactory.getLogger("HistoricalData").debug(
 				"Get " + symbol + " open of day: " + new Date(openTime * 1000));
-		Iterator<Bar> bars = getData(symbol, openTime, openTime, "bar5sec");
-		if (bars.hasNext())
-			return bars.next();
-		return null;
+		return getBar(symbol, openTime, "bar5sec");
 	}
 
-	/**
-	 * @param todayInSec
-	 * @return
-	 */
-	protected long getOpenTime(final long todayInSec) {
-		// first assume today could be the number of days to go back from today
-		long actualToday = todayInSec;
-		if (todayInSec < 1000) {
-			actualToday = (System.currentTimeMillis() / 1000) - todayInSec * 24 * 60 * 60;
-		}
-		Calendar today = Calendar.getInstance();
-		today.setTimeInMillis(actualToday * 1000);
-		if (today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)
-			actualToday -= 2 * 24 * 60 * 60;
-		else if (today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)
-			actualToday -= 1 * 24 * 60 * 60;
-		return HistoricalDateManipulation.getOpen(actualToday);
-	}
 	public BarIterator getData(final String aSymbol, String start, final String finish, final String barSize) throws ParseException {
 		return getData(aSymbol, HistoricalDateManipulation.getTime(start), HistoricalDateManipulation.getTime(finish), barSize);
 	}

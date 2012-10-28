@@ -8,7 +8,7 @@ import java.util.Calendar;
 import java.util.Date;
 /**
  * Facilitate different breakdown ranges to conform with IB constraints
- * @author thinkpad7
+ * @author dhoag
  */
 public class HistoricalDateManipulation {
 	final static DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
@@ -22,6 +22,51 @@ public class HistoricalDateManipulation {
 		Calendar today = Calendar.getInstance();
 		
 		return getDatesBrokenIntoHours(startingDateStr, today);
+	}
+	/**
+	 * Figure out the day I think is the closest trading day to the provided day of month
+	 * @param seconds a reference date
+	 * @param desiredDay a number day of month. 
+	 * @return
+	 */
+	public static int getTargetDay(final Date date, final int desiredDay){
+		Calendar c = Calendar.getInstance();
+		c.setTime( date );
+		c.setLenient(false);
+		int maxNumDays = c.getActualMaximum(Calendar.DAY_OF_MONTH);
+		final int day = desiredDay > maxNumDays ? maxNumDays: desiredDay;
+		c.set(Calendar.DAY_OF_MONTH, day);
+		int dayOfWeek = c.get(Calendar.DAY_OF_WEEK);
+		int result = c.get(Calendar.DAY_OF_MONTH);
+		if(dayOfWeek == Calendar.SUNDAY)  result -=2;
+		if(dayOfWeek == Calendar.SATURDAY) result -=1;
+		if(result < 0) {
+			result = c.get(Calendar.DAY_OF_MONTH);
+			if(dayOfWeek == Calendar.SUNDAY)  result +=1;
+			if(dayOfWeek == Calendar.SATURDAY) result +=2;
+		}
+		return result;
+	}
+
+	/**
+	 * Pass in the number of days to go back or the seconds since 1970 for a bar on the day
+	 * 
+	 * @param todayInSec < 1000 go back that # of days otherwise get open for the day represented
+	 * @return
+	 */
+	public static long getOpenTime(final long todayInSec) {
+		// first assume today could be the number of days to go back from today
+		long actualToday = todayInSec;
+		if (todayInSec < 1000) {
+			actualToday = (System.currentTimeMillis() / 1000) - todayInSec * 24 * 60 * 60;
+		}
+		Calendar today = Calendar.getInstance();
+		today.setTimeInMillis(actualToday * 1000);
+		if (today.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY)
+			actualToday -= 2 * 24 * 60 * 60;
+		else if (today.get(Calendar.DAY_OF_WEEK) == Calendar.SATURDAY)
+			actualToday -= 1 * 24 * 60 * 60;
+		return getOpen(actualToday);
 	}
 	/**
 	 * Tweak the time to be 8:30, the time of the first bar
@@ -45,7 +90,7 @@ public class HistoricalDateManipulation {
 		final Date d = new Date(time*1000);
 		final Calendar cal = Calendar.getInstance();
 		cal.setTime(d);
-		final int hour = cal.get(cal.HOUR_OF_DAY);
+		final int hour = cal.get(Calendar.HOUR_OF_DAY);
 		return hour;
 	}
 	/**
@@ -57,7 +102,7 @@ public class HistoricalDateManipulation {
 		final Date d = new Date(time*1000);
 		final Calendar cal = Calendar.getInstance();
 		cal.setTime(d);
-		final int hour = cal.get(cal.DAY_OF_MONTH);
+		final int hour = cal.get(Calendar.DAY_OF_MONTH);
 		return hour;
 	}
 	/**
@@ -69,9 +114,9 @@ public class HistoricalDateManipulation {
 		final Date d = new Date(time*1000);
 		final Calendar cal = Calendar.getInstance();
 		cal.setTime(d);
-		final int hour = cal.get(cal.HOUR_OF_DAY);
-		final int minutes = cal.get(cal.MINUTE);
-		final int seconds = cal.get(cal.SECOND);
+		final int hour = cal.get(Calendar.HOUR_OF_DAY);
+		final int minutes = cal.get(Calendar.MINUTE);
+		final int seconds = cal.get(Calendar.SECOND);
 		return(hour == 14 && minutes == 59 && seconds == 55);
 	}
 	/**
