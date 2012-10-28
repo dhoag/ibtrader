@@ -71,6 +71,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			final double low, final double close, final long volume, final double wap, final int count) {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
+		bar.barSize = strategy.getBarSize();
 		updatePortfolioTime(time);
 		portfolio.updatePrice(symbol, close);
 		if( time % (60*30) == 0) { 

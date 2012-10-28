@@ -89,4 +89,8 @@ public class TrailingExitsStrategy implements Strategy {
 			}	
 		}
 	}
+	@Override
+	public String getBarSize() {
+		return "bar5sec";
+	}
 }

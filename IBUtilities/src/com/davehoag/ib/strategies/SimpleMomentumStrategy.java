@@ -83,6 +83,7 @@ public class SimpleMomentumStrategy implements Strategy {
 		long seconds = HistoricalDateManipulation.getOpen(c.getTimeInMillis()/ 1000);
 		Bar historicalBar = CassandraDao.getInstance().getBar(aBar.symbol, seconds, aBar.barSize);
 		oldestBar = historicalBar;
+		System.out.println(oldestBar);
 	}
 
 	/**
@@ -223,5 +224,10 @@ public class SimpleMomentumStrategy implements Strategy {
 			}
 
 		}
+	}
+
+	@Override
+	public String getBarSize() {
+		return "bar5sec";
 	}
 }
