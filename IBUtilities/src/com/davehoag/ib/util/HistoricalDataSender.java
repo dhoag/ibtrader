@@ -2,7 +2,8 @@ package com.davehoag.ib.util;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import org.slf4j.*;
+
+import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.ResponseHandler;

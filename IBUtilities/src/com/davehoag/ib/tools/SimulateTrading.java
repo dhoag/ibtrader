@@ -14,18 +14,21 @@ import com.davehoag.ib.util.HistoricalDataSender;
 import com.davehoag.ib.util.ImmediateExecutor;
 
 /**
- * Run multiple strategies concurrently.
- * Creates an instance of this class for each strategy to be run
- * @author dhoag
- *
+ * Run multiple strategies concurrently. Creates an instance of this class for
+ * each strategy to be run
+ * 
+ * @author David Hoag
+ * 
  */
 public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 	private static final long serialVersionUID = 4997373692668656258L;
 	static ForkJoinPool forkJoinPool = new ForkJoinPool();
 	static IBClientRequestExecutor clientInterface ;
 	static ResponseHandler rh; 
+
 	String symb;
 	String stratName;
+
 	TradingStrategy strat;
 
 	/**
@@ -51,6 +54,38 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 		int i = 0;
 		HistoricalDataSender.daysToBackTest = Integer.parseInt(args[i++]);
 		initExecutionEnv();
+		simpleApproach(args, i);
+		System.exit(0);
+	}
+	/**
+	 * @param args
+	 * @param i
+	 * @return
+	 */
+	protected static void simpleApproach(String[] args, int i) {
+		for (; i < args.length; i++)
+			try {
+			int idx = args[i].indexOf(":");
+
+			final String strategyName = args[i].substring(0, idx);
+			final String symbol = args[i].substring(idx + 1);
+				Strategy strategy = (Strategy) Class.forName(
+						"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
+				TradingStrategy strat = TradingStrategy.getQuoteRouter(symbol, clientInterface, rh);
+				strat.addStrategy(strategy);
+
+			} catch (Throwable t) {
+				t.printStackTrace();
+				System.exit(-1);
+		}
+		TradingStrategy.requestData();
+		clientInterface.close();
+	}
+	/**
+	 * @param args
+	 * @param i
+	 */
+	protected static void forkJoinApproach(String[] args, int i) {
 		ArrayList<ForkJoinTask<TradingStrategy>> simulations = new ArrayList<ForkJoinTask<TradingStrategy>>();
 		for(; i < args.length; i++){
 			int idx = args[i].indexOf(":");
@@ -73,11 +108,11 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 				e.printStackTrace();
 			}
 		}
-		System.exit(0);
 	}
 	public void setTestParameters(String sym, String strat){
 		symb = sym; stratName = strat;
 	}
+	
 	@Override
 	public TradingStrategy compute(){
 		testStrategy(symb, stratName);
@@ -91,7 +126,8 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 		 
 		try{
 			Strategy strategy = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
-			strat = new TradingStrategy(symbol, strategy, clientInterface, rh.getPortfolio() );
+			strat = new TradingStrategy(symbol, clientInterface, rh.getPortfolio());
+			strat.addStrategy(strategy);
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
 		}
