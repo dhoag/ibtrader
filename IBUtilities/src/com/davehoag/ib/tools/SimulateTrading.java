@@ -22,9 +22,26 @@ import com.davehoag.ib.util.ImmediateExecutor;
 public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 	private static final long serialVersionUID = 4997373692668656258L;
 	static ForkJoinPool forkJoinPool = new ForkJoinPool();
+	static IBClientRequestExecutor clientInterface ;
+	static ResponseHandler rh; 
 	String symb;
 	String stratName;
 	TradingStrategy strat;
+
+	/**
+	 * Share the execution environment as if there is only one marketdata source for all strategies
+	 */
+	static void initExecutionEnv(){
+		rh = new ResponseHandler();
+		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		rh.setExecutorService(new ImmediateExecutor());
+		
+		clientInterface = new IBClientRequestExecutor(m_client, rh);
+		clientInterface.setExcutor(new ImmediateExecutor());
+		clientInterface.connect();
+		clientInterface.initializePortfolio( );
+		rh.getPortfolio().setCash(100000.0);
+	}
 	/**
 	 * Take args : Simple:IBM MACD:QQQ
 	 * @param args
@@ -58,19 +75,6 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 		}
 		System.exit(0);
 	}
-	static IBClientRequestExecutor clientInterface ;
-	static ResponseHandler rh; 
-	static void initExecutionEnv(){
-		rh = new ResponseHandler();
-		HistoricalDataClient m_client = new HistoricalDataClient(rh);
-		rh.setExecutorService(new ImmediateExecutor());
-		
-		clientInterface = new IBClientRequestExecutor(m_client, rh);
-		clientInterface.setExcutor(new ImmediateExecutor());
-		clientInterface.connect();
-		clientInterface.initializePortfolio( );
-		rh.getPortfolio().setCash(100000.0);
-	}
 	public void setTestParameters(String sym, String strat){
 		symb = sym; stratName = strat;
 	}
@@ -84,12 +88,10 @@ public class SimulateTrading extends RecursiveTask<TradingStrategy> {
 	 * @param strategyName
 	 */
 	protected  void testStrategy(final String symbol, final String strategyName) {
-		//Safely building a whole stack for this simulation avoiding concurrency challenges
-		//TODO test solutions ability to share response handler, m_client, portfolio and clientInterface
 		 
 		try{
-			Strategy macd = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
-			strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
+			Strategy strategy = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
+			strat = new TradingStrategy(symbol, strategy, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			clientInterface.waitForCompletion();
 		}
