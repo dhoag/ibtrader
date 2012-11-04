@@ -1,16 +1,13 @@
 package com.davehoag.ib.strategies;
 
-import java.util.ArrayList;
-
 import org.slf4j.LoggerFactory;
 
-import com.davehoag.ib.Strategy;
 import com.davehoag.ib.QuoteRouter;
+import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
-import com.davehoag.ib.tools.LaunchTrading;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 /**
  * Current design only supports 1 strategy per symbol. Need to route market data not directly to a strategy
@@ -63,12 +60,11 @@ public class MACDStrategy implements Strategy {
 					LoggerFactory.getLogger("MACD").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
 					LimitOrder buyOrder = new LimitOrder(qty, bar.close + .02, true);
 
-					if( ! LaunchTrading.simulateTrading ) {
-						//Put a safety net out
-						LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent()*2, false);
-						stopLoss.markAsTrailingOrder();
-						buyOrder.setStopLoss(stopLoss);
-					}
+					// Put a safety net out
+					LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent() * 2, false);
+					stopLoss.markAsTrailingOrder();
+					buyOrder.setStopLoss(stopLoss);
+
 					executionEngine.executeOrder(buyOrder);
 				}
 				else if(holdings > 0 && !sma.isTrendingUp()){

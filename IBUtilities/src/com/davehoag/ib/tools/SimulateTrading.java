@@ -1,9 +1,5 @@
 package com.davehoag.ib.tools;
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.ForkJoinTask;
-import java.util.concurrent.RecursiveTask;
 
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
@@ -20,41 +16,18 @@ import com.davehoag.ib.util.ImmediateExecutor;
  * @author David Hoag
  * 
  */
-public class SimulateTrading extends RecursiveTask<QuoteRouter> {
+public class SimulateTrading {
 	private static final long serialVersionUID = 4997373692668656258L;
-	static ForkJoinPool forkJoinPool = new ForkJoinPool();
-	static IBClientRequestExecutor clientInterface ;
-	static ResponseHandler rh; 
 
-	String symb;
-	String stratName;
-
-	QuoteRouter strat;
-
-	/**
-	 * Share the execution environment as if there is only one marketdata source for all strategies
-	 */
-	static void initExecutionEnv(){
-		rh = new ResponseHandler();
-		HistoricalDataClient m_client = new HistoricalDataClient(rh);
-		rh.setExecutorService(new ImmediateExecutor());
-		
-		clientInterface = new IBClientRequestExecutor(m_client, rh);
-		clientInterface.setExcutor(new ImmediateExecutor());
-		clientInterface.connect();
-		clientInterface.initializePortfolio( );
-		rh.getPortfolio().setCash(100000.0);
-	}
 	/**
 	 * Take args : Simple:IBM MACD:QQQ
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		LaunchTrading.simulateTrading = true;
 		int i = 0;
 		HistoricalDataSender.daysToBackTest = Integer.parseInt(args[i++]);
-		initExecutionEnv();
-		simpleApproach(args, i);
+
+		executeStrategies(args, i);
 		System.exit(0);
 	}
 	
@@ -66,7 +39,9 @@ public class SimulateTrading extends RecursiveTask<QuoteRouter> {
 	 * @param i
 	 * @return
 	 */
-	protected static void simpleApproach(String[] args, int i) {
+	protected static void executeStrategies(String[] args, int i) {
+		IBClientRequestExecutor clientInterface = initSimulatedClient();
+
 		for (; i < args.length; i++)
 			try {
 				int idx = args[i].indexOf(":");
@@ -80,15 +55,37 @@ public class SimulateTrading extends RecursiveTask<QuoteRouter> {
 					final QuoteRouter quoteSource = clientInterface.getQuoteRouter(symbol);
 					quoteSource.addStrategy(strategy);
 				}
+				clientInterface.requestQuotes();
+				clientInterface.close();
 
 			} catch (Throwable t) {
 				t.printStackTrace();
 				System.exit(-1);
 			}
-		clientInterface.requestQuotes();
-		clientInterface.close();
+	}
+	/**
+	 * @return
+	 */
+	protected static IBClientRequestExecutor initSimulatedClient() {
+		final ResponseHandler rh = new ResponseHandler();
+
+		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		rh.setExecutorService(new ImmediateExecutor());
+
+		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
+		clientInterface.setExcutor(new ImmediateExecutor());
+		clientInterface.connect();
+		clientInterface.initializePortfolio();
+		rh.getPortfolio().setCash(100000.0);
+		return clientInterface;
 	}
 
+	/**
+	 * Parse the string of symbols separated by ',' into a collection of Strings
+	 * 
+	 * @param symbolList
+	 * @return
+	 */
 	static ArrayList<String> getSymbols(final String symbolList) {
 		final ArrayList<String> result = new ArrayList<String>();
 		int idx = symbolList.indexOf(',');
@@ -102,63 +99,4 @@ public class SimulateTrading extends RecursiveTask<QuoteRouter> {
 		result.add(list);
 		return result;
 	}
-	/**
-	 * @param args
-	 * @param i
-	 */
-	protected static void forkJoinApproach(String[] args, int i) {
-		ArrayList<ForkJoinTask<QuoteRouter>> simulations = new ArrayList<ForkJoinTask<QuoteRouter>>();
-		for(; i < args.length; i++){
-			int idx = args[i].indexOf(":");
-			
-			final String strategyName = args[i].substring(0, idx);
-			final String symbol  = args[i].substring(idx+1);
-			SimulateTrading runnable = new SimulateTrading();
-			runnable.setTestParameters(symbol, strategyName);
-			ForkJoinTask<QuoteRouter> task = forkJoinPool.submit(runnable);
-			simulations.add(task);
-		}
-		
-		for(ForkJoinTask<QuoteRouter> t : simulations){
-			t.join();
-		}
-		for(ForkJoinTask<QuoteRouter> t : simulations){
-			try {
-				t.get().displayTradeStats();
-			} catch (InterruptedException | ExecutionException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-	public void setTestParameters(String sym, String strat){
-		symb = sym; stratName = strat;
-	}
-	
-	@Override
-	public QuoteRouter compute(){
-		testStrategy(symb, stratName);
-		return strat;
-	}
-	/**
-	 * @param symbol
-	 * @param strategyName
-	 */
-	protected  void testStrategy(final String symbol, final String strategyName) {
-		 
-		try{
-			Strategy strategy = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
-			strat = new QuoteRouter(symbol, clientInterface, rh.getPortfolio());
-			strat.addStrategy(strategy);
-			clientInterface.reqRealTimeBars(symbol, strat);
-			clientInterface.waitForCompletion();
-		}
-		catch(Throwable t){
-			t.printStackTrace();
-			System.exit(1);
-		}
-		finally { 
-			clientInterface.close();
-		}
-	}
-
 }
