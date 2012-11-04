@@ -40,7 +40,6 @@ public class SimulateTrading {
 	 * @return
 	 */
 	protected static void executeStrategies(String[] args, int i) {
-		IBClientRequestExecutor clientInterface = initSimulatedClient();
 
 		for (; i < args.length; i++)
 			try {
@@ -51,6 +50,8 @@ public class SimulateTrading {
 				
 				Strategy strategy = (Strategy) Class.forName(
 						"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
+
+				final IBClientRequestExecutor clientInterface = initSimulatedClient();
 				for (String symbol : getSymbols(symbolList)) {
 					final QuoteRouter quoteSource = clientInterface.getQuoteRouter(symbol);
 					quoteSource.addStrategy(strategy);
