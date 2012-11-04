@@ -3,7 +3,7 @@ package com.davehoag.ib.strategies;
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.Strategy;
-import com.davehoag.ib.TradingStrategy;
+import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -46,7 +46,7 @@ public class TrailingExitsStrategy implements Strategy {
 		return !HistoricalDateManipulation.isEndOfDay(time) && (hour > 9 & hour <= 14);
 	}
 	@Override
-	public void newBar(final Bar bar ,final Portfolio port, TradingStrategy executionEngine){		
+	public void newBar(final Bar bar ,final Portfolio port, QuoteRouter executionEngine){		
 		smaTrades.newTick(bar.tradeCount);
 		final boolean crossOverEvent = sma.newTick(bar.wap) ;
 		final int holdings = port.getShares(bar.symbol);

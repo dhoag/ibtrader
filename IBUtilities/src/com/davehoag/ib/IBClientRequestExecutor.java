@@ -9,13 +9,12 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.slf4j.LoggerFactory;
+
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.StockContract;
-import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
-import com.ib.client.TickType;
-import org.slf4j.LoggerFactory;
 
 /**
  * Control all IB client requests
@@ -463,5 +462,31 @@ public class IBClientRequestExecutor {
 	 */
 	protected ResponseHandlerDelegate getResponseHandler(int reqId){
 		return map.get(Integer.valueOf(reqId));
+	}
+
+	HashMap<String, QuoteRouter> quoteRouters = new HashMap<String, QuoteRouter>();
+
+	/**
+	 * Get (and maybe create) a quote router for the provided symbol.
+	 * 
+	 * @param symbol
+	 * @return
+	 */
+	public synchronized QuoteRouter getQuoteRouter(final String symbol) {
+		QuoteRouter strat = quoteRouters.get(symbol);
+		if (strat == null) {
+			strat = new QuoteRouter(symbol, this, responseHandler.getPortfolio());
+			quoteRouters.put(symbol, strat);
+		}
+		return strat;
+	}
+	/**
+	 * For every quote router I have get the quotes
+	 */
+	public void requestQuotes() {
+
+		for (QuoteRouter strat : quoteRouters.values()) {
+			reqRealTimeBars(strat.symbol, strat);
+		}
 	}
 }

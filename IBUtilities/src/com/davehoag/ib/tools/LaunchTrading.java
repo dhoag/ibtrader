@@ -2,7 +2,7 @@ package com.davehoag.ib.tools;
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.Strategy;
-import com.davehoag.ib.TradingStrategy;
+import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.strategies.MACDStrategy;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.HistoricalDataSender;
@@ -39,7 +39,7 @@ public class LaunchTrading {
 		try{
 			//repeat the next 3 lines for each symbol you want to trade
 			Strategy macd = (Strategy)Class.forName("com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
-			TradingStrategy strat = new TradingStrategy(symbol, macd, clientInterface, rh.getPortfolio() );
+			QuoteRouter strat = new QuoteRouter(symbol, macd, clientInterface, rh.getPortfolio() );
 			clientInterface.reqRealTimeBars(symbol, strat);
 			
 			clientInterface.waitForCompletion();

@@ -58,7 +58,7 @@ public class HistoricalDataClient extends EClientSocket {
 				}
 			}
 		};
-		service.execute(r);
+		service.submit(r);
 	}
 	@Override
     public void reqHistoricalData( final int tickerId, final Contract contract,
@@ -71,8 +71,8 @@ public class HistoricalDataClient extends EClientSocket {
 
 		try {
 			service.shutdown();
-			while (!service.awaitTermination(20, TimeUnit.SECONDS))
-				;
+			while (service.awaitTermination(20, TimeUnit.SECONDS))
+				System.out.println("Waiting termination");
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}

@@ -2,7 +2,6 @@ package com.davehoag.ib;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +18,7 @@ import com.ib.client.TickType;
  * @author David Hoag
  *
  */
-public class TradingStrategy extends ResponseHandlerDelegate {
+public class QuoteRouter extends ResponseHandlerDelegate {
 	final NumberFormat nf = NumberFormat.getCurrencyInstance();
 	
 	boolean positionOnTheBooks = false;
@@ -28,37 +27,6 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	Portfolio portfolio;
 	long initialTimeStamp;
 
-	static HashMap<String, TradingStrategy> quoteRouters = new HashMap<String, TradingStrategy>();
-
-	/**
-	 * Get (and maybe create) a quote router for the provided symbol.
-	 * 
-	 * @param symbol
-	 * @return
-	 */
-	public static synchronized TradingStrategy getQuoteRouter(final String symbol,
-			final IBClientRequestExecutor clientInterface, final ResponseHandler rh) {
-		TradingStrategy strat = quoteRouters.get(symbol);
-		if (strat == null) {
-			strat = new TradingStrategy(symbol, clientInterface, rh.getPortfolio());
-			quoteRouters.put(symbol, strat);
-		}
-
-		return strat;
-	}
-
-	/**
-	 * Go through each quote router and start getting market data
-	 */
-	public static void requestData() {
-		for (TradingStrategy strat : quoteRouters.values()) {
-			strat.requestMarketData();
-		}
-	}
-
-	public void requestMarketData() {
-		getRequester().reqRealTimeBars(symbol, this);
-	}
 	/**
 	 * One strategy, one symbol, one IBClient, and one portfolio per
 	 * "TradingStrategy" instance. If you want to have multiple strategies on a
@@ -70,7 +38,7 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 	 * @param exec
 	 * @param port
 	 */
-	public TradingStrategy(final String sym, final IBClientRequestExecutor exec, final Portfolio port) {
+	public QuoteRouter(final String sym, final IBClientRequestExecutor exec, final Portfolio port) {
 		super(exec);
 		symbol = sym;
 		portfolio =port;
@@ -78,12 +46,10 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 
 	/**
 	 * 
-	 * @param st
+	 * @param strat
 	 */
-	public void addStrategy(Strategy... st) {
-		for (Strategy strat : st) {
-			strategies.add(strat);
-		}
+	public void addStrategy(final Strategy strat) {
+		strategies.add(strat);
 	}
 	public void displayTradeStats(){ portfolio.displayTradeStats(strategies.getClass().getSimpleName() + ":" + symbol); }
 	public void setPortfolio(Portfolio p){
