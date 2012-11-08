@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.StockContract;
+import com.davehoag.ib.util.HistoricalDataClient;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
 
@@ -487,6 +488,9 @@ public class IBClientRequestExecutor {
 
 		for (QuoteRouter strat : quoteRouters.values()) {
 			reqRealTimeBars(strat.symbol, strat);
+		}
+		if (client instanceof HistoricalDataClient) {
+			((HistoricalDataClient) client).sendData();
 		}
 	}
 }
