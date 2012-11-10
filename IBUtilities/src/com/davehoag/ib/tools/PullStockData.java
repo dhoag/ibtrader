@@ -29,10 +29,20 @@ public class PullStockData {
 		String startDateStr = args[i++];
 		String barSize = args[i++];
 
-		ResponseHandler rh = new ResponseHandler();
-		EClientSocket  m_client = new EClientSocket( rh );
-		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
-		clientInterface.connect();
+		IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+		
+		pullData(startDateStr, barSize, clientInterface, i, args);
+        System.exit(0);
+	}
+	/**
+	 * @param args
+	 * @param i
+	 * @param startDateStr
+	 * @param barSize
+	 * @param clientInterface
+	 */
+	public static void pullData(String startDateStr, String barSize,
+			IBClientRequestExecutor clientInterface, int i, String... args) {
 		try {
 			for(; i < args.length;i++){
 				final String symbol = args[i];
@@ -43,15 +53,14 @@ public class PullStockData {
 				final String optimalStartDate = getOptimalStartDate(startDateStr, barSize, symbol);
 
 				clientInterface.reqHistoricalData(symbol, optimalStartDate, sh);
+				clientInterface.waitForCompletion();
 			}
-			clientInterface.waitForCompletion();
 		} catch (ParseException e) {
 			LoggerFactory.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);
 		}
 		finally { 
 			clientInterface.close();
 		}
-        System.exit(0);
 	}
 	/**
 	 * Set a system property forceUpdate to avoid looking at current data and simply start updating

@@ -33,6 +33,17 @@ public class IBClientRequestExecutor {
 	final HashMap<Integer, ResponseHandlerDelegate> map = new HashMap<Integer, ResponseHandlerDelegate>();
 	final ResponseHandler responseHandler;
 	/**
+	 * Helper method to bootstrap conenction to the client.
+	 * @return
+	 */
+	public static IBClientRequestExecutor connectToAPI(){
+		ResponseHandler rh = new ResponseHandler();
+		EClientSocket  m_client = new EClientSocket( rh );
+		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
+		clientInterface.connect();
+		return clientInterface;
+	}
+	/**
 	 * Only want one thread sending the requests.
 	 */
 	public IBClientRequestExecutor(final EClientSocket socket, final ResponseHandler rh) {
