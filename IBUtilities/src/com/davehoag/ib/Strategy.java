@@ -15,7 +15,7 @@ public interface Strategy {
 	 * @param holdings
 	 * @param executionEngine
 	 */
-	public void newBar(Bar bar, Portfolio holdings, TradingStrategy executionEngine);
+	public void newBar(Bar bar, Portfolio holdings, QuoteRouter executionEngine);
 
 	public String getBarSize();
 	

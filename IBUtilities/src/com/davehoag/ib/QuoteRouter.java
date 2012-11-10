@@ -3,7 +3,8 @@ package com.davehoag.ib;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 
-import org.slf4j.*;
+import org.slf4j.LoggerFactory;
+
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -12,38 +13,47 @@ import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
 import com.ib.client.TickType;
-
-public class TradingStrategy extends ResponseHandlerDelegate {
+/**
+ * Route quotes to the various interested parties
+ * @author David Hoag
+ *
+ */
+public class QuoteRouter extends ResponseHandlerDelegate {
 	final NumberFormat nf = NumberFormat.getCurrencyInstance();
 	
 	boolean positionOnTheBooks = false;
-	Strategy strategy;
+	ArrayList<Strategy> strategies = new ArrayList<Strategy>();
 	final String symbol;
 	Portfolio portfolio;
 	long initialTimeStamp;
 
 	/**
-	 * One strategy, one symbol, one IBClient, and one portfolio per "TradingStrategy" instance.
-	 * If you want to have multiple strategies on a given symbol then either build that in the 
-	 * "strategy" that is passed in or overhaul this class.
+	 * One strategy, one symbol, one IBClient, and one portfolio per
+	 * "TradingStrategy" instance. If you want to have multiple strategies on a
+	 * given symbol then either build that in the "strategy" that is passed in
+	 * or overhaul this class.
 	 * 
 	 * @param sym
 	 * @param strat
 	 * @param exec
 	 * @param port
 	 */
-	public TradingStrategy(final String sym, final Strategy strat, final IBClientRequestExecutor exec, final Portfolio port){
+	public QuoteRouter(final String sym, final IBClientRequestExecutor exec, final Portfolio port) {
 		super(exec);
 		symbol = sym;
 		portfolio =port;
-		strategy = strat;
 	}
-	public void displayTradeStats(){ portfolio.displayTradeStats(strategy.getClass().getSimpleName() + ":" + symbol); }
+
+	/**
+	 * 
+	 * @param strat
+	 */
+	public void addStrategy(final Strategy strat) {
+		strategies.add(strat);
+	}
+	public void displayTradeStats(){ portfolio.displayTradeStats(strategies.getClass().getSimpleName() + ":" + symbol); }
 	public void setPortfolio(Portfolio p){
 		portfolio = p;
-	}
-	public void setStrategy(final Strategy strat){
-		strategy = strat;
 	}
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
@@ -71,15 +81,15 @@ public class TradingStrategy extends ResponseHandlerDelegate {
 			final double low, final double close, final long volume, final double wap, final int count) {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
-		bar.barSize = strategy.getBarSize();
 		updatePortfolioTime(time);
 		portfolio.updatePrice(symbol, close);
 		if( time % (60*30) == 0) { 
 			LoggerFactory.getLogger("MarketData").info( "Realtime bar : " + reqId + " " + bar);
 			portfolio.displayValue(symbol);
 		}
-	
-		strategy.newBar(bar, portfolio, this);
+		for (Strategy strat : strategies) {
+			strat.newBar(bar, portfolio, this);
+		}
 
 	}
 	/**

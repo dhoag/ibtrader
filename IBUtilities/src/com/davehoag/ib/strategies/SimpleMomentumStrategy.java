@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.Strategy;
-import com.davehoag.ib.TradingStrategy;
+import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -55,7 +55,7 @@ public class SimpleMomentumStrategy implements Strategy {
 		return HistoricalDateManipulation.getTargetDay(aBar.getTime(), desiredDay);
 	}
 	@Override
-	public void newBar(final Bar aBar, final Portfolio holdings, final TradingStrategy executionEngine) {
+	public void newBar(final Bar aBar, final Portfolio holdings, final QuoteRouter executionEngine) {
 		if(oldestBar == null) lookupHistoricalBar(aBar); 
 		final String timestamp = HistoricalDateManipulation.getDateAsStr( aBar.originalTime );
 		//pick a high volatility window to trade
@@ -101,7 +101,7 @@ public class SimpleMomentumStrategy implements Strategy {
 	 * @param holdings
 	 * @param executionEngine
 	 */
-	protected void evaluateMomentum(final Portfolio holdings, final TradingStrategy executionEngine) {
+	protected void evaluateMomentum(final Portfolio holdings, final QuoteRouter executionEngine) {
 		synchronized(SimpleMomentumStrategy.class){
 
 			final SimpleMomentumStrategy other = getOther();
@@ -198,7 +198,7 @@ public class SimpleMomentumStrategy implements Strategy {
 	 * @param port
 	 * @param best
 	 */
-	protected void openNewLongPosition(final Portfolio port, final TradingStrategy executionEngine) {
+	protected void openNewLongPosition(final Portfolio port, final QuoteRouter executionEngine) {
 		final double money = port.getCash();
 		final double qtyD = Math.floor(money / (latestBar.close*100));
 		
@@ -211,7 +211,7 @@ public class SimpleMomentumStrategy implements Strategy {
 	 * @param port
 	 * @param worse
 	 */
-	protected void sellExistingPosition(final Portfolio port, final TradingStrategy executionEngine) {
+	protected void sellExistingPosition(final Portfolio port, final QuoteRouter executionEngine) {
 		int priorQty = getCurrentPosition(port);
 		if(priorQty != 0){ //sell the losing shares at yesterday's close
 			final LimitOrder order = new LimitOrder(symbol, priorQty, latestBar.close, false);

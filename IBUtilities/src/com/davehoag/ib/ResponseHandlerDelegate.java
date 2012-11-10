@@ -34,6 +34,10 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 		requester = ibInterface;
 		
 	}
+
+	public IBClientRequestExecutor getRequester() {
+		return requester;
+	}
 	/**
 	 * 
 	 * @param millis

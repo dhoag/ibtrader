@@ -1,12 +1,10 @@
 package com.davehoag.ib.util;
 
-import java.net.ConnectException;
 import java.util.HashMap;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import me.prettyprint.hector.api.exceptions.HectorException;
-
-import com.davehoag.ib.IBConstants;
 import com.davehoag.ib.ResponseHandler;
 import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
@@ -16,12 +14,12 @@ import com.ib.client.Order;
 /**
  * A client that connects to our persistent store and simulates IB
  * @author dhoag
- *
  */
 public class HistoricalDataClient extends EClientSocket {
 	protected boolean connected;
 	protected ResponseHandler rh;
 	protected HashMap<String, HistoricalDataSender> mktDataFeed = new HashMap<String, HistoricalDataSender>();
+	public ExecutorService service = Executors.newFixedThreadPool(10);
 	/**
 	 * 
 	 * @param anyWrapper
@@ -43,21 +41,33 @@ public class HistoricalDataClient extends EClientSocket {
 	@Override
 	public void reqRealTimeBars(final int reqId, final Contract stock, final int barSize, final String barType, final boolean rthOnly){
 		if(barSize != 5 ) throw new IllegalArgumentException("Only 5 second bars are supproted");
-		final Runnable r = new Runnable() {
-			public void run(){
-				HistoricalDataSender sender = new HistoricalDataSender(reqId, stock, rh, HistoricalDataClient.this);
-				mktDataFeed.put(stock.m_symbol, sender);
-				try{
-					sender.sendData();
-				}
-				catch(Throwable t){
-					LoggerFactory.getLogger("Backtesting").error( "Failure running data for " + stock.m_symbol);
-					t.printStackTrace();
-					System.exit(1);
+		HistoricalDataSender sender = HistoricalDataSender.get(reqId, stock, rh, HistoricalDataClient.this);
+		mktDataFeed.put(stock.m_symbol, sender);
+	}
+
+	/**
+	 * Send all of the data found in the market data feeds
+	 */
+	public void sendData() {
+		Runnable r = new Runnable() {
+			@Override
+			public void run() {
+				while(true){
+					boolean hasNext = true;
+					for(HistoricalDataSender sender: mktDataFeed.values()){
+						hasNext = hasNext & sender.hasNext();
+					}
+					if (hasNext) {
+						for (HistoricalDataSender sender : mktDataFeed.values()) {
+							sender.sendBar();
+						}
+					} else {
+						break;
+					}
 				}
 			}
 		};
-		new Thread(r).start();
+		service.execute(r);
 	}
 	@Override
     public void reqHistoricalData( final int tickerId, final Contract contract,
@@ -66,7 +76,18 @@ public class HistoricalDataClient extends EClientSocket {
             final int useRTH, final int formatDate) {
     }
 	@Override
-	public void eDisconnect(){ connected = false;}
+	public void eDisconnect() {
+
+		try {
+			service.shutdown();
+			while (!service.awaitTermination(20, TimeUnit.SECONDS))
+				System.out.println("Waiting termination");
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+
+		connected = false;
+	}
 	@Override
 	public String TwsConnectionTime(){ return "MockClientTime " + System.currentTimeMillis(); }
 	@Override
