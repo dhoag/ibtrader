@@ -5,6 +5,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.log4j.Logger;
+
 import com.davehoag.ib.ResponseHandler;
 import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
@@ -52,6 +54,7 @@ public class HistoricalDataClient extends EClientSocket {
 		Runnable r = new Runnable() {
 			@Override
 			public void run() {
+				Logger.getLogger("HistoricalData").info("Starting to send all data for client");
 				while(true){
 					boolean hasNext = true;
 					for(HistoricalDataSender sender: mktDataFeed.values()){
@@ -62,6 +65,7 @@ public class HistoricalDataClient extends EClientSocket {
 							sender.sendBar();
 						}
 					} else {
+						Logger.getLogger("HistoricalData").info("Completed sending all data for client");
 						break;
 					}
 				}

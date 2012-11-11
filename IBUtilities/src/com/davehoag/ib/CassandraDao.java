@@ -1,7 +1,5 @@
 package com.davehoag.ib;
 
-import static me.prettyprint.hector.api.factory.HFactory.createMutator;
-
 import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.Calendar;
@@ -376,7 +374,7 @@ public class CassandraDao {
 		final long actualFinish = determineEndDate(start < 1000, finish);
 		final long actualStart = start < 1000 ? HistoricalDateManipulation.getOpen(actualFinish - 24 * 60
 				* 60 * start) : start;
-		LoggerFactory.getLogger("HistoricalData").debug(
+		LoggerFactory.getLogger("HistoricalData").info(
 				"Getting " + barSize + " " + symbol + " data between " + new Date(actualStart * 1000)
 						+ " and " + new Date(actualFinish * 1000));
 		return getDataIterator(symbol, actualFinish, actualStart, barSize);
