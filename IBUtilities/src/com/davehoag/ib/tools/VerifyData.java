@@ -1,28 +1,50 @@
 package com.davehoag.ib.tools;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+
+import com.davehoag.ib.CassandraDao;
+import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.StoreHistoricalData;
 
 public class VerifyData {
-
+	static String [] bars = { "bar1day", "bar5sec" };
+	static String [] symbols = { "QQQ", "SPY", "TIP", "AGG" };
 	/**
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		String barSize = args[0];
-		for(int i = 1; i < args.length; i++)
-		try{
-			System.out.println("Checking " + barSize + " for " + args[i]);
-			final StoreHistoricalData sh = new StoreHistoricalData(args[i], null);		
-			sh.setBarSize(barSize);
-			ArrayList<String> missingDates = sh.getDates("20111101");
-			for(String data : missingDates){
-				System.out.println(data);
+		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+		final DateFormat df = new SimpleDateFormat("yyyyMMdd");
+		
+		for( String barSize: bars){
+			for(String symbol: symbols )
+			try{
+				System.out.print("Checking " + barSize + " for " + symbol);
+				long date = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
+				if(date > 1000){
+					System.out.println(" " + new Date(date*1000));
+					String dateStr = df.format(new Date(date*1000));
+					PullStockData.pullData(dateStr, barSize, clientInterface,0, symbol );
+					clientInterface.waitForCompletion();
+				}
+				else { //No prior data
+					Calendar c = Calendar.getInstance();
+					c.add(-10, Calendar.MONTH);
+					String dateStr = df.format(c);
+					PullStockData.pullData(dateStr, barSize, clientInterface,0, symbol );
+					clientInterface.waitForCompletion();
+				}
+			}
+			catch(Exception ex){
+				System.err.println("Problem with " + symbol + " " + ex);
 			}
 		}
-		catch(Exception ex){
-			System.err.println("Problem with " + args[i] + " " + ex);
-		}
+		
+		clientInterface.close();
 	}
 
 }
