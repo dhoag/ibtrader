@@ -23,7 +23,7 @@ public class VerifyData {
 		for( String barSize: bars){
 			for(String symbol: symbols )
 			try{
-				System.out.print("Checking " + barSize + " for " + symbol);
+				System.out.println(Thread.currentThread() +"Checking " + barSize + " for " + symbol);
 				long date = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
 				if(date > 1000){
 					System.out.println(" " + new Date(date*1000));
@@ -33,14 +33,15 @@ public class VerifyData {
 				}
 				else { //No prior data
 					Calendar c = Calendar.getInstance();
-					c.add(-10, Calendar.MONTH);
-					String dateStr = df.format(c);
+					c.add(Calendar.MONTH, -10);
+					String dateStr = df.format(c.getTime());
 					PullStockData.pullData(dateStr, barSize, clientInterface,0, symbol );
 					clientInterface.waitForCompletion();
 				}
 			}
 			catch(Exception ex){
-				System.err.println("Problem with " + symbol + " " + ex);
+				System.err.println("Skipping verification of " + symbol + " " + barSize + " due to " + ex);
+				ex.printStackTrace(System.err);
 			}
 		}
 		

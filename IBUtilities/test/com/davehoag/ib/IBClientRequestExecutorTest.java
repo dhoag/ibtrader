@@ -59,7 +59,7 @@ public class IBClientRequestExecutorTest  {
 	 */
 	@Test
 	public void testReqHistoricalData() throws ParseException {
-		executor.setExcutor(new ImmediateExecutor());
+		executor.setExecutor(new ImmediateExecutor());
 		Calendar start = Calendar.getInstance();
 		start.add(Calendar.DAY_OF_WEEK, -2);
 		DateFormat df = new SimpleDateFormat( "yyyyMMdd HH:mm:ss");
@@ -72,7 +72,7 @@ public class IBClientRequestExecutorTest  {
 	}
 	@Test
 	public void sumbitBuyOrder() {
-		executor.setExcutor(new ImmediateExecutor());
+		executor.setExecutor(new ImmediateExecutor());
 		CaptureHistoricalDataMock mock = new CaptureHistoricalDataMock();
 		LimitOrder order = new LimitOrder("IBM", 100, 203.83, true);
 		executor.executeOrder(order, mock);

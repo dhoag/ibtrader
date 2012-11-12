@@ -31,7 +31,14 @@ public class PullStockData {
 
 		IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
 		
-		pullData(startDateStr, barSize, clientInterface, i, args);
+		try {
+			pullData(startDateStr, barSize, clientInterface, i, args);
+		} catch (ParseException e) {
+			LoggerFactory.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);
+		}
+		finally { 
+			clientInterface.close();
+		}
         System.exit(0);
 	}
 	/**
@@ -42,8 +49,7 @@ public class PullStockData {
 	 * @param clientInterface
 	 */
 	public static void pullData(String startDateStr, String barSize,
-			IBClientRequestExecutor clientInterface, int i, String... args) {
-		try {
+			IBClientRequestExecutor clientInterface, int i, String... args) throws ParseException {
 			for(; i < args.length;i++){
 				final String symbol = args[i];
 				StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
@@ -55,12 +61,7 @@ public class PullStockData {
 				clientInterface.reqHistoricalData(symbol, optimalStartDate, sh);
 				clientInterface.waitForCompletion();
 			}
-		} catch (ParseException e) {
-			LoggerFactory.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);
-		}
-		finally { 
-			clientInterface.close();
-		}
+
 	}
 	/**
 	 * Set a system property forceUpdate to avoid looking at current data and simply start updating

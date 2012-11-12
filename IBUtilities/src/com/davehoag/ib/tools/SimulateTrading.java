@@ -74,7 +74,7 @@ public class SimulateTrading {
 		rh.setExecutorService(new ImmediateExecutor());
 
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
-		clientInterface.setExcutor(new ImmediateExecutor());
+		clientInterface.setExecutor(new ImmediateExecutor());
 		clientInterface.connect();
 		clientInterface.initializePortfolio();
 		rh.getPortfolio().setCash(100000.0);
