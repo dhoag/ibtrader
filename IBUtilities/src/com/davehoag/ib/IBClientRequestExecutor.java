@@ -56,8 +56,8 @@ public class IBClientRequestExecutor {
 	 * Allow override - typically for testing
 	 * @param ex
 	 */
-	public void setExcutor(final Executor ex){
-		executor = ex;
+	public void setExecutor(final Executor ex){
+		this.executor = ex;
 	}
 	/**
 	 * Got a disconnect from the TWS and I'm responding as best I can
@@ -325,6 +325,7 @@ public class IBClientRequestExecutor {
 	protected synchronized void scheduleNext() {
 		if ((active = tasks.poll()) != null) {
 			//tell the thread pool to actually run the active item
+
 			executor.execute(active);
 		}
 		else {
