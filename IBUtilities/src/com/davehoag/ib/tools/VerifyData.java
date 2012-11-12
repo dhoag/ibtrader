@@ -23,7 +23,7 @@ public class VerifyData {
 		for( String barSize: bars){
 			for(String symbol: symbols )
 			try{
-				System.out.print("Checking " + barSize + " for " + symbol);
+				System.out.print(Thread.currentThread() +"Checking " + barSize + " for " + symbol);
 				long date = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
 				if(date > 1000){
 					System.out.println(" " + new Date(date*1000));
