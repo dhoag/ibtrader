@@ -177,31 +177,6 @@ public class CassandraDao {
 		}
 		return count;
 	}
-
-	/**
-	 * A utility method to what data I have in the system for the given bar size
-	 * 
-	 * @param symbol
-	 * @param barSize
-	 * @return
-	 */
-	public long findMostRecentDateOri(final String symbol, final String barSize) {
-		long timeInSecs = System.currentTimeMillis() / 1000;
-		for (int i = 0; i < 100; i++) {
-			timeInSecs -= i * 24 * 60 * 60;
-			long openTime = HistoricalDateManipulation.getOpenTime(timeInSecs);
-			final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
-					openTime, openTime, barSize ,true, 1);
-			final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
-			if( entry != null){
-				final int recordCount = entry.size();
-				if (recordCount > 0)	return openTime;
-			}
-		}
-		LoggerFactory.getLogger("HistoricalData").error(
-				"Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
-		return 0;
-	}
 	/**
 	 * A utility method to what data I have in the system for the given bar size
 	 * 
