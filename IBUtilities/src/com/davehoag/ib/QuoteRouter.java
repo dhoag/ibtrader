@@ -13,10 +13,15 @@ import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
 import com.ib.client.TickType;
+
 /**
- * Route quotes to the various interested parties
+ * Route quotes to the various interested parties. A QuoteRouter is tied to a
+ * single symbol because a realtime bar doesn't pass the symbol from IB. So, the
+ * request ID associated with the request for a realtime bar maps to the
+ * QuoteRouter and thus the symbol for the data.
+ * 
  * @author David Hoag
- *
+ * 
  */
 public class QuoteRouter extends ResponseHandlerDelegate {
 	final NumberFormat nf = NumberFormat.getCurrencyInstance();
@@ -107,7 +112,14 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * @param order
 	 */
 	public void executeOrder(final LimitOrder order){
-		if(order.getSymbol() == null ) order.setSymbol(symbol);
+		if (order.getSymbol() == null) {
+			order.setSymbol(symbol);
+		} else {
+			if (!order.getSymbol().equals(symbol)) {
+				throw new IllegalStateException("Limit order " + order + " send through wrong router ["
+						+ symbol + ']');
+			}
+		}
 		if(order.getStopLoss() != null) order.getStopLoss().setSymbol(symbol);
 		requester.executeOrder(order, this);
 	}
