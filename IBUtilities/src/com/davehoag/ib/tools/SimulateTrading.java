@@ -1,6 +1,8 @@
 package com.davehoag.ib.tools;
 import java.util.ArrayList;
 
+import org.slf4j.LoggerFactory;
+
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.ResponseHandler;
@@ -58,6 +60,8 @@ public class SimulateTrading {
 				}
 				clientInterface.requestQuotes();
 				clientInterface.close();
+				LoggerFactory.getLogger(strategyName).info("Portfolio");
+				clientInterface.getPortfolio().displayTradeStats(strategyName);
 
 			} catch (Throwable t) {
 				t.printStackTrace();
