@@ -5,12 +5,11 @@ import java.util.Calendar;
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.CassandraDao;
-import com.davehoag.ib.Strategy;
 import com.davehoag.ib.QuoteRouter;
+import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
-import com.davehoag.ib.dataTypes.SimpleReturn;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 /**
  * Need two instances (and only two) this strategy running at any given time. 
@@ -73,6 +72,12 @@ public class SimpleMomentumStrategy implements Strategy {
 			}
 		}
 	}
+
+	/**
+	 * Set the "oldestBar" value
+	 * 
+	 * @param aBar
+	 */
 	private void lookupHistoricalBar(final Bar aBar) {
 		Calendar c = Calendar.getInstance();
 		c.setTime(aBar.getTime());
@@ -83,7 +88,6 @@ public class SimpleMomentumStrategy implements Strategy {
 		long seconds = HistoricalDateManipulation.getOpen(c.getTimeInMillis()/ 1000);
 		Bar historicalBar = CassandraDao.getInstance().getBar(aBar.symbol, seconds, aBar.barSize);
 		oldestBar = historicalBar;
-		System.out.println(oldestBar);
 	}
 
 	/**

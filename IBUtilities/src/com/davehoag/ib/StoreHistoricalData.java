@@ -1,9 +1,9 @@
 package com.davehoag.ib;
 
-import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
+
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.dataTypes.Bar;
@@ -28,7 +28,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		long newOpen;
 		try {
 			newOpen = HistoricalDateManipulation.getOpen(HistoricalDateManipulation.getTime(dateStr));
-			System.out.println( dateStr);
+
 		} catch (ParseException e) {
 			e.printStackTrace();
 			return false;
@@ -143,7 +143,8 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		switch(errorCode){
 		case 162:
 		case 321: //skip that day?
-			System.out.println("Skiping current day " + HistoricalDateManipulation.getDateAsStr(currentOpen));
+			LoggerFactory.getLogger("HistoricalData").warn(
+					"Skiping current day " + HistoricalDateManipulation.getDateAsStr(currentOpen));
 			skip = true;
 		}
 	}

@@ -35,7 +35,7 @@ public class SwapStrategy implements Strategy {
 	 * @param executionEngine
 	 */
 	protected void considerTrading(Bar bar, Portfolio holdings, QuoteRouter executionEngine) {
-		System.out.println(bar);
+
 		for (Entry<String, SimpleMovingAvg> trend : trends.entrySet()) {
 			if (oneDelta == null && trend.getKey().equals(bar.symbol)) {
 				oneDelta = trend.getValue().getSlowChange();
