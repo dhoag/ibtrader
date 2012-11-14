@@ -12,6 +12,7 @@ import java.util.concurrent.Executors;
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.dataTypes.LimitOrder;
+import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.ib.client.EClientSocket;
@@ -139,6 +140,9 @@ public class IBClientRequestExecutor {
 		execute(r, 0);
 	}
 
+	public Portfolio getPortfolio() {
+		return responseHandler.getPortfolio();
+	}
 	/**
 	 * @param buy
 	 * @param symbol

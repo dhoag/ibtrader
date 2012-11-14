@@ -61,8 +61,13 @@ public class HistoricalDataClient extends EClientSocket {
 						hasNext = hasNext & sender.hasNext();
 					}
 					if (hasNext) {
+						try {
 						for (HistoricalDataSender sender : mktDataFeed.values()) {
 							sender.sendBar();
+						}
+						} catch (Exception ex) {
+							ex.printStackTrace(System.err);
+							System.exit(-1);
 						}
 					} else {
 						Logger.getLogger("HistoricalData").info("Completed sending all data for client");

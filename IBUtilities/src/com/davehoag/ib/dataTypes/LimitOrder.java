@@ -21,6 +21,11 @@ public class LimitOrder implements Cloneable{
 		Order ibOrder;
 		LimitOrder onset;
 		boolean closeMultiple = false;
+
+	@Override
+	public String toString() {
+		return "LMT " + (buyOrder ? "BUY" : "SELL") + " " + sym + " " + shares + "@" + orderPrice;
+	}
 		/**
 		 * When the order is actually submitted set the id for reference
 		 * @param orderId
@@ -75,6 +80,7 @@ public class LimitOrder implements Cloneable{
 		public int getShares(){ return shares; }
 		public LimitOrder getStopLoss(){ return stopLoss; }
 		public void setStopLoss( final LimitOrder order ){ stopLoss = order; }
+		@Override
 		public LimitOrder clone() {
 			try{
 			LimitOrder result = (LimitOrder)super.clone();

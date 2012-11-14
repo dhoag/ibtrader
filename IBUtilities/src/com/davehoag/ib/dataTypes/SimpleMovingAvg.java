@@ -152,6 +152,8 @@ public class SimpleMovingAvg {
 	 * @return
 	 */
 	public double getSlowChange(){
+		if (!initialized)
+			throw new IllegalStateException("Must have a full set to calculate change %");
 		final double latestTick = getMostRecentTick();
 		final double oldestTick = getOldestTick();
 		return (latestTick - oldestTick) / oldestTick;
