@@ -19,12 +19,11 @@ public class SwapStrategy implements Strategy {
 
 	@Override
 	public void newBar(final Bar bar, final Portfolio holdings, final QuoteRouter executionEngine) {
-		// TODO the execution engine is tis the quot router for one symbol,
-		// can't be for two
 		final SimpleMovingAvg avg = getTrends(bar.symbol);
 		if (isInTradingWindow(bar) && avg.isInitialized()) {
 			considerTrading(bar, holdings, executionEngine);
 		}
+
 		avg.newTick(bar.close);
 	}
 
@@ -34,8 +33,14 @@ public class SwapStrategy implements Strategy {
 	 * @param holdings
 	 * @param executionEngine
 	 */
-	protected void considerTrading(Bar bar, Portfolio holdings, QuoteRouter executionEngine) {
+	protected void considerTrading(final Bar bar, final Portfolio holdings, final QuoteRouter executionEngine) {
+		if (HistoricalDateManipulation.isEndOfDay(bar.originalTime)) {
+			if (holdings.getShares(bar.symbol) > 0) {
+				System.out.println("Liquidate " + bar.symbol + " " + holdings.getShares(bar.symbol));
+				sellExistingPosition(bar, holdings, executionEngine);
+			}
 
+		} else
 		for (Entry<String, SimpleMovingAvg> trend : trends.entrySet()) {
 			if (oneDelta == null && trend.getKey().equals(bar.symbol)) {
 				oneDelta = trend.getValue().getSlowChange();
@@ -44,8 +49,8 @@ public class SwapStrategy implements Strategy {
 			}
 			// Ignore the entry that also happens to the one bar source
 			if (!oneBar.symbol.equals(trend.getKey())) {
-				consider(oneBar, bar, holdings, executionEngine,
-						(oneDelta > trend.getValue().getSlowChange()));
+				double trendDelta = trend.getValue().getSlowChange();
+				consider(oneBar, bar, holdings, executionEngine, (oneDelta > trendDelta));
 				oneDelta = null;
 				oneBar = null;
 			}

@@ -1,4 +1,6 @@
 package com.davehoag.ib.tools;
+
+import java.text.NumberFormat;
 import java.util.ArrayList;
 
 import org.slf4j.LoggerFactory;
@@ -42,7 +44,7 @@ public class SimulateTrading {
 	 * @return
 	 */
 	protected static void executeStrategies(String[] args, int i) {
-
+		NumberFormat nf = NumberFormat.getCurrencyInstance();
 		for (; i < args.length; i++)
 			try {
 				int idx = args[i].indexOf(":");
@@ -60,7 +62,8 @@ public class SimulateTrading {
 				}
 				clientInterface.requestQuotes();
 				clientInterface.close();
-				LoggerFactory.getLogger(strategyName).info("Portfolio");
+				LoggerFactory.getLogger(strategyName).info(
+						"Portfolio " + nf.format(clientInterface.getPortfolio().getNetValue()));
 				clientInterface.getPortfolio().displayTradeStats(strategyName);
 
 			} catch (Throwable t) {

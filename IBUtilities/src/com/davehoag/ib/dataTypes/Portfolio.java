@@ -1,7 +1,6 @@
 package com.davehoag.ib.dataTypes;
 
 import java.text.NumberFormat;
-import java.util.Date;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -46,6 +45,7 @@ public class Portfolio {
 	/**
 	 */
 	public void displayTradeStats(String strategyName){
+		NumberFormat nf = NumberFormat.getCurrencyInstance();
 		double profit = 0;
 		int winningTrades = 0;
 		for(LimitOrder closingOrder : openCloseLog){
@@ -53,7 +53,9 @@ public class Portfolio {
 			profit += tradeProfit;
 			if(tradeProfit > 0) winningTrades++;
 		}
-		LoggerFactory.getLogger(strategyName).info( "Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: " + profit );
+		LoggerFactory.getLogger(strategyName).info(
+				"Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: "
+						+ nf.format(profit));
 		LoggerFactory.getLogger(strategyName).info( "Drawdown " + maxDrawdown );
 	}
 	/**
