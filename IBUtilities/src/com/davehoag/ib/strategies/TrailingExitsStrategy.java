@@ -2,16 +2,16 @@ package com.davehoag.ib.strategies;
 
 import org.slf4j.LoggerFactory;
 
-import com.davehoag.ib.Strategy;
 import com.davehoag.ib.QuoteRouter;
+import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
-import com.davehoag.ib.tools.LaunchTrading;
 import com.davehoag.ib.util.HistoricalDateManipulation;
+
 /**
- * @author dhoag
+ * @author David Hoag
  */
 public class TrailingExitsStrategy implements Strategy {
 	SimpleMovingAvg sma;
@@ -23,14 +23,14 @@ public class TrailingExitsStrategy implements Strategy {
 	boolean requireTradeConfirmation = false;
 
 	public TrailingExitsStrategy(){	
-		init(null);
+		init();
 	}
 	/**
 	 * 
 	 * @param seeds
 	 */
-	public void init( final double [] seeds){
-		sma = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg, seeds);
+	public void init() {
+		sma = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg, null);
 		sma.setUseEmaForCrossOvers(useEma);
 		smaTrades = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg);
 		smaTrades.setUseEmaForCrossOvers(true);
@@ -92,5 +92,11 @@ public class TrailingExitsStrategy implements Strategy {
 	@Override
 	public String getBarSize() {
 		return "bar5sec";
+	}
+
+	@Override
+	public void init(String parms) {
+		// TODO Auto-generated method stub
+
 	}
 }

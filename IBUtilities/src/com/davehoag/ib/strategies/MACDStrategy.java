@@ -9,11 +9,13 @@ import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
 import com.davehoag.ib.util.HistoricalDateManipulation;
+
 /**
- * Current design only supports 1 strategy per symbol. Need to route market data not directly to a strategy
- * but through a StrategyManager.
- * @author dhoag
- *
+ * Current design only supports 1 strategy per symbol. Need to route market data
+ * not directly to a strategy but through a StrategyManager.
+ * 
+ * @author David Hoag
+ * 
  */
 public class MACDStrategy implements Strategy {
 	SimpleMovingAvg sma;
@@ -25,14 +27,14 @@ public class MACDStrategy implements Strategy {
 	boolean requireTradeConfirmation = true;
 
 	public MACDStrategy(){	
-		init(null);
+		init();
 	}
 	/**
 	 * 
 	 * @param seeds
 	 */
-	public void init( final double [] seeds){
-		sma = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg, seeds);
+	public void init() {
+		sma = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg, null);
 		sma.setUseEmaForCrossOvers(useEma);
 		smaTrades = new SimpleMovingAvg(fastMovingAvg, slowMovingAvg);
 		smaTrades.setUseEmaForCrossOvers(true);
@@ -91,6 +93,12 @@ public class MACDStrategy implements Strategy {
 	@Override
 	public String getBarSize() {
 		return "bar5sec";
+	}
+
+	@Override
+	public void init(String parms) {
+		// TODO Auto-generated method stub
+
 	}
 
 }

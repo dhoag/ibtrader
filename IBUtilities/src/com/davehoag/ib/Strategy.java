@@ -18,5 +18,7 @@ public interface Strategy {
 	public void newBar(Bar bar, Portfolio holdings, QuoteRouter executionEngine);
 
 	public String getBarSize();
+
+	public void init(String parms);
 	
 }

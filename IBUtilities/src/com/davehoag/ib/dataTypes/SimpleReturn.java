@@ -19,6 +19,8 @@ public class SimpleReturn implements Iterator<Bar>, Iterable<Bar>{
 		data = new Bar[size];
 	}
 	public String getSymbol(){
+		if (!initialized)
+			throw new IllegalStateException("Can't get symbol if not in valid state");
 		return data[last].symbol;
 	}
 	public void newBar(final Bar aBar){
@@ -159,6 +161,7 @@ public class SimpleReturn implements Iterator<Bar>, Iterable<Bar>{
 	
 	/* Allow iterations over the ring buffer of Bars */
 	int iteratorIndex = 0;
+	@Override
 	public Iterator<Bar> iterator() {
 		return this;
 	}

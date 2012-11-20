@@ -148,4 +148,14 @@ public class SwapStrategy implements Strategy {
 		return "bar5sec";
 	}
 
+	@Override
+	public void init(String parms) {
+		try{
+			intervalSize = Integer.parseInt(parms);
+		} catch (NumberFormatException ex) {
+			ex.printStackTrace();
+		}
+		
+	}
+
 }

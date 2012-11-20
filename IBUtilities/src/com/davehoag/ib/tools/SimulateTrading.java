@@ -50,10 +50,13 @@ public class SimulateTrading {
 				int idx = args[i].indexOf(":");
 
 				final String strategyName = args[i].substring(0, idx);
-				final String symbolList = args[i].substring(idx + 1);
+				int idx2 = args[i].indexOf( ':' , idx+1);
+				final String initParms = args[i].substring(idx + 1, idx2);
+				final String symbolList = args[i].substring(idx2 + 1);
 				
 				Strategy strategy = (Strategy) Class.forName(
 						"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
+				strategy.init(initParms);
 
 				final IBClientRequestExecutor clientInterface = initSimulatedClient();
 				for (String symbol : getSymbols(symbolList)) {
@@ -64,7 +67,7 @@ public class SimulateTrading {
 				clientInterface.close();
 				LoggerFactory.getLogger(strategyName).info(
 						"Portfolio " + nf.format(clientInterface.getPortfolio().getNetValue()));
-				clientInterface.getPortfolio().displayTradeStats(strategyName);
+				clientInterface.getPortfolio().displayTradeStats(strategyName + " " + initParms);
 
 			} catch (Throwable t) {
 				t.printStackTrace();

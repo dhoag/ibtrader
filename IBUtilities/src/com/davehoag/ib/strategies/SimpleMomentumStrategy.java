@@ -11,11 +11,12 @@ import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.util.HistoricalDateManipulation;
+
 /**
- * Need two instances (and only two) this strategy running at any given time. 
+ * Need two instances (and only two) this strategy running at any given time.
  * 
- * @author dhoag
- *
+ * @author David Hoag
+ * 
  */
 public class SimpleMomentumStrategy implements Strategy {
 	boolean optimistic = true;
@@ -233,5 +234,11 @@ public class SimpleMomentumStrategy implements Strategy {
 	@Override
 	public String getBarSize() {
 		return "bar5sec";
+	}
+
+	@Override
+	public void init(String parms) {
+		// TODO Auto-generated method stub
+
 	}
 }
