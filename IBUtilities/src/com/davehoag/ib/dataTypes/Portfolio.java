@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
+import flanagan.analysis.Stat;
+import flanagan.math.Fmath;
+
 public class Portfolio {
 	HashMap<String, Integer> portfolio = new HashMap<String, Integer>();
 	HashMap<String, Double> lastPrice = new HashMap<String, Double>();
@@ -48,14 +51,28 @@ public class Portfolio {
 		NumberFormat nf = NumberFormat.getCurrencyInstance();
 		double profit = 0;
 		int winningTrades = 0;
+		double [] results = new double [openCloseLog.size()];
+		int i = 0;
 		for(LimitOrder closingOrder : openCloseLog){
-			double tradeProfit =closingOrder.getProfit(); 
+			final double tradeProfit =closingOrder.getProfit();
+			results[i++] = tradeProfit;
 			profit += tradeProfit;
 			if(tradeProfit > 0) winningTrades++;
 		}
 		LoggerFactory.getLogger(strategyName).info(
 				"Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: "
 						+ nf.format(profit));
+        
+		double dmin = Fmath.minimum(results);
+        double dmax = Fmath.maximum(results);
+        double span = dmax - dmin;
+		double [][] hist = Stat.histogramBins(results, span / 10);
+		double [] cols = hist[0];
+		double [] count = hist[1];
+		for(int i1 = 0; i1 < cols.length; i1++){
+			LoggerFactory.getLogger(strategyName).info(nf.format(cols[i1]) + " " + count[i1]);
+		}
+		
 		LoggerFactory.getLogger(strategyName).info( "Drawdown " + maxDrawdown );
 	}
 	/**
