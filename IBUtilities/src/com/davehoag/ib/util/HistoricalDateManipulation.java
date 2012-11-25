@@ -147,19 +147,8 @@ public class HistoricalDateManipulation {
 	 */
 	public static ArrayList<String> getDatesBrokenIntoHours(final String startingDateStr, final Calendar today) throws ParseException {
 		final ArrayList<String> result = new ArrayList<String>();
-		final Date d = df.parse(startingDateStr + " 00:00:00");
-		Calendar startingDate = Calendar.getInstance();
-		startingDate.setMinimalDaysInFirstWeek(4);
-		today.setMinimalDaysInFirstWeek(4);
-		startingDate.setTime(d);
-		
-		int yearDelta = today.get(Calendar.YEAR) - startingDate.get(Calendar.YEAR);
-		int dayDelta = today.get(Calendar.DAY_OF_YEAR) - startingDate.get(Calendar.DAY_OF_YEAR);
-		int daysInYear = startingDate.getActualMaximum( Calendar.DAY_OF_YEAR);
-		
-		if( yearDelta == 1){
-			dayDelta = dayDelta + daysInYear;
-		}
+		final Calendar startingDate = getStartCalendar(startingDateStr, today);	
+		final int dayDelta = getDayDelta(today, startingDate);
 		int count = dayDelta;
 		
 		for(int j=0; j <= count; j++){
@@ -185,21 +174,10 @@ public class HistoricalDateManipulation {
 	 * @throws ParseException
 	 */
 	public static ArrayList<String> getDatesBrokenIntoWeeks(final String startingDateStr, final Calendar today) throws ParseException {
-		DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 		ArrayList<String> result = new ArrayList<String>();
-		final Date d = df.parse(startingDateStr + " 00:00:00");
-		Calendar startingDate = Calendar.getInstance();
-		startingDate.setMinimalDaysInFirstWeek(4);
-		today.setMinimalDaysInFirstWeek(4);
-		startingDate.setTime(d);
+		Calendar startingDate = getStartCalendar(startingDateStr, today);
 		
-		int yearDelta = today.get(Calendar.YEAR) - startingDate.get(Calendar.YEAR);
-		int dayDelta = today.get(Calendar.DAY_OF_YEAR) - startingDate.get(Calendar.DAY_OF_YEAR);
-		int daysInYear = startingDate.getActualMaximum( Calendar.DAY_OF_YEAR);
-		
-		if( yearDelta == 1){
-			dayDelta = dayDelta + daysInYear;
-		}
+		int dayDelta = getDayDelta(today, startingDate);
 		int count = dayDelta / 7;
 		
 		for(int j=0; j < count; j++){
@@ -209,5 +187,60 @@ public class HistoricalDateManipulation {
 		result.add( df.format(today.getTime()));
 		return result;
 	}
-
+	/**
+	 * 
+	 * @param startingDateStr
+	 * @param today
+	 * @return
+	 * @throws ParseException
+	 */
+	public static ArrayList<String> getWeekDays(final String startingDateStr, final Calendar today) throws ParseException {
+		final ArrayList<String> result = new ArrayList<String>();
+		final DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+		final Calendar startingDate = getStartCalendar(startingDateStr, today);
+		
+		int dayDelta = getDayDelta(today, startingDate);
+		int count = dayDelta;
+		
+		result.add( df.format(startingDate.getTime()));
+		for(int j=0; j < count; j++){
+			startingDate.add( Calendar.DATE, 1);
+			final int dayOfWeek = startingDate.get(Calendar.DAY_OF_WEEK); 
+			if( dayOfWeek != Calendar.SUNDAY && dayOfWeek != Calendar.SATURDAY)
+			{
+				result.add(df.format(startingDate.getTime()));
+			}
+		}
+		return result;
+	}
+	/**
+	 * @param startingDateStr
+	 * @param today
+	 * @param df
+	 * @return
+	 * @throws ParseException
+	 */
+	private static Calendar getStartCalendar(final String startingDateStr, final Calendar today) throws ParseException {
+		final Date d = df.parse(startingDateStr + " 00:00:00");
+		Calendar startingDate = Calendar.getInstance();
+		startingDate.setMinimalDaysInFirstWeek(4);
+		today.setMinimalDaysInFirstWeek(4);
+		startingDate.setTime(d);
+		return startingDate;
+	}
+	/**
+	 * @param today
+	 * @param startingDate
+	 * @return
+	 */
+	private static int getDayDelta(final Calendar today, Calendar startingDate) {
+		int yearDelta = today.get(Calendar.YEAR) - startingDate.get(Calendar.YEAR);
+		int dayDelta = today.get(Calendar.DAY_OF_YEAR) - startingDate.get(Calendar.DAY_OF_YEAR);
+		int daysInYear = startingDate.getActualMaximum( Calendar.DAY_OF_YEAR);
+		
+		if( yearDelta == 1){
+			dayDelta = dayDelta + daysInYear;
+		}
+		return dayDelta;
+	}
 }

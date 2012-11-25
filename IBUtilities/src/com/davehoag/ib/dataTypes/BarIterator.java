@@ -23,6 +23,13 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 		symbol = sym;
 		barSize = barSz;
 	}
+	/**
+	 * Number of records are in this collection. 
+	 * @return
+	 */
+	public int size(){
+		return priceData.get(symbol + ":close").size();
+	}
 	public void reset(){
 		count = 0;
 	}

@@ -165,15 +165,10 @@ public class CassandraDao {
 	 * @param day
 	 * @return
 	 */
-	public int countRecordsForCurrentDay(String symbol, String barSize, long day) {
-		long startOfDay = HistoricalDateManipulation.getOpen(day);
-		int count = 0;
-		Iterator<Bar> bars = dao.getData(symbol, startOfDay, startOfDay + 6 * 60 * 60 + 30 * 60, barSize);
-		while (bars.hasNext()) {
-			count++;
-			bars.next();
-		}
-		return count;
+	public int countRecordsForCurrentDay(final String symbol, final String barSize, final long day) {
+		final long startOfDay = HistoricalDateManipulation.getOpen(day);
+		final BarIterator bars = getData(symbol, startOfDay, startOfDay + 6 * 60 * 60 + 30 * 60, barSize);
+		return bars.size();
 	}
 	/**
 	 * A utility method to what data I have in the system for the given bar size
@@ -185,15 +180,16 @@ public class CassandraDao {
 	public long findMostRecentDate(final String symbol, final String barSize) {
 		long timeInSecs = System.currentTimeMillis() / 1000;
 		long openTime = HistoricalDateManipulation.getOpenTime(timeInSecs);
+		//do a reverse query
 		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
-				openTime - 24*60*60*100,openTime, barSize ,true, 1);
+				openTime - 24*60*60*356,openTime, barSize ,true, 1);
 		final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
 		if( entry != null){
 			final int recordCount = entry.size();
 			if (recordCount > 0)	return entry.get(0).getName();
 		}
-		LoggerFactory.getLogger("HistoricalData").error(
-				"Checked the past 100 days and there is no data for " + symbol + " in bar " + barSize);
+		LoggerFactory.getLogger("HistoricalData").warn(
+				"Checked the past 356 days and there is no data for " + symbol + " in bar " + barSize);
 		return 0;
 	}
 	/**
@@ -204,9 +200,9 @@ public class CassandraDao {
 	 * @return
 	 */
 	public Bar getBar(final String symbol, final long seconds, final String barSize){
-		BarIterator iterator = getData(symbol, seconds, seconds, barSize);
+		final BarIterator iterator = getData(symbol, seconds, seconds, barSize);
 		if(iterator.hasNext()) {
-			Bar b = iterator.next();
+			final Bar b = iterator.next();
 			if(b.originalTime == seconds){ return b; }
 			Logger.getLogger("HistoricalData").warning("Bar found with wrong time: looking for " + seconds + " found: " + b.originalTime);
 		}

@@ -52,7 +52,7 @@ public class PullStockData {
 			IBClientRequestExecutor clientInterface, int i, String... args) throws ParseException {
 			for(; i < args.length;i++){
 				final String symbol = args[i];
-				StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
+				final StoreHistoricalData sh = new StoreHistoricalData(symbol, clientInterface);
 				if( ! sh.isValidSize(barSize) ) throw new IllegalArgumentException("Bar size unknown " + barSize );
 				sh.setBarSize( barSize );
 				
@@ -71,11 +71,11 @@ public class PullStockData {
 	 * @param barSize
 	 * @param symbol
 	 */
-	protected static String getOptimalStartDate(String startDateStr, String barSize, final String symbol) {
+	protected static String getOptimalStartDate(String startDateStr, final String barSize, final String symbol) {
 		String optimalStartDate = startDateStr;
 		if(System.getProperty("forceUpdate") == null){
-			long firstRecord = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
-			DateFormat df = new SimpleDateFormat("yyyyMMdd");
+			final long firstRecord = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
+			final DateFormat df = new SimpleDateFormat("yyyyMMdd");
 			//The optimal start date is the first day for which we don't have data
 			if(firstRecord != 0)
 				optimalStartDate = df.format(new Date((firstRecord+(24*60*60))*1000));

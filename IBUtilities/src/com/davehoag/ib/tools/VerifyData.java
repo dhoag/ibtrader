@@ -1,6 +1,7 @@
 package com.davehoag.ib.tools;
 
 import java.text.DateFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -8,7 +9,9 @@ import java.util.Date;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.IBClientRequestExecutor;
+import com.davehoag.ib.IBConstants;
 import com.davehoag.ib.StoreHistoricalData;
+import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class VerifyData {
 	static String [] bars = { "bar1day", "bar5sec" };
@@ -17,6 +20,22 @@ public class VerifyData {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		final Calendar today = Calendar.getInstance();
+		today.add(Calendar.MONTH, -8);
+		final String startingDateStr = HistoricalDateManipulation.getDateAsStr(today.getTime());
+		for(String symbol: symbols )
+		try{
+			ArrayList<String> missingData = getDatesMissingData(startingDateStr, symbol);
+		}
+		catch(Exception ex){
+			ex.printStackTrace();
+		}
+//		pullLatestMarketData();
+	}
+	/**
+	 * 
+	 */
+	private static void pullLatestMarketData() {
 		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
 		final DateFormat df = new SimpleDateFormat("yyyyMMdd");
 		
@@ -47,5 +66,20 @@ public class VerifyData {
 		
 		clientInterface.close();
 	}
-
+	static ArrayList<String> getDatesMissingData(final String startingDateStr, final String symbol) throws ParseException{
+		final ArrayList<String> result = new ArrayList<String>();
+		final Calendar today = Calendar.getInstance();
+		final ArrayList<String> tradingDays = HistoricalDateManipulation.getWeekDays(startingDateStr, today);
+		for(String dateStr : tradingDays ){
+			final long day = HistoricalDateManipulation.getTime(dateStr);
+			
+			final int barDayCount = CassandraDao.getInstance().countRecordsForCurrentDay(symbol, "bar1day", day);
+			final int bar5SecCount = CassandraDao.getInstance().countRecordsForCurrentDay(symbol, "bar5sec", day);
+			if(barDayCount == 1 && (bar5SecCount != 4680 | bar5SecCount != 2520)){
+				result.add(dateStr);
+				System.out.println(symbol + ' ' + dateStr+ ' ' + barDayCount + ' ' + bar5SecCount);
+			}
+		}
+		return result;
+	}
 }
