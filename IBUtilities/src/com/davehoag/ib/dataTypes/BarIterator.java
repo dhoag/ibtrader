@@ -6,8 +6,6 @@ import java.util.List;
 
 import me.prettyprint.hector.api.beans.HColumn;
 
-import com.davehoag.ib.CassandraDao;
-
 
 public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 	final HashMap<String, List<HColumn<Long, Double>>> priceData;
@@ -28,7 +26,7 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 	 * @return
 	 */
 	public int size(){
-		return priceData.get(symbol + ":close").size();
+		return hasNext() ? priceData.get(symbol + ":close").size() : 0;
 	}
 	public void reset(){
 		count = 0;
@@ -43,16 +41,19 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 		symbol = sym;
 	}
 
+	@Override
 	public Iterator<Bar> iterator() {
 		return this;
 	}
 
+	@Override
 	public boolean hasNext() {
 		if (priceData == null)
 			return false;
 		return count < volData.get(symbol + ":vol").size();
 	}
 
+	@Override
 	public Bar next() {
 		final Bar bar = new Bar();
 		bar.barSize = barSize;
@@ -69,6 +70,7 @@ public class BarIterator implements Iterator<Bar>, Iterable<Bar> {
 		return bar;
 	}
 
+	@Override
 	public void remove() {
 		// TODO Auto-generated method stub
 	}

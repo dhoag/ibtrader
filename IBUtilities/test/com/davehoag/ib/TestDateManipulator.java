@@ -1,17 +1,13 @@
 package com.davehoag.ib;
 
-import static org.junit.Assert.*;
-
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.Iterator;
 
 import junit.framework.Assert;
-import junit.framework.TestCase;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +41,12 @@ public class TestDateManipulator {
 		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20120127", today);
 		Assert.assertEquals(8*2, res.size());
 	}
+	@Test
+	public void testGetHours() throws Exception {
+		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours("20120130", today);
+		Assert.assertEquals(8, res.size());
+	}
+
 	@Test
 	public void testGetDatesYearBoundaryHours() throws Exception {
 		ArrayList<String> res = HistoricalDateManipulation.getDatesBrokenIntoHours( "20111230", today);

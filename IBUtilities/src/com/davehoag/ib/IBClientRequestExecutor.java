@@ -353,6 +353,44 @@ public class IBClientRequestExecutor {
 		reqHisData(date, stock, rh );
 		rh.info( "History data request(s) starting " + date + " " + symbol);
 	}
+	
+	/**
+	 * Used when fixing historical data that didn't fully get loaded into the
+	 * database. Only works for 5 second bar data.
+	 * 
+	 * @param missingData
+	 * @param symbol
+	 */
+	public void reqHistoricalData(final ArrayList<String> missingData, final String symbol) {
+		final StoreHistoricalData sh = new StoreHistoricalData(symbol, this);
+		sh.setBarSize("bar5sec");
+		final StockContract stock = new StockContract(symbol);
+		requestHistoricalData(missingData, stock, sh);
+	}
+
+	/**
+	 * Assumes the date list is separated into intervals that comply with the
+	 * historical data request limits imposed by IB API.
+	 * 
+	 * @param dates
+	 * @param stock
+	 * @param rh
+	 */
+	protected void requestHistoricalData(final ArrayList<String> dates, final StockContract stock,
+			final StoreHistoricalData rh) {
+		final int markerRequestId = pushRequest();
+		boolean first = true;
+		for (final String date : dates) {
+			final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
+			if (first) {
+				execute(r, 0);
+				first = false;
+			} else {// wait 11 seconds for the next request.
+				execute(r, 11, rh);
+			}
+		}
+		scheduleClosingRequest(markerRequestId);
+	}
 	/**
 	 * Run the scheduled tasks every 10 seconds. Ensure no more than 60 requests
 	 * in a 10 minute period (a limit set by IB).
@@ -362,7 +400,6 @@ public class IBClientRequestExecutor {
 	 */
 	protected void reqHisData(final String startingDate, final StockContract stock, final StoreHistoricalData rh)
 			throws ParseException {
-
 		
 		// Get dates one hour apart that will retrieve the historical data
 		ArrayList<String> dates = rh.getDates(startingDate);
@@ -370,19 +407,7 @@ public class IBClientRequestExecutor {
 			rh.info( "No data to request for starting date " + startingDate);
 			return;
 		}
-		final int markerRequestId = pushRequest();
-		boolean first = true;
-		for (final String date : dates) {
-			final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
-			if(first) {
-				execute(r,0);
-				first = false;
-			}
-			else {//wait 11 seconds for the next request.
-				execute(r, 11, rh);
-			}
-		}
-		scheduleClosingRequest(markerRequestId);
+		requestHistoricalData(dates, stock, rh);
 	}
 	class HistoricalDataRequest implements Runnable{
 		String date; StoreHistoricalData rh; StockContract stock;

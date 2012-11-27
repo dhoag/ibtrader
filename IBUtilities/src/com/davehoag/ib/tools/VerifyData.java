@@ -9,8 +9,6 @@ import java.util.Date;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.IBClientRequestExecutor;
-import com.davehoag.ib.IBConstants;
-import com.davehoag.ib.StoreHistoricalData;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class VerifyData {
@@ -20,18 +18,22 @@ public class VerifyData {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
 		final Calendar today = Calendar.getInstance();
 		today.add(Calendar.MONTH, -8);
 		final String startingDateStr = HistoricalDateManipulation.getDateAsStr(today.getTime());
 		for(String symbol: symbols )
 		try{
-			ArrayList<String> missingData = getDatesMissingData(startingDateStr, symbol);
+				ArrayList<String> missingData = getDatesMissingData(startingDateStr, symbol);
+				clientInterface.reqHistoricalData(missingData, symbol);
+				clientInterface.waitForCompletion();
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
 		}
 //		pullLatestMarketData();
 	}
+
 	/**
 	 * 
 	 */
@@ -66,6 +68,16 @@ public class VerifyData {
 		
 		clientInterface.close();
 	}
+
+	/**
+	 * Determine the dates for which we are missing 5 second bar data. Assumes
+	 * we have 1 day bar data for all valid trading days.
+	 * 
+	 * @param startingDateStr
+	 * @param symbol
+	 * @return
+	 * @throws ParseException
+	 */
 	static ArrayList<String> getDatesMissingData(final String startingDateStr, final String symbol) throws ParseException{
 		final ArrayList<String> result = new ArrayList<String>();
 		final Calendar today = Calendar.getInstance();
@@ -75,8 +87,15 @@ public class VerifyData {
 			
 			final int barDayCount = CassandraDao.getInstance().countRecordsForCurrentDay(symbol, "bar1day", day);
 			final int bar5SecCount = CassandraDao.getInstance().countRecordsForCurrentDay(symbol, "bar5sec", day);
-			if(barDayCount == 1 && (bar5SecCount != 4680 | bar5SecCount != 2520)){
-				result.add(dateStr);
+			if (barDayCount == 1 && (bar5SecCount != 4680 & bar5SecCount != 2520)) {
+				String justDateValues = dateStr.substring(0, dateStr.indexOf(' '));
+				DateFormat df = new SimpleDateFormat("yyyyMMdd");
+				Date d = df.parse(justDateValues);
+				Calendar sameDay = Calendar.getInstance();
+				sameDay.setTime(d);
+				ArrayList<String> hoursToGet = HistoricalDateManipulation.getDatesBrokenIntoHours(
+						justDateValues, sameDay);
+				result.addAll(hoursToGet);
 				System.out.println(symbol + ' ' + dateStr+ ' ' + barDayCount + ' ' + bar5SecCount);
 			}
 		}
