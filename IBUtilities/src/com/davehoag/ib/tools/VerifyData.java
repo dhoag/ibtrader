@@ -18,7 +18,19 @@ public class VerifyData {
 	 * @param args
 	 */
 	public static void main(String[] args) {
+		if (args.length > 0) {
+			symbols = args;
+		}
 		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+		pullLatestMarketData(clientInterface);
+		cleanupMissingData(clientInterface);
+		clientInterface.close();
+	}
+
+	/**
+	 * @param clientInterface
+	 */
+	protected static void cleanupMissingData(final IBClientRequestExecutor clientInterface) {
 		final Calendar today = Calendar.getInstance();
 		today.add(Calendar.MONTH, -8);
 		final String startingDateStr = HistoricalDateManipulation.getDateAsStr(today.getTime());
@@ -31,14 +43,12 @@ public class VerifyData {
 		catch(Exception ex){
 			ex.printStackTrace();
 		}
-//		pullLatestMarketData();
 	}
 
 	/**
 	 * 
 	 */
-	private static void pullLatestMarketData() {
-		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+	private static void pullLatestMarketData(final IBClientRequestExecutor clientInterface) {
 		final DateFormat df = new SimpleDateFormat("yyyyMMdd");
 		
 		for( String barSize: bars){
@@ -65,8 +75,6 @@ public class VerifyData {
 				ex.printStackTrace(System.err);
 			}
 		}
-		
-		clientInterface.close();
 	}
 
 	/**
