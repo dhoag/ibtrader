@@ -20,6 +20,7 @@ public class VerifyData {
 	public static void main(String[] args) {
 		if (args.length > 0) {
 			symbols = args;
+			System.out.println("Changing symbols to " + args);
 		}
 		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
 		pullLatestMarketData(clientInterface);
