@@ -14,14 +14,19 @@ import com.ib.client.Execution;
 import com.ib.client.Order;
 
 /**
- * A client that connects to our persistent store and simulates IB
- * @author dhoag
+ * A client that connects to our persistent store and simulates IB. There is one
+ * and only one per simulated instance.
+ * 
+ * @author David Hoag
  */
 public class HistoricalDataClient extends EClientSocket {
 	protected boolean connected;
 	protected ResponseHandler rh;
 	protected HashMap<String, HistoricalDataSender> mktDataFeed = new HashMap<String, HistoricalDataSender>();
+
 	public ExecutorService service = Executors.newFixedThreadPool(10);
+
+
 	/**
 	 * 
 	 * @param anyWrapper
@@ -43,8 +48,8 @@ public class HistoricalDataClient extends EClientSocket {
 	@Override
 	public void reqRealTimeBars(final int reqId, final Contract stock, final int barSize, final String barType, final boolean rthOnly){
 		if(barSize != 5 ) throw new IllegalArgumentException("Only 5 second bars are supproted");
-		HistoricalDataSender sender = HistoricalDataSender.get(reqId, stock, rh, HistoricalDataClient.this);
-		mktDataFeed.put(stock.m_symbol, sender);
+		HistoricalDataSender result = HistoricalDataSender.initDataSender(reqId, stock, rh, this);
+		mktDataFeed.put(stock.m_symbol, result);
 	}
 
 	/**

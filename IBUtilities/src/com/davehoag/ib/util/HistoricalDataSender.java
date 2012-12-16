@@ -15,13 +15,16 @@ import com.ib.client.Order;
 import com.ib.client.TickType;
 
 /**
- * Connect to Cassandra and simulate the realtime bars wit the historical data
+ * Connect to Cassandra and simulate the realtime bars with the historical data.
+ * One instance per symbol. Coordinate timing of market data by enumerating
+ * through each sender (symbol) for a particular strategy. This is also where
+ * the order book for that symbol is maintained. Thus need one for each
+ * simulated trading environment.
  * 
- * @author dhoag
+ * @author David Hoag
  * 
  */
 public class HistoricalDataSender {
-	final static HashMap<String, HistoricalDataSender> cache = new HashMap<String, HistoricalDataSender>();
 	final static String defaultHistoricalDataBarSize = "bar5sec";
 
 	// will be changed somewhere, I realize this forces all back testing to go
@@ -32,11 +35,14 @@ public class HistoricalDataSender {
 	final Contract contract;
 	ResponseHandler handler;
 	HistoricalDataClient client;
-	ArrayList<OrderOnBook> restingOrders = new ArrayList<OrderOnBook>();
+	ArrayList<OrderOnBook> restingOrders;
 	Bar lastBar;
 	BarIterator data;
+	// Keep a cache around to enable reuse between strategy testing
+	protected static HashMap<String, HistoricalDataSender> cache = new HashMap<String, HistoricalDataSender>();
 
 	/**
+	 * Initialize the HistoricalDataSender (create it or reset it).
 	 * 
 	 * @param id
 	 * @param stock
@@ -44,43 +50,51 @@ public class HistoricalDataSender {
 	 * @param sock
 	 * @return
 	 */
-	public static HistoricalDataSender get(final int id, final Contract stock, final ResponseHandler rh,
-			final HistoricalDataClient sock) {
+	public static HistoricalDataSender initDataSender(final int id, final Contract stock,
+			final ResponseHandler rh, final HistoricalDataClient sock) {
 		HistoricalDataSender result = cache.get(stock.m_symbol);
 		if (result == null) {
 			result = new HistoricalDataSender(id, stock, rh, sock);
 			result.init();
 			cache.put(stock.m_symbol, result);
 		} else {
-			result.data.reset();
-			result.setCriticalValues(id, rh, sock);
+			// resuse the sender - has the opportunity to eliminate a call to
+			// Cassandra
+			result.initCriticalValues(id, rh, sock);
 		}
-
 		return result;
 	}
-
 	public HistoricalDataSender(final Contract stock) {
 		contract = stock;
 	}
 
 	/**
+	 * If this is called the code is reusing the sender (outside of the time
+	 * called in the constructor).
+	 * 
 	 * @param id
 	 * @param rh
 	 * @param sock
 	 * @param result
 	 */
-	protected void setCriticalValues(final int id, final ResponseHandler rh, final HistoricalDataClient sock) {
+	protected void initCriticalValues(final int id, final ResponseHandler rh, final HistoricalDataClient sock) {
 		reqId = id;
 		client = sock;
 		handler = rh;
+		restingOrders = new ArrayList<OrderOnBook>();
+		if (data != null)
+			data.reset();
 	}
 
 	public HistoricalDataSender(final int id, final Contract stock, final ResponseHandler rh,
 			HistoricalDataClient sock) {
 		this(stock);
-		setCriticalValues(id, rh, sock);
+		initCriticalValues(id, rh, sock);
 	}
 
+	/**
+	 * Execute the Cassandra query to get the data.
+	 */
 	public void init() {
 		data = CassandraDao.getInstance().getData(contract.m_symbol, daysToBackTest, 0,
 				defaultHistoricalDataBarSize);
@@ -91,10 +105,8 @@ public class HistoricalDataSender {
 	}
 
 	/**
-	 * Each bar represents a forward looking 5 second period - thus the // first
-	 * first time is 8:30 and last is 2:55:55 // TODO To simulate realtime data
-	 * need to make up some data points to // send over tickXyz // prior to
-	 * sending bar
+	 * Each bar represents a forward looking 5 second period - thus the first
+	 * time is 8:30 and last is 2:55:55
 	 */
 	public void sendBar() {
 		final Bar bar = data.next();
@@ -106,17 +118,6 @@ public class HistoricalDataSender {
 		handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
 		handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume,
 				bar.wap, bar.tradeCount);
-	}
-
-	public void sendData() {
-
-		LoggerFactory.getLogger("HistoricalData").info(
-				"Sending " + contract.m_symbol + " going back " + daysToBackTest);
-
-		while (hasNext()) {
-			sendBar();
-		}
-		handler.connectionClosed();
 	}
 
 	/**
