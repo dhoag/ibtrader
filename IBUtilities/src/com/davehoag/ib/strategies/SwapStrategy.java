@@ -11,6 +11,13 @@ import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
+/**
+ * Look at two symbols performance over the past period of N 5 second bars.
+ * Enter a position for which ever symbol is performing better.
+ * 
+ * @author David Hoag
+ * 
+ */
 public class SwapStrategy implements Strategy {
 	int intervalSize = 12;
 	HashMap<String, SimpleMovingAvg> trends = new HashMap<String, SimpleMovingAvg>();
@@ -57,8 +64,8 @@ public class SwapStrategy implements Strategy {
 		}
 	}
 
-	private void consider(Bar oneBar, Bar bar, Portfolio holdings, QuoteRouter executionEngine,
-			boolean oneOverTwo) {
+	private void consider(final Bar oneBar, final Bar bar, final Portfolio holdings,
+			final QuoteRouter executionEngine, final boolean oneOverTwo) {
 		Bar betterReturn = bar;
 		Bar lowerReturn = oneBar;
 		if (oneOverTwo) {

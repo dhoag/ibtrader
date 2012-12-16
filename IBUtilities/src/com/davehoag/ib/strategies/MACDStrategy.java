@@ -97,8 +97,7 @@ public class MACDStrategy implements Strategy {
 
 	@Override
 	public void init(String parms) {
-		// TODO Auto-generated method stub
-
+		init();
 	}
 
 }
