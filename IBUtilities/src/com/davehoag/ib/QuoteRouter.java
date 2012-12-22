@@ -31,6 +31,9 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	final String symbol;
 	Portfolio portfolio;
 	long initialTimeStamp;
+	Bar[] localCache = new Bar[5 * (60 / 5) * 60 * 8];
+	int lastIdx = 0;
+	boolean wrapped = false;
 
 	/**
 	 * One strategy, one symbol, one IBClient, and one portfolio per
@@ -86,6 +89,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			final double low, final double close, final long volume, final double wap, final int count) {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
+		pushLatest(bar);
 		updatePortfolioTime(time);
 		portfolio.updatePrice(symbol, close);
 		if( time % (60*30) == 0) { 
@@ -96,6 +100,44 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			strat.newBar(bar, portfolio, this);
 		}
 
+	}
+
+	public Bar[] getBars(final int periods) {
+		if ((periods > localCache.length) || (periods > lastIdx && !wrapped)) {
+			throw new IllegalStateException("Not enough data to fullfill request");
+		}
+		Bar[] result = new Bar[periods];
+		int count = 0;
+		for (int i = lastIdx - 1; i >= Math.max(lastIdx - periods, 0); i--)
+			result[count++] = localCache[i];
+		if (periods > lastIdx) {
+			final int end = localCache.length - count;
+			for (int i = localCache.length - 1; i > end; i--)
+				result[count++] = localCache[i];
+		}
+		return result;
+	}
+	public double[] getVwap(final int periods) {
+		if ((periods > localCache.length) || (periods > lastIdx && !wrapped)) {
+			throw new IllegalStateException("Not enough data to fullfill request");
+		}
+		double[] result = new double[periods];
+		int count = 0;
+		for (int i = lastIdx - 1; i > Math.max(lastIdx - periods, 0); i--)
+			result[count++] = localCache[i].wap;
+		if (periods > lastIdx) {
+			final int end = localCache.length - count;
+			for (int i = localCache.length - 1; i > end; i--)
+				result[count++] = localCache[i].wap;
+		}
+		return result;
+	}
+	protected void pushLatest(final Bar aBar){
+		if (lastIdx == localCache.length) {
+			lastIdx = 0;
+			wrapped = true;
+		}
+		localCache[lastIdx++] = aBar;
 	}
 	/**
 	 * Cancel all of the orders for which we didn't get a confirm message related to the symbol
@@ -133,7 +175,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	/**
 	 * @param time
 	 */
-	final protected void updatePortfolioTime(final long time) {
+	protected void updatePortfolioTime(final long time) {
 		portfolio.setTime(time);
 		//if time is 10 hours beyond the last check, update "yesterday"
 		if(time - initialTimeStamp > (10*60*60)){
