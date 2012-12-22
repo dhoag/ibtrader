@@ -50,12 +50,12 @@ public class BarCache {
 		return result;
 	}
 
-	public double[] getVwapBands(int periods) {
-		double[] vwapList = getVwap(periods);
-		Stat stat = new Stat(vwapList);
-		double stdDev = stat.standardDeviation();
-		double vwap = vwapList[0];
-		double[] result = new double[3];
+	public double[] getVwapBands(final int periods) {
+		final double[] vwapList = getVwap(periods);
+		final Stat stat = new Stat(vwapList);
+		final double stdDev = stat.standardDeviation();
+		final double vwap = vwapList[0];
+		final double[] result = new double[3];
 		result[0] = vwap - stdDev;
 		result[1] = vwap;
 		result[2] = vwap + stdDev;
