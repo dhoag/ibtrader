@@ -401,14 +401,27 @@ public class CassandraDao {
 	}
 
 	/**
+	 * Get the 1 day bar that represents yesterday.
 	 * 
 	 * @param symbol
 	 * @param seconds
 	 *            A timestamp from today. If today is the weekend back it up to
 	 *            Friday.
-	 * @return
+	 * @return null if the data doesn't exist
 	 */
 	public Bar getYesterday(final String symbol, final long seconds) {
+		return getYesterday(symbol, seconds, true);
+	}
+
+	/**
+	 * Enable recursing once to account for holidays.
+	 * 
+	 * @param symbol
+	 * @param seconds
+	 * @param firstTime
+	 * @return
+	 */
+	private Bar getYesterday(final String symbol, final long seconds, final boolean firstTime) {
 		Calendar today = Calendar.getInstance();
 		today.setTimeInMillis(seconds * 1000);
 		long yesterday = seconds - 24 * 60 * 60;
@@ -423,6 +436,9 @@ public class CassandraDao {
 			return bars.next();
 		LoggerFactory.getLogger("HistoricalData").warn(
 				"No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
+		// try going back one more day - could be a holiday.
+		if (firstTime)
+			return getYesterday(symbol, yesterday, false);
 		return null;
 	}
 
