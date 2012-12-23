@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
 	<name>IBUtilities</name>
-	<comment></comment>
+	<comment>simple comment</comment>
 	<projects>
 		<project>IB_9.67</project>
 	</projects>
