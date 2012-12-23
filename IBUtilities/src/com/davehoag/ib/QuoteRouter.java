@@ -166,7 +166,9 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		case TickType.LAST: priceType = "Last"; portfolio.updatePrice(symbol, price ); break;
 		default: priceType = "High,Low,Close";
 		}
-//		System.out.println("Symbol " + symbol + " tickPrice " + tickerId + " " + priceType + " " + price + " " + canAutoExecute );
+		for (Strategy strat : strategies) {
+			strat.tickPrice(symbol, field, price, portfolio, this);
+		}
 		
 	}
 	@Override
@@ -209,6 +211,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		bar.wap = wap;
 		bar.tradeCount = count;
 		return bar;
+	}
+
+	public BarCache getBarCache() {
+		return cache;
+
 	}
 
 }

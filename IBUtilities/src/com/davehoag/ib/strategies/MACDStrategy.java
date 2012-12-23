@@ -99,5 +99,10 @@ public class MACDStrategy implements Strategy {
 	public void init(String parms) {
 		init();
 	}
+	@Override
+	public void tickPrice(String symbol, int field, double price, Portfolio holdings, QuoteRouter executionEngine) {
+		// TODO Auto-generated method stub
+		
+	}
 
 }

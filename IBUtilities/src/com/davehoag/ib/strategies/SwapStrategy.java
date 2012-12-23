@@ -4,9 +4,7 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import com.davehoag.ib.QuoteRouter;
-import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
-import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.SimpleMovingAvg;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -18,7 +16,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  * @author David Hoag
  * 
  */
-public class SwapStrategy implements Strategy {
+public class SwapStrategy extends AbstractStrategy {
 	int intervalSize = 12;
 	HashMap<String, SimpleMovingAvg> trends = new HashMap<String, SimpleMovingAvg>();
 	Double oneDelta;
@@ -44,7 +42,7 @@ public class SwapStrategy implements Strategy {
 		if (HistoricalDateManipulation.isEndOfDay(bar.originalTime)) {
 			if (holdings.getShares(bar.symbol) > 0) {
 				System.out.println("Liquidate " + bar.symbol + " " + holdings.getShares(bar.symbol));
-				sellExistingPosition(bar, holdings, executionEngine);
+				sellExistingPosition(bar.symbol, bar.close, holdings, executionEngine);
 			}
 
 		} else
@@ -76,50 +74,12 @@ public class SwapStrategy implements Strategy {
 		int currentQty = holdings.getShares(betterReturn.symbol);
 		// Need to swap if current holdings are zero
 		if (currentQty == 0) {
-			sellExistingPosition(lowerReturn, holdings, executionEngine);
+			sellExistingPosition(lowerReturn.symbol, lowerReturn.close, holdings, executionEngine);
 			// need a way to wait for confirmation
-			openNewLongPosition(betterReturn, holdings, executionEngine);
+			openNewLongPosition(betterReturn.symbol, betterReturn.close, holdings, executionEngine);
 		}
 	}
 
-	/**
-	 * @param port
-	 * @param best
-	 */
-	protected void openNewLongPosition(final Bar latestBar, final Portfolio port,
-			final QuoteRouter executionEngine) {
-		final double money = port.getCash();
-		final double qtyD = Math.floor(money / (latestBar.close * 100));
-
-		final int buyQty = (int) (qtyD * 100);
-		final LimitOrder order = new LimitOrder(latestBar.symbol, buyQty, latestBar.close, true);
-		QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(latestBar.symbol);
-		exe.executeOrder(order);
-	}
-
-	/**
-	 * Will block until order is confirmed
-	 * 
-	 * @param port
-	 * @param worse
-	 */
-	protected void sellExistingPosition(final Bar latestBar, final Portfolio port,
-			final QuoteRouter executionEngine) {
-		int priorQty = port.getShares(latestBar.symbol);
-
-		if (priorQty != 0) { // sell the losing shares
-			final LimitOrder order = new LimitOrder(latestBar.symbol, priorQty, latestBar.close, false);
-			QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(latestBar.symbol);
-			exe.executeOrder(order);
-			// TODO spin loop less than ideal
-			while (!order.isConfirmed())
-				try {
-					Thread.sleep(500);
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-		}
-	}
 	/**
 	 * if its an interval where we should trade
 	 * 
@@ -157,6 +117,7 @@ public class SwapStrategy implements Strategy {
 
 	@Override
 	public void init(String parms) {
+		maximizeQty();
 		try{
 			intervalSize = Integer.parseInt(parms);
 		} catch (NumberFormatException ex) {
@@ -165,4 +126,9 @@ public class SwapStrategy implements Strategy {
 		
 	}
 
+	@Override
+	public void tickPrice(String symbol, int field, double price, Portfolio holdings, QuoteRouter executionEngine) {
+		// TODO Auto-generated method stub
+		
+	}
 }

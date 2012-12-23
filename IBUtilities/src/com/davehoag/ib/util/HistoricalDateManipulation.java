@@ -105,7 +105,10 @@ public class HistoricalDateManipulation {
 		final int hour = cal.get(Calendar.DAY_OF_MONTH);
 		return hour;
 	}
+	
 	/**
+	 * Given a bar comes out at the end of the period need to be 5 seconds ahead
+	 * of the last bar. Market is closed when last bar comes.
 	 * 
 	 * @param time
 	 * @return
@@ -117,7 +120,7 @@ public class HistoricalDateManipulation {
 		final int hour = cal.get(Calendar.HOUR_OF_DAY);
 		final int minutes = cal.get(Calendar.MINUTE);
 		final int seconds = cal.get(Calendar.SECOND);
-		return(hour == 14 && minutes == 59 && seconds == 55);
+		return (hour == 14 && minutes == 59 && seconds == 50);
 	}
 	/**
 	 * Convert string value into a starting time 

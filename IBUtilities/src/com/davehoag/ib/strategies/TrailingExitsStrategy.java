@@ -99,4 +99,9 @@ public class TrailingExitsStrategy implements Strategy {
 		// TODO Auto-generated method stub
 
 	}
+	@Override
+	public void tickPrice(String symbol, int field, double price, Portfolio holdings, QuoteRouter executionEngine) {
+		// TODO Auto-generated method stub
+		
+	}
 }

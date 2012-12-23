@@ -40,7 +40,8 @@ public class BarCache {
 		}
 		double[] result = new double[periods];
 		int count = 0;
-		for (int i = lastIdx - 1; i > Math.max(lastIdx - periods, 0); i--)
+		final int lowerBounds = Math.max(lastIdx - periods, 0);
+		for (int i = lastIdx - 1; i >= lowerBounds; i--)
 			result[count++] = localCache[i].wap;
 		if (periods > lastIdx) {
 			final int end = localCache.length - count;
