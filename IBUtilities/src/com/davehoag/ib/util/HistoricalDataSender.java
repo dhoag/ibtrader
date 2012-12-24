@@ -164,11 +164,17 @@ public class HistoricalDataSender {
 			} else {
 				addLimitOrder(id, contract, order);
 			}
-		} else if (order.m_orderType.equals("TRAIL")) {
+		}
+		else
+			if (order.m_orderType.equals("TRAIL")) {
 			// Always book trail orders - they should be filled filled by check
 			// resting orders
 			addLimitOrder(id, order);
 		}
+			else
+				if ("STPLMT".equals(order.m_orderType)) {
+					addLimitOrder(id, order);
+				}
 		return false;
 	}
 
