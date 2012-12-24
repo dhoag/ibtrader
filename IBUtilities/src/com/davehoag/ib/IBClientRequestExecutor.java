@@ -190,7 +190,8 @@ public class IBClientRequestExecutor {
 			order.m_trailingPercent = stopOrder.getPrice();
 		}
 		else{
-			throw new UnsupportedOperationException("Only trailing orders are currently supported");
+			order.m_orderType = "STPLMT";
+			order.m_auxPrice = order.m_lmtPrice;
 		}
 		order.m_totalQuantity = stopOrder.getShares();
 

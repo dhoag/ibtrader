@@ -23,6 +23,10 @@ public class OrderOnBook{
 	}
 	public boolean isTrail(){ return "TRAIL".equals(getType()); }
 	public boolean isLimit(){ return "LMT".equals(getType()); }
+
+	public boolean isStpLimit() {
+		return "STPLMT".equals(getType());
+	}
 	public boolean isBuy(){ return "BUY".equals( lmtOrder.m_action); }
 	public double getLimitPrice(){ return lmtOrder.m_lmtPrice; }
 	public double getTrailPercent(){ return lmtOrder.m_trailingPercent; }
@@ -45,11 +49,13 @@ public class OrderOnBook{
 			return isExecutable(getLimitPrice(), isBuy(), mktPrice);
 		}
 		else
-		if( isTrail() ){
-			final double thresholdPrice = isBuy() ? high : low;
-			//check for trigger, pretend the market is the order price and the order is the market
-			if(isExecutable(thresholdPrice, isBuy(), getLimitPrice())) return true;
+			if (isTrail() || isStpLimit()) {
+				final double thresholdPrice = isBuy() ? high : low;
+				// check for trigger, pretend the market is the order price and
+				// the order is the market
+				if (isExecutable(thresholdPrice, isBuy(), getLimitPrice())) return true;
 		}
+
 		return false;
 	}
 }
