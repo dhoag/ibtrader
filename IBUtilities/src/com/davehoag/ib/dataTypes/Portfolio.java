@@ -148,6 +148,10 @@ public class Portfolio {
 		}
 		return result;
 	}
+
+	public LimitOrder getOrder(int orderId) {
+		return orders.get(orderId);
+	}
 	/**
 	 * Confirm orders for the given symbol
 	 * @param orderId
@@ -276,7 +280,7 @@ public class Portfolio {
 	 * Record that there is a pending order out there that may or may not ever get hit
 	 * @param stopLoss
 	 */
-	public void stopOrder(LimitOrder stopLoss) {
+	public void stopOrder(final LimitOrder stopLoss) {
 		orders.put(stopLoss.getId(), stopLoss);
 	}
 	/**

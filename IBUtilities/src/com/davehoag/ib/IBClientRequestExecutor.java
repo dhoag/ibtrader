@@ -33,6 +33,7 @@ public class IBClientRequestExecutor {
 	int requests = 0;
 	final HashMap<Integer, ResponseHandlerDelegate> map = new HashMap<Integer, ResponseHandlerDelegate>();
 	final ResponseHandler responseHandler;
+	int orderIdCounter;
 	/**
 	 * Helper method to bootstrap conenction to the client.
 	 * @return
@@ -154,8 +155,8 @@ public class IBClientRequestExecutor {
 	protected Order createPrimaryOrder(final boolean buy, final String symbol, final int qty,
 			final double price, final ResponseHandlerDelegate rh) {
 		Order order = new Order();
-		order.m_permId = (((int)(System.currentTimeMillis() / 1000)) << 2);
-
+		order.m_permId = (((int) (System.currentTimeMillis() / 1000)) << 4);
+		order.m_permId += (orderIdCounter++ % 16);
 		order.m_orderId = order.m_permId;
 		
 		pushResponseHandler(order.m_orderId, rh);
@@ -179,7 +180,7 @@ public class IBClientRequestExecutor {
 	 */
 	protected Order createStopOrder(final LimitOrder stopOrder, final int primaryOrderId, final ResponseHandlerDelegate rh){
 		Order order = new Order();
-		order.m_permId = primaryOrderId + 1;
+		order.m_permId = primaryOrderId + (orderIdCounter++ % 16);
 		order.m_orderId = order.m_permId;
 		pushResponseHandler(order.m_orderId, rh);
 
@@ -191,7 +192,8 @@ public class IBClientRequestExecutor {
 		}
 		else{
 			order.m_orderType = "STPLMT";
-			order.m_auxPrice = order.m_lmtPrice;
+			order.m_auxPrice = stopOrder.getPrice();
+			order.m_lmtPrice = order.m_auxPrice;
 		}
 		order.m_totalQuantity = stopOrder.getShares();
 

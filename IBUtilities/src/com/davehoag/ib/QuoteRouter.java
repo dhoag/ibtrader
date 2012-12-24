@@ -218,4 +218,8 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 
 	}
 
+	public void cancelOrder(final LimitOrder stopLoss) {
+		requester.cancelOrder(stopLoss.getId());
+	}
+
 }

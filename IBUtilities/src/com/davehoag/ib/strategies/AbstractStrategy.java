@@ -1,5 +1,9 @@
 package com.davehoag.ib.strategies;
 
+import java.util.Iterator;
+
+import org.slf4j.LoggerFactory;
+
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.LimitOrder;
@@ -40,6 +44,18 @@ public abstract class AbstractStrategy implements Strategy {
 		if (priorQty != 0)
 			return; // already have long position
 
+		final LimitOrder order = getBuyLimitOrder(symbol, price, port);
+		QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(symbol);
+		exe.executeOrder(order);
+	}
+
+	/**
+	 * @param symbol
+	 * @param price
+	 * @param port
+	 * @return
+	 */
+	protected LimitOrder getBuyLimitOrder(final String symbol, final double price, final Portfolio port) {
 		int buyQty = qty;
 		if (maxQty) {
 			final double money = port.getCash();
@@ -48,8 +64,7 @@ public abstract class AbstractStrategy implements Strategy {
 			buyQty = (int) (qtyD * 100);
 		}
 		final LimitOrder order = new LimitOrder(symbol, buyQty, price, true);
-		QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(symbol);
-		exe.executeOrder(order);
+		return order;
 	}
 
 	/**
@@ -61,8 +76,9 @@ public abstract class AbstractStrategy implements Strategy {
 	protected void sellExistingPosition(final String symbol, final double price, final Portfolio port,
 			final QuoteRouter executionEngine) {
 		int priorQty = port.getShares(symbol);
-	
+
 		if (priorQty != 0) { // sell the losing shares
+			LimitOrder original = getOnsetTrade(symbol, port);
 			final LimitOrder order = new LimitOrder(symbol, priorQty, price, false);
 			QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(symbol);
 			exe.executeOrder(order);
@@ -70,10 +86,35 @@ public abstract class AbstractStrategy implements Strategy {
 			while (!order.isConfirmed())
 				try {
 					Thread.sleep(500);
+					System.out.println("Waiting on position liquidation!! Shouldn't have to wait!");
+
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
+			final LimitOrder stopLoss = original.getStopLoss();
+			if (stopLoss != null) executionEngine.cancelOrder(stopLoss);
 		}
+
+	}
+
+	/**
+	 * @param symbol
+	 * @param port
+	 */
+	protected LimitOrder getOnsetTrade(final String symbol, final Portfolio port) {
+		LimitOrder original = null;
+		Iterator<LimitOrder> onePosition = port.getPositionsToUnwind(symbol);
+		if (onePosition.hasNext()) {
+			original = onePosition.next();
+			if (onePosition.hasNext())
+				LoggerFactory.getLogger("Strategy").error(
+						"There should be only one open trade to offset when selling existing positions");
+		}
+		else {
+			LoggerFactory.getLogger("Strategy").error(
+					"There should be an open trade to offset when selling existing positions");
+		}
+		return original;
 	}
 
 }

@@ -8,6 +8,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.log4j.Logger;
 
 import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.dataTypes.LimitOrder;
 import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
 import com.ib.client.Execution;
@@ -26,7 +27,27 @@ public class HistoricalDataClient extends EClientSocket {
 
 	public ExecutorService service = Executors.newFixedThreadPool(10);
 
+	@Override
+	public void cancelOrder(final int id) {
+		LimitOrder lmtOrder = rh.getPortfolio().getOrder(id);
+		if (lmtOrder == null) throw new IllegalStateException("[" + id + "] Canceling order we don't have:");
+		final HistoricalDataSender sender = mktDataFeed.get(lmtOrder.getSymbol());
 
+		sender.cancelOrder(lmtOrder);
+		String status = "Cancelled";
+		int filled = 0;
+		int remaining = 0;
+		double avgFillPrice = 0;
+		int permId = id;
+		int parentId = 0;
+		double lastFillPrice = 0;
+		int clientId = 0;
+		String whyHeld = null;
+
+		rh.orderStatus(id, status, filled, remaining, avgFillPrice, permId, parentId, lastFillPrice,
+				clientId, whyHeld);
+
+	}
 	/**
 	 * 
 	 * @param anyWrapper

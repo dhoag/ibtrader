@@ -9,6 +9,7 @@ import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
+import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.OrderOnBook;
 import com.ib.client.Contract;
 import com.ib.client.Order;
@@ -204,12 +205,24 @@ public class HistoricalDataSender {
 	}
 
 	public synchronized void addLimitOrder(final int id, final Contract lmtContract, final Order order) {
-		LoggerFactory.getLogger("Trading").info("booking order!");
-		restingOrders.add(getOrderOnBook(id, lmtContract, order));
+		final OrderOnBook oob = getOrderOnBook(id, lmtContract, order);
+		LoggerFactory.getLogger("Trading").info(oob + " BOOKED");
+		restingOrders.add(oob);
 	}
 
 	OrderOnBook getOrderOnBook(final int id, final Contract lmtContract, final Order order) {
 		return new OrderOnBook(id, lmtContract, order, lastBar.close);
+	}
+
+	public void cancelOrder(final LimitOrder lmtOrder) {
+		for (OrderOnBook ord : restingOrders) {
+			if (lmtOrder.getId() == ord.orderId) {
+				LoggerFactory.getLogger("Trading").info(ord + " CANCEL");
+				restingOrders.remove(ord);
+				return;
+			}
+		}
+		throw new IllegalStateException("Tried to cancel an order that doesn't exist");
 	}
 
 }

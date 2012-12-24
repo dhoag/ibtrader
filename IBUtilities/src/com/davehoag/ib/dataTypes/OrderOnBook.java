@@ -7,6 +7,11 @@ public class OrderOnBook{
 	final public int orderId;
 	final public Contract lmtContract;
 	final public Order lmtOrder;
+
+	@Override
+	public String toString(){
+		return "[" + orderId + "] " + getType() + " " + lmtContract.m_symbol + " " + lmtOrder.m_lmtPrice;
+	}
 	public OrderOnBook(final int id, final Contract c, final Order o, final double close){
 		orderId = id;
 		lmtContract = c;

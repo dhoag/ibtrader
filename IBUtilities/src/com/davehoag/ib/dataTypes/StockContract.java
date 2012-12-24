@@ -29,4 +29,9 @@ public class StockContract extends Contract {
 	   public String getIdentifier(){
 		   return m_secType + '.' + m_symbol;
 	   }
+
+	@Override
+	public String toString() {
+		return TYPE + ":" + m_symbol;
+	}
 }

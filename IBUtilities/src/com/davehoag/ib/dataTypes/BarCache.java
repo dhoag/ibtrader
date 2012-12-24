@@ -66,4 +66,10 @@ public class BarCache {
 		result[2] = vwap + stdDev;
 		return result;
 	}
+
+	public void clear() {
+		wrapped = false;
+		lastIdx = 0;
+
+	}
 }
