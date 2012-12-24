@@ -38,6 +38,7 @@ public class HistoricalDataSender {
 	ArrayList<OrderOnBook> restingOrders;
 	Bar lastBar;
 	BarIterator data;
+	double lastPrice;
 	// Keep a cache around to enable reuse between strategy testing
 	protected static HashMap<String, HistoricalDataSender> cache = new HashMap<String, HistoricalDataSender>();
 
@@ -112,9 +113,13 @@ public class HistoricalDataSender {
 		final Bar bar = data.next();
 		checkRestingOrders(bar);
 		lastBar = bar;
+		lastPrice = bar.open;
 		handler.tickPrice(reqId, TickType.LAST, bar.open, 0);
+		lastPrice = bar.high;
 		handler.tickPrice(reqId, TickType.LAST, bar.high, 0);
+		lastPrice = bar.low;
 		handler.tickPrice(reqId, TickType.LAST, bar.low, 0);
+		lastPrice = bar.close;
 		handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
 		handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume,
 				bar.wap, bar.tradeCount);
@@ -177,7 +182,7 @@ public class HistoricalDataSender {
 	}
 
 	public boolean isExecutable(final double price, final boolean isBuy) {
-		return isExecutable(price, isBuy, lastBar.close);
+		return isExecutable(price, isBuy, lastPrice);
 	}
 
 	public boolean isExecutable(final double price, final boolean isBuy, final double mktPrice) {
