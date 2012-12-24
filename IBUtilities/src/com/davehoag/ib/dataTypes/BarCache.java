@@ -11,6 +11,8 @@ public class BarCache {
 	}
 
 	public void pushLatest(final Bar aBar) {
+		if (aBar == null)
+			throw new IllegalArgumentException("aBar must not be null");
 		if (lastIdx == localCache.length) {
 			lastIdx = 0;
 			wrapped = true;
@@ -27,9 +29,10 @@ public class BarCache {
 		for (int i = lastIdx - 1; i >= Math.max(lastIdx - periods, 0); i--)
 			result[count++] = localCache[i];
 		if (periods > lastIdx) {
-			final int end = localCache.length - count;
-			for (int i = localCache.length - 1; i > end; i--)
+			final int end = localCache.length - (periods - count);
+			for (int i = localCache.length - 1; i >= end; i--) {
 				result[count++] = localCache[i];
+			}
 		}
 		return result;
 	}
@@ -44,9 +47,10 @@ public class BarCache {
 		for (int i = lastIdx - 1; i >= lowerBounds; i--)
 			result[count++] = localCache[i].wap;
 		if (periods > lastIdx) {
-			final int end = localCache.length - count;
-			for (int i = localCache.length - 1; i > end; i--)
+			final int end = localCache.length - (periods - count);
+			for (int i = localCache.length - 1; i >= end; i--) {
 				result[count++] = localCache[i].wap;
+			}
 		}
 		return result;
 	}

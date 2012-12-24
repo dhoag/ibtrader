@@ -62,6 +62,23 @@ public class BarCacheTest {
 		assertEquals(5 * 9, vals[0], .01);
 		assertEquals(4 * 9, vals[1], .01);
 	}
+
+	@Test
+	public void testWrapping() {
+		BarCache qr = new BarCache();
+		qr.localCache = new Bar[12];
+
+		send5bars(qr);
+		send5bars(qr);
+		send5bars(qr);
+		send5bars(qr);
+		send5bars(qr);
+		send5bars(qr);
+		double[] vals = qr.getVwap(8);
+		assertEquals(8, vals.length);
+		assertEquals(5 * 9, vals[0], .01);
+		assertEquals(4 * 9, vals[1], .01);
+	}
 	/**
 	 * @param qr
 	 */
