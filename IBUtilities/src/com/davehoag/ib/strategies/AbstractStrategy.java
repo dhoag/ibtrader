@@ -1,5 +1,6 @@
 package com.davehoag.ib.strategies;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,19 @@ public abstract class AbstractStrategy implements Strategy {
 	public void init(final String parms) {
 	}
 
+	protected ArrayList<String> getParms(final String ori) {
+		ArrayList<String> result = new ArrayList<String>();
+		int idx = ori.indexOf(',');
+		String remaining = ori;
+		while (idx > 0) {
+			String val = remaining.substring(0, idx);
+			result.add(val);
+			remaining = remaining.substring(idx + 1);
+			idx = remaining.indexOf(',');
+		}
+		result.add(remaining);
+		return result;
+	}
 	/**
 	 * @param port
 	 * @param best

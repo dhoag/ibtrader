@@ -6,10 +6,17 @@ public class BarCache {
 	Bar[] localCache = new Bar[5 * (60 / 5) * 60 * 8];
 	int lastIdx = 0;
 	boolean wrapped = false;
+	double stdDevFactor = 1;
 
 	public BarCache() {
 	}
 
+	public void setStdDevFactor(final double d) {
+		stdDevFactor = d;
+	}
+	public boolean isInitialized(final int periods) {
+		return periods < lastIdx || wrapped;
+	}
 	public void pushLatest(final Bar aBar) {
 		if (aBar == null)
 			throw new IllegalArgumentException("aBar must not be null");
@@ -55,16 +62,30 @@ public class BarCache {
 		return result;
 	}
 
-	public double[] getVwapBands(final int periods) {
+
+	public double getVolatility(final int periods) {
+		Bar[] bars = getBars(periods);
+		double[] data = new double[bars.length * 5];
+		int count = 0;
+		for (Bar aBar : bars) {
+			data[count++] = aBar.open;
+			data[count++] = aBar.low;
+			data[count++] = aBar.wap;
+			data[count++] = aBar.high;
+			data[count++] = aBar.close;
+		}
+		return Stat.volatilityPerCentChange(data) / 100;
+	}
+	public PriceBands getVwapBands(final int periods) {
 		final double[] vwapList = getVwap(periods);
 		final Stat stat = new Stat(vwapList);
-		final double stdDev = stat.standardDeviation();
+		final double stdDev = stat.standardDeviation() * stdDevFactor;
 		final double vwap = vwapList[0];
 		final double[] result = new double[3];
 		result[0] = vwap - stdDev;
 		result[1] = vwap;
 		result[2] = vwap + stdDev;
-		return result;
+		return new PriceBands(result);
 	}
 
 	public void clear() {
