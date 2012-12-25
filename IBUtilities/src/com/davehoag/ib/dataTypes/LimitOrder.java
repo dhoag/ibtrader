@@ -16,6 +16,7 @@ public class LimitOrder implements Cloneable {
 	LimitOrder stopLoss;
 	int id;
 	boolean trail = false;
+	boolean stop = false;
 	boolean confirmed = false;
 	long timeConfirmed;
 	Order ibOrder;
@@ -68,8 +69,12 @@ public class LimitOrder implements Cloneable {
 
 	public void markAsTrailingOrder() {
 		trail = true;
+		stop = true;
 	}
 
+	public void markAsStop() {
+		stop = true;
+	}
 	public void markAsCloseMultiple() {
 		closeMultiple = true;
 	}
@@ -114,7 +119,7 @@ public class LimitOrder implements Cloneable {
 		return round2(result);
 	}
 
-	public static double round2(double num) {
+	double round2(double num) {
 		double result = num * 100;
 		result = Math.round(result);
 		result = result / 100;
@@ -139,8 +144,12 @@ public class LimitOrder implements Cloneable {
 
 	public void setStopLoss(final LimitOrder order) {
 		stopLoss = order;
+		order.markAsStop();
 	}
 
+	public boolean isStop() {
+		return stop;
+	}
 	@Override
 	public LimitOrder clone() {
 		try {

@@ -166,7 +166,7 @@ public class Portfolio {
 			//set to the actual fill price, may be different than order price
 			order.setPrice(price);
 			//did this bypass the placedOrder method and thus the portfolio accounting?
-			if(order.isTrail()){
+			if(order.isStop()){
 				placedOrder(order);
 			}
 		}
