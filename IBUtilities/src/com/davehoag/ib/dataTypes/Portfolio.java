@@ -62,15 +62,16 @@ public class Portfolio {
 		LoggerFactory.getLogger(strategyName).info(
 				"Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: "
 						+ nf.format(profit));
-        
-		double dmin = Fmath.minimum(results);
-        double dmax = Fmath.maximum(results);
-        double span = dmax - dmin;
-		double [][] hist = Stat.histogramBins(results, span / 10);
-		double [] cols = hist[0];
-		double [] count = hist[1];
-		for(int i1 = 0; i1 < cols.length; i1++){
-			LoggerFactory.getLogger(strategyName).info(nf.format(cols[i1]) + " " + count[i1]);
+		if (results.length > 0) {
+			double dmin = Fmath.minimum(results);
+			double dmax = Fmath.maximum(results);
+			double span = dmax - dmin;
+			double[][] hist = Stat.histogramBins(results, span / 10);
+			double[] cols = hist[0];
+			double[] count = hist[1];
+			for (int i1 = 0; i1 < cols.length; i1++) {
+				LoggerFactory.getLogger(strategyName).info(nf.format(cols[i1]) + " " + count[i1]);
+			}
 		}
 		
 		LoggerFactory.getLogger(strategyName).info( "Drawdown " + maxDrawdown );
