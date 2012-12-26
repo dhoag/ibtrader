@@ -1,5 +1,9 @@
 package com.davehoag.ib.dataTypes;
 
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,20 +49,62 @@ public class Portfolio {
 		LoggerFactory.getLogger("Portfolio").info("Overall value: " + getNetValue());
 		dumpLog();
 	}
+
+	protected void writeTradeDetails(final String strategyName) {
+		NumberFormat nf = new DecimalFormat("#.##");
+		FileWriter fw = null;
+		try {
+			fw = new FileWriter("trades-" + strategyName + ".csv");
+			BufferedWriter bw = new BufferedWriter(fw);
+			for (LimitOrder closingOrder : openCloseLog) {
+				final double tradeProfit = closingOrder.getProfit();
+				bw.write(closingOrder.getSymbol());
+				bw.write(",");
+				bw.write(String.valueOf(closingOrder.getOnset().getShares()));
+				bw.write(",");
+				bw.write(HistoricalDateManipulation.getDateAsStr(closingOrder.getOnset().getPortfolioTime()));
+				bw.write(",");
+				bw.write(nf.format(closingOrder.getOnset().getPrice()));
+				bw.write(",");
+				bw.write(HistoricalDateManipulation.getDateAsStr(closingOrder.getPortfolioTime()));
+				bw.write(",");
+				bw.write(nf.format(closingOrder.getPrice()));
+				bw.write(",");
+				bw.write(String.valueOf(nf.format(tradeProfit)));
+				bw.write("\n");
+			}
+			bw.flush();
+			bw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} finally {
+			if (fw != null) {
+				try {
+					fw.close();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
 	/**
 	 */
-	public void displayTradeStats(String strategyName){
+	public void displayTradeStats(final String strategyName) {
 		NumberFormat nf = NumberFormat.getCurrencyInstance();
 		double profit = 0;
 		int winningTrades = 0;
 		double [] results = new double [openCloseLog.size()];
 		int i = 0;
+		writeTradeDetails(strategyName);
 		for(LimitOrder closingOrder : openCloseLog){
 			final double tradeProfit =closingOrder.getProfit();
 			results[i++] = tradeProfit;
 			profit += tradeProfit;
 			if(tradeProfit > 0) winningTrades++;
 		}
+
 		LoggerFactory.getLogger(strategyName).info(
 				"Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: "
 						+ nf.format(profit));
@@ -166,6 +212,7 @@ public class Portfolio {
 			order.confirm();
 			//set to the actual fill price, may be different than order price
 			order.setPrice(price);
+			order.setPortfolioTime(currentTime);
 			//did this bypass the placedOrder method and thus the portfolio accounting?
 			if(order.isStop()){
 				placedOrder(order);
@@ -224,7 +271,7 @@ public class Portfolio {
 			int sellQty= lmtOrder.getShares();
 			LimitOrder closingOrder = lmtOrder;
 			while(closedQty < sellQty){
-				LimitOrder unwound = positionToUnwind.get(lmtOrder.getSymbol()).pop();
+				final LimitOrder unwound = positionToUnwind.get(lmtOrder.getSymbol()).pop();
 				if(unwound.getShares() != sellQty && ! risk.allowRebuys) throw new IllegalStateException("Should only be selling the qty we bought");
 				openCloseLog.add(closingOrder);
 				closedQty += unwound.getShares();

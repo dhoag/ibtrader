@@ -22,6 +22,7 @@ public class LimitOrder implements Cloneable {
 	Order ibOrder;
 	LimitOrder onset;
 	boolean closeMultiple = false;
+	long portfolioTime;
 
 	@Override
 	public String toString() {
@@ -157,5 +158,19 @@ public class LimitOrder implements Cloneable {
 			return result;
 		} catch (CloneNotSupportedException ex) {}
 		return null;
+	}
+
+	public void setPortfolioTime(long time) {
+		portfolioTime = time;
+	}
+
+	/**
+	 * Helpful when backtesting - use the prior date as the timestamp for this
+	 * trade
+	 * 
+	 * @return
+	 */
+	public long getPortfolioTime() {
+		return portfolioTime;
 	}
 }
