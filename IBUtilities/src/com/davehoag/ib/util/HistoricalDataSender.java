@@ -126,9 +126,16 @@ public class HistoricalDataSender {
 	 * @param bar
 	 */
 	protected void sendTick(final double price) {
-		lastPrice = price;
+		lastPrice = round2(price);
 		checkRestingOrders(lastPrice, lastPrice);
 		handler.tickPrice(reqId, TickType.LAST, lastPrice, 0);
+	}
+
+	double round2(final double num) {
+		double result = num * 100;
+		result = Math.round(result);
+		result = result / 100;
+		return result;
 	}
 
 	/**

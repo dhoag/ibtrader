@@ -91,10 +91,10 @@ public abstract class AbstractStrategy implements Strategy {
 			final QuoteRouter executionEngine) {
 		int priorQty = port.getShares(symbol);
 
-		if (priorQty != 0) { // sell the losing shares
+		if (priorQty != 0) {
 			LimitOrder original = getOnsetTrade(symbol, port);
 			final LimitOrder order = new LimitOrder(symbol, priorQty, price, false);
-			QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(symbol);
+			final QuoteRouter exe = executionEngine.getRequester().getQuoteRouter(symbol);
 			exe.executeOrder(order);
 			// TODO spin loop less than ideal
 			while (!order.isConfirmed())
