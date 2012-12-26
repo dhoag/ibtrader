@@ -1,6 +1,9 @@
 package com.davehoag.ib.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
@@ -12,11 +15,11 @@ import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.TestClientMock;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.StockContract;
-import com.davehoag.ib.util.HistoricalDataSender;
 import com.ib.client.Order;
 
 public class HistoricalDataSenderTest {
 	HistoricalDataSender sender;
+	StockContract lmtContract;
 	int reqId = 4;
 	CaptureHistoricalDataMock rh = new CaptureHistoricalDataMock();
 	
@@ -27,11 +30,13 @@ public class HistoricalDataSenderTest {
 		TestClientMock mock = new TestClientMock(hl);
 		IBClientRequestExecutor req = new IBClientRequestExecutor(mock, hl);
 		req.pushResponseHandler(reqId, rh);
-		sender = new HistoricalDataSender(reqId, null, null, mock);
+		lmtContract = new StockContract("IBM");
+		sender = new HistoricalDataSender(reqId, lmtContract, null, mock);
 		sender.lastBar = new Bar();
 		sender.lastBar.low = 1.5;
 		sender.lastBar.close = 2.0;
 		sender.lastBar.high = 2.5;
+		sender.lastPrice = 2.0;
 	}
 
 	@After
@@ -53,7 +58,7 @@ public class HistoricalDataSenderTest {
 		testAddLimitOrderIntContractOrder();
 		sender.lastBar = new Bar();
 		sender.lastBar.low = 1.5;
-		sender.checkRestingOrders(sender.lastBar);
+		sender.checkRestingOrders(sender.lastBar.low, sender.lastBar.high);
 		assertNotNull(rh.exec);
 	}
 
@@ -68,7 +73,6 @@ public class HistoricalDataSenderTest {
 
 	@Test
 	public void testAddLimitOrderIntContractOrder() {
-		StockContract lmtContract = new StockContract("IBM");
 		Order order = new Order();
 		order.m_action = "BUY";
 		order.m_lmtPrice = 2.0;
@@ -78,7 +82,6 @@ public class HistoricalDataSenderTest {
 	}
 	@Test
 	public void testFillOrBook(){
-		StockContract lmtContract = new StockContract("IBM");
 		Order order = new Order();
 		order.m_action = "BUY";
 		order.m_lmtPrice = 2.0;
@@ -90,13 +93,12 @@ public class HistoricalDataSenderTest {
 		order.m_action = "SELL";
 		order.m_trailingPercent = 1;
 		assertFalse(sender.fillOrBookOrder(reqId, lmtContract, order));
-		sender.checkRestingOrders(sender.lastBar);
+		sender.checkRestingOrders(sender.lastBar.low, sender.lastBar.high);
 		assertEquals(0, sender.restingOrders.size() );
 		assertEquals(1.98, rh.exec.m_price , .001);
 	}
 	@Test
 	public void testTrailingFills(){
-		StockContract lmtContract = new StockContract("IBM");
 		Order order = new Order();
 		order.m_orderType = "TRAIL";
 		order.m_action = "SELL";
@@ -106,7 +108,7 @@ public class HistoricalDataSenderTest {
 		//but, if the price when to 2.5 trail would up to 1.75
 		//and the bar drops to 1.5 it would stop out at 1.75
 		sender.fillOrBookOrder(reqId, lmtContract, order);
-		sender.checkRestingOrders(sender.lastBar);
+		sender.checkRestingOrders(sender.lastBar.low, sender.lastBar.high);
 		assertEquals(1.75, rh.exec.m_price , .001);
 		assertEquals("SELL", rh.exec.m_side);
 	}

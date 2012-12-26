@@ -112,40 +112,45 @@ public class HistoricalDataSender {
 	 */
 	public void sendBar() {
 		final Bar bar = data.next();
-		checkRestingOrders(bar);
 		lastBar = bar;
-		lastPrice = bar.open;
-		handler.tickPrice(reqId, TickType.LAST, bar.open, 0);
-		lastPrice = bar.high;
-		handler.tickPrice(reqId, TickType.LAST, bar.high, 0);
-		lastPrice = bar.low;
-		handler.tickPrice(reqId, TickType.LAST, bar.low, 0);
-		lastPrice = bar.close;
-		handler.tickPrice(reqId, TickType.LAST, bar.close, 0);
+		sendTick(bar.open);
+		sendTick(bar.low);
+		sendTick(bar.wap);
+		sendTick(bar.high);
+		sendTick(bar.wap);
+		sendTick(bar.close);
 		handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume,
 				bar.wap, bar.tradeCount);
+	}
+	/**
+	 * @param bar
+	 */
+	protected void sendTick(final double price) {
+		lastPrice = price;
+		checkRestingOrders(lastPrice, lastPrice);
+		handler.tickPrice(reqId, TickType.LAST, lastPrice, 0);
 	}
 
 	/**
 	 * 
 	 * @param bar
 	 */
-	protected synchronized void checkRestingOrders(final Bar bar) {
+	protected synchronized void checkRestingOrders(final double low, final double high) {
 		final ArrayList<OrderOnBook> executed = new ArrayList<OrderOnBook>();
 		for (OrderOnBook order : restingOrders) {
-			if (order.isTriggered(bar.high, bar.low)) {
+			if (order.isTriggered(high, low)) {
 				executed.add(order);
 				LoggerFactory.getLogger("Trading").debug("Filling a booked limit order ");
 				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 			} else // If its a trailing order we need update the new lmt price
 			if (order.isTrail()) {
-				order.updateTrailingLmtValue(bar.high, bar.low);
-				// check if the swing could have caused an exit
-				if (order.isTriggered(bar.high, bar.low)) {
-					executed.add(order);
-					LoggerFactory.getLogger("Trading").debug("Filling a booked trailing limit order ");
-					client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
-				}
+					order.updateTrailingLmtValue(high, low);
+					// check if the swing could have caused an exit
+					if (order.isTriggered(high, low)) {
+						executed.add(order);
+						LoggerFactory.getLogger("Trading").debug("Filling a booked trailing limit order ");
+						client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
+					}
 			}
 		}
 		restingOrders.removeAll(executed);
