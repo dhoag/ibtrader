@@ -21,8 +21,7 @@ import com.ib.client.Order;
 /**
  * Control all IB client requests
  * 
- * @author dhoag
- * 
+ * @author David Hoag
  */
 public class IBClientRequestExecutor {
 
@@ -211,7 +210,7 @@ public class IBClientRequestExecutor {
 		String testAccountName = "DU132661";
 		int reqId = pushRequest();
 		client.reqAccountUpdates(true, testAccountName);
-		
+		System.err.println("In client initializePortfolio - hard coded account name " + testAccountName);
 	}
 	/**
 	 * Find a unique request id. They are reused and I can only have 31
@@ -522,6 +521,9 @@ public class IBClientRequestExecutor {
 		if (strat == null) {
 			strat = new QuoteRouter(symbol, this, responseHandler.getPortfolio());
 			quoteRouters.put(symbol, strat);
+		}
+		else {
+			strat.setPortfolio(responseHandler.getPortfolio());
 		}
 		return strat;
 	}
