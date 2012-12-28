@@ -1,4 +1,6 @@
 package com.davehoag.ib.chart;
+
+import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Paint;
@@ -15,6 +17,7 @@ import java.util.Date;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 
@@ -78,6 +81,7 @@ public class HistoricalDataChart extends ApplicationFrame {
     JTextField endTF;
     JTextField symbolTF;
     XYPlot pricePlot;
+	CombinedScrollBar scrollBar;
 
     {
         // set a theme using the new shadow generator feature available in
@@ -93,18 +97,15 @@ public class HistoricalDataChart extends ApplicationFrame {
      */
     public HistoricalDataChart(String title) {
         super(title);
-        ChartPanel chartPanel = createPriceVolumePanels();
+		JPanel chartPanel = createPriceVolumePanels();
         chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
         setContentPane(chartPanel);
-        JMenuItem item = new JMenuItem("Refresh");
-        item.addActionListener(getRefreshDelegate());
-        chartPanel.getPopupMenu().add(item);
-        addInputFields();
-        chart.setTitle("I");
+		addInputFields(chartPanel);
     }
     
-    protected void addInputFields(){
-        super.add(new JLabel("Start & End Dates:"));
+	protected void addInputFields(JPanel contentPanel) {
+		JPanel top = new JPanel();
+		top.add(new JLabel("Start & End Dates:"));
         startTF = new JTextField();
         DateFormat df = new SimpleDateFormat( "yyyyMMdd");
         String dateText = df.format(new Date(System.currentTimeMillis()));
@@ -112,18 +113,21 @@ public class HistoricalDataChart extends ApplicationFrame {
         endTF = new JTextField();
         endTF.setText(dateText);
         symbolTF = new JTextField(); symbolTF.setText("QQQ");
-        super.add(startTF); super.add(endTF); super.add(symbolTF);
+		top.add(startTF);
+		top.add(endTF);
+		top.add(symbolTF);
 		stratTF = new JTextField();
 		Dimension minimumSize = new Dimension(1000, 15);
 		stratTF.setMinimumSize(minimumSize);
 		stratTF.setText("SimpleMomentum");
-		super.add(stratTF);
+		top.add(stratTF);
         JButton refresh = new JButton("Get");
         refresh.addActionListener(getRefreshDelegate());
-        super.add(refresh);
+		top.add(refresh);
 		JButton run = new JButton("Run");
 		run.addActionListener(getRunDelegate());
-		super.add(run);
+		top.add(run);
+		contentPanel.add(top, BorderLayout.NORTH);
     }
     /**
      * Create action list to get the historical data
@@ -169,7 +173,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 			long end = closingTrade.getPortfolioTime() * 1000;
 			double top = Math.max(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
 			double bottom = Math.min(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
-			XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(start - 100, bottom - .05,
+			XYShapeAnnotation shape = new XYShapeAnnotation(new Rectangle2D.Double(start - 100, bottom - .05,
 					end
 					- start + 100, top - bottom + .1));
 			System.out.println("X " + (start - 100) + " Y " + (bottom - .05) + " W " + (end - start + 100)
@@ -256,6 +260,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	    	chart.removeLegend();
 	    	
 	    	HistoricalDataChart.this.repaint();
+				scrollBar.updateScrollBarRanges();
     	}
 
 		/**
@@ -294,7 +299,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 	    	}
 		}; };
 	}
-	public ChartPanel createPriceVolumePanels(){
+
+	public JPanel createPriceVolumePanels() {
 		createDataset();
         // Put the chart in a new ChartPanel, set the panel attributes and return it.
         chart = createCustomChart(data, volumeData) ;
@@ -304,7 +310,16 @@ public class HistoricalDataChart extends ApplicationFrame {
 		combinedChartPanel.setPreferredSize( combinedChartPanelDim  );
 		combinedChartPanel.setMouseWheelEnabled(true);
 		panel = combinedChartPanel;
-        return combinedChartPanel;
+
+		JMenuItem item = new JMenuItem("Refresh");
+		item.addActionListener(getRefreshDelegate());
+		panel.getPopupMenu().add(item);
+
+		JPanel scrollPanel = new JPanel(new BorderLayout());
+		scrollPanel.add(scrollBar, BorderLayout.SOUTH);
+		scrollPanel.add(combinedChartPanel, BorderLayout.CENTER);
+		// return combinedChartPanel;
+		return scrollPanel;
 	}
     protected JFreeChart createCustomChart(final OHLCDataset dataset, final TimeSeriesCollection volume ){
       // this.upperDataSet.addSeries( this.priceTimeSeries );
@@ -339,11 +354,14 @@ public class HistoricalDataChart extends ApplicationFrame {
         cplot.setRangePannable(true);
         
 
+		scrollBar = new CombinedScrollBar(cplot);
         // Create the new chart
         
-        JFreeChart jchart = new JFreeChart( "Contract Name", cplot );
+		JFreeChart jchart = new JFreeChart("Contract Name", cplot);
+		jchart.setTitle("");
         ChartUtilities.applyCurrentTheme( jchart );
         jchart.removeLegend();
+
         return jchart;
     }
 

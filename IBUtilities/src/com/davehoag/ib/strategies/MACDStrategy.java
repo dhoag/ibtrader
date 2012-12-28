@@ -1,9 +1,10 @@
 package com.davehoag.ib.strategies;
 
+import java.util.ArrayList;
+
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.QuoteRouter;
-import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -17,7 +18,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  * @author David Hoag
  * 
  */
-public class MACDStrategy implements Strategy {
+public class MACDStrategy extends AbstractStrategy {
 	SimpleMovingAvg sma;
 	SimpleMovingAvg smaTrades;
 	int qty = 100;
@@ -97,6 +98,11 @@ public class MACDStrategy implements Strategy {
 
 	@Override
 	public void init(String parms) {
+		ArrayList<String> vals = super.getParms(parms);
+		if (vals.size() == 2) {
+			slowMovingAvg = Integer.parseInt(vals.get(0));
+			fastMovingAvg = Integer.parseInt(vals.get(1));
+		}
 		init();
 	}
 	@Override
