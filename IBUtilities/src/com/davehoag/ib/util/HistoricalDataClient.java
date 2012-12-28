@@ -69,7 +69,15 @@ public class HistoricalDataClient extends EClientSocket {
 	@Override
 	public void reqRealTimeBars(final int reqId, final Contract stock, final int barSize, final String barType, final boolean rthOnly){
 		if(barSize != 5 ) throw new IllegalArgumentException("Only 5 second bars are supproted");
-		HistoricalDataSender result = HistoricalDataSender.initDataSender(reqId, stock, rh, this);
+
+		HistoricalDataSender result;
+		if (historicalDataEnd != 0) {
+			result = HistoricalDataSender.initDataSender(reqId, stock, rh, this, historicalDataStart,
+					historicalDataEnd);
+		}
+		else {
+			result = HistoricalDataSender.initDataSender(reqId, stock, rh, this);
+		}
 		mktDataFeed.put(stock.m_symbol, result);
 	}
 
@@ -169,5 +177,14 @@ public class HistoricalDataClient extends EClientSocket {
 	@Override
 	public void reqAccountUpdates(final boolean keepGetting, final String accountName){
 		//Do nothing
+	}
+
+	long historicalDataStart;
+	long historicalDataEnd;
+
+	public void setSimulationRange(long startTime, long endTime) {
+		historicalDataEnd = endTime;
+		historicalDataStart = startTime;
+
 	}
 }

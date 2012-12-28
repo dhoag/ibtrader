@@ -50,7 +50,7 @@ public class Portfolio {
 		dumpLog();
 	}
 
-	protected void writeTradeDetails(final String strategyName) {
+	public void writeTradeDetails(final String strategyName) {
 		NumberFormat nf = new DecimalFormat("#.##");
 		FileWriter fw = null;
 		try {
@@ -97,7 +97,7 @@ public class Portfolio {
 		int winningTrades = 0;
 		double [] results = new double [openCloseLog.size()];
 		int i = 0;
-		writeTradeDetails(strategyName);
+
 		for(LimitOrder closingOrder : openCloseLog){
 			final double tradeProfit =closingOrder.getProfit();
 			results[i++] = tradeProfit;
@@ -286,6 +286,18 @@ public class Portfolio {
 			}
 		}
 	}
+
+	public void orderStatus(int orderId, String status, int filled, int remaining, double avgFillPrice,
+			int permId, int parentId, double lastFillPrice, int clientId, String whyHeld) {
+		if ("Cancelled".equals(status)) {
+			LimitOrder ord = getOrder(orderId);
+			if (ord != null) {
+				ord.confirm();
+			}
+			canceledOrder(orderId);
+		}
+
+	}
 	private synchronized void sold(final LimitOrder lmtOrder){
 		final int orderId = lmtOrder.getId();
 		final String symbol = lmtOrder.getSymbol();
@@ -337,5 +349,10 @@ public class Portfolio {
 	 */
 	public void canceledOrder(int id) {
 		orders.remove(id);
+	}
+
+	public ArrayList<LimitOrder> getTrades() {
+
+		return openCloseLog;
 	}
 }

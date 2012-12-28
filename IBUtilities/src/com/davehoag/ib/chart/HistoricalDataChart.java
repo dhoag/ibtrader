@@ -1,5 +1,4 @@
 package com.davehoag.ib.chart;
-import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Paint;
@@ -10,6 +9,7 @@ import java.awt.geom.Rectangle2D;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 import javax.swing.JButton;
@@ -25,6 +25,7 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.StandardChartTheme;
+import org.jfree.chart.annotations.XYAnnotation;
 import org.jfree.chart.annotations.XYShapeAnnotation;
 import org.jfree.chart.axis.DateAxis;
 import org.jfree.chart.axis.NumberAxis;
@@ -54,6 +55,9 @@ import org.jfree.ui.RefineryUtilities;
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
+import com.davehoag.ib.dataTypes.LimitOrder;
+import com.davehoag.ib.dataTypes.Portfolio;
+import com.davehoag.ib.tools.SimulateTrading;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 /**
  * Plot historical data 
@@ -70,6 +74,7 @@ public class HistoricalDataChart extends ApplicationFrame {
     ChartPanel panel;
     JFreeChart chart;
     JTextField startTF;
+	JTextField stratTF;
     JTextField endTF;
     JTextField symbolTF;
     XYPlot pricePlot;
@@ -88,7 +93,7 @@ public class HistoricalDataChart extends ApplicationFrame {
      */
     public HistoricalDataChart(String title) {
         super(title);
-        ChartPanel chartPanel = (ChartPanel) createPriceVolumePanels();
+        ChartPanel chartPanel = createPriceVolumePanels();
         chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
         setContentPane(chartPanel);
         JMenuItem item = new JMenuItem("Refresh");
@@ -108,14 +113,79 @@ public class HistoricalDataChart extends ApplicationFrame {
         endTF.setText(dateText);
         symbolTF = new JTextField(); symbolTF.setText("QQQ");
         super.add(startTF); super.add(endTF); super.add(symbolTF);
+		stratTF = new JTextField();
+		Dimension minimumSize = new Dimension(1000, 15);
+		stratTF.setMinimumSize(minimumSize);
+		stratTF.setText("SimpleMomentum");
+		super.add(stratTF);
         JButton refresh = new JButton("Get");
         refresh.addActionListener(getRefreshDelegate());
         super.add(refresh);
+		JButton run = new JButton("Run");
+		run.addActionListener(getRunDelegate());
+		super.add(run);
     }
     /**
      * Create action list to get the historical data
      * @return
      */
+	protected ActionListener getRunDelegate() {
+		return new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				runStrategy();
+			}
+		};
+	}
+
+	public void runStrategy() {
+		String stratData = stratTF.getText();
+		int idx = stratData.indexOf(":");
+
+		final String strategyName = stratData.substring(0, idx);
+		int idx2 = stratData.indexOf(':', idx + 1);
+		final String initParms = stratData.substring(idx + 1, idx2);
+		final String aSymbol = StringUtils.upperCase(symbolTF.getText());
+		final String startStr = startTF.getText();
+		final String endStr = endTF.getText();
+		final String symbol = symbolTF.getText();
+		try {
+			Portfolio port = SimulateTrading.runSimulation(strategyName, startStr, endStr, symbol, initParms);
+			updateChart(port.getTrades());
+			port.displayTradeStats(strategyName);
+			port.dumpLog();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
+	private void updateChart(ArrayList<LimitOrder> trades) {
+		for (Object obj : pricePlot.getAnnotations()) {
+			XYAnnotation ann = (XYAnnotation) obj;
+			pricePlot.removeAnnotation(ann);
+		}
+		for (LimitOrder closingTrade : trades) {
+			long start = closingTrade.getOnset().getPortfolioTime() * 1000;
+			long end = closingTrade.getPortfolioTime() * 1000;
+			double top = Math.max(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
+			double bottom = Math.min(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
+			XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(start - 100, bottom - .05,
+					end
+					- start + 100, top - bottom + .1));
+			System.out.println("X " + (start - 100) + " Y " + (bottom - .05) + " W " + (end - start + 100)
+					+ " H" + (top - bottom + .1));
+			System.out.println(shape);
+			shape.setToolTipText("" + closingTrade.getOnset().getPrice() + "-" + closingTrade.getPrice());
+			pricePlot.addAnnotation(shape);
+		}
+
+	}
+
+	/**
+	 * Create action list to get the historical data
+	 * 
+	 * @return
+	 */
     protected ActionListener getRefreshDelegate(){
     	return new ActionListener() {
 			@Override
@@ -150,7 +220,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 		data.removeAllSeries();
 		volumeData.removeAllSeries();
 		
-		return new Runnable() { public void run() {
+		return new Runnable() { @Override
+		public void run() {
 			System.out.println("Getting " + aSymbol + " " + HistoricalDateManipulation.getDateAsStr(startTime) + " - " + HistoricalDateManipulation.getDateAsStr(endTime));
 			BarIterator bars = CassandraDao.getInstance().getData(aSymbol, startTime, endTime, "bar5sec");
 			Bar first = null; Bar last = null;
@@ -206,11 +277,11 @@ public class HistoricalDataChart extends ApplicationFrame {
 	    	
 	    	ValueMarker marker = new ValueMarker(markerSpot);
 	    	System.out.println("Adding value marker " + marker.getValue());
-	    	marker.setLabel("Test");
+				marker.setLabel("A longer label of Test");
 	    	marker.setPaint(ChartColor.DARK_BLUE);
 	    	pricePlot.addRangeMarker(marker, Layer.FOREGROUND);
 	    	
-	    	System.out.println("halfway " + halfway);
+				System.out.println("X " + halfway + " Y " + markerSpot + " W " + 100 * 5000 + " H" + .2);
 	    	XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(halfway , markerSpot , 100*5000, .2));
 	    	shape.setToolTipText("Test Text");
 	    	pricePlot.addAnnotation(shape);
@@ -307,7 +378,8 @@ public class HistoricalDataChart extends ApplicationFrame {
         // Create the renderer for the lower plot.
         
         XYBarRenderer lowerRenderer = new XYBarRenderer() {
-          public Paint getItemPaint( int series, int item ) {
+          @Override
+		public Paint getItemPaint( int series, int item ) {
             return Color.black;
           }
         };

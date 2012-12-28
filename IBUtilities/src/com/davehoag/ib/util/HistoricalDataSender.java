@@ -54,15 +54,23 @@ public class HistoricalDataSender {
 	 */
 	public static HistoricalDataSender initDataSender(final int id, final Contract stock,
 			final ResponseHandler rh, final HistoricalDataClient sock) {
+		return initDataSender(id, stock, rh, sock, 0, 0);
+	}
+
+	public static HistoricalDataSender initDataSender(final int id, final Contract stock,
+			final ResponseHandler rh, final HistoricalDataClient sock, final long start, final long end) {
 		HistoricalDataSender result = cache.get(stock.m_symbol);
 		if (result == null) {
 			result = new HistoricalDataSender(id, stock, rh, sock);
-			result.init();
+			result.init(start, end);
 			cache.put(stock.m_symbol, result);
 		} else {
-			// resuse the sender - has the opportunity to eliminate a call to
+			// reuse the sender - has the opportunity to eliminate a call to
 			// Cassandra
-			result.initCriticalValues(id, rh, sock);
+			if (end != 0)
+				result.init(start, end);
+			else
+				result.initCriticalValues(id, rh, sock);
 		}
 		return result;
 	}
@@ -97,9 +105,16 @@ public class HistoricalDataSender {
 	/**
 	 * Execute the Cassandra query to get the data.
 	 */
-	public void init() {
-		data = CassandraDao.getInstance().getData(contract.m_symbol, daysToBackTest, 0,
-				defaultHistoricalDataBarSize);
+	public void init(final long start, final long end) {
+		if(end != 0){
+			data = CassandraDao.getInstance().getData(contract.m_symbol, start, end,
+					defaultHistoricalDataBarSize);
+		}
+		else {
+			data = CassandraDao.getInstance().getData(contract.m_symbol, daysToBackTest, 0,
+					defaultHistoricalDataBarSize);
+			
+		}
 	}
 
 	public boolean hasNext() {

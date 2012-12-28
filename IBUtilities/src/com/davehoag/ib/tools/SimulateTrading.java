@@ -9,8 +9,10 @@ import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.Strategy;
+import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.HistoricalDataSender;
+import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.davehoag.ib.util.ImmediateExecutor;
 
 /**
@@ -68,11 +70,34 @@ public class SimulateTrading {
 				LoggerFactory.getLogger(strategyName).info(
 						"Portfolio " + nf.format(clientInterface.getPortfolio().getNetValue()));
 				clientInterface.getPortfolio().displayTradeStats(strategyName + " " + initParms);
+				clientInterface.getPortfolio().writeTradeDetails(strategyName + "_" + initParms);
 
 			} catch (Throwable t) {
 				t.printStackTrace();
 				System.exit(-1);
 			}
+	}
+
+	public static Portfolio runSimulation(final String strategyName, final String startStr,
+			final String endStr, final String symbol, final String initParms) throws Exception {
+
+		Strategy strategy = (Strategy) Class.forName(
+				"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
+		strategy.init(initParms);
+		final long startTime = HistoricalDateManipulation.getTime(startStr + " 08:30:00");
+		final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:00:00");
+
+		final ResponseHandler rh = new ResponseHandler();
+
+		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		final IBClientRequestExecutor clientInterface = newClientInterface(rh, m_client);
+		m_client.setSimulationRange(startTime, endTime);
+
+		final QuoteRouter quoteSource = clientInterface.getQuoteRouter(symbol);
+		quoteSource.addStrategy(strategy);
+		clientInterface.requestQuotes();
+		clientInterface.close();
+		return clientInterface.getPortfolio();
 	}
 	/**
 	 * @return
@@ -81,6 +106,16 @@ public class SimulateTrading {
 		final ResponseHandler rh = new ResponseHandler();
 
 		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		return newClientInterface(rh, m_client);
+	}
+
+	/**
+	 * @param rh
+	 * @param m_client
+	 * @return
+	 */
+	protected static IBClientRequestExecutor newClientInterface(final ResponseHandler rh,
+			HistoricalDataClient m_client) {
 		rh.setExecutorService(new ImmediateExecutor());
 
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);

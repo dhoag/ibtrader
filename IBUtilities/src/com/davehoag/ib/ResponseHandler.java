@@ -1,10 +1,8 @@
 package com.davehoag.ib;
 
-import java.lang.reflect.Array;
-import java.util.ArrayDeque;
-import java.util.Queue;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
 import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -100,6 +98,7 @@ public class ResponseHandler implements EWrapper {
 	public void tickPrice(final int tickerId, final int field, final double price,
 			final int canAutoExecute) {
 		final Runnable r = new Runnable(){
+			@Override
 			public void run(){
 				EWrapper ew = requester.getResponseHandler(tickerId);
 				
@@ -113,6 +112,7 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void tickSize(final int tickerId, final int field, final int size) {
 		final Runnable r = new Runnable(){
+			@Override
 			public void run(){
 				EWrapper ew = requester.getResponseHandler(tickerId);
 				if(ew != null) ew.tickSize(tickerId, field, size);
@@ -127,6 +127,7 @@ public class ResponseHandler implements EWrapper {
 			final double pvDividend, final double gamma, final double vega, final double theta,
 			final double undPrice) {
 		final Runnable r = new Runnable(){
+			@Override
 			public void run(){
 				EWrapper ew = requester.getResponseHandler(tickerId);
 				
@@ -139,6 +140,7 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void tickGeneric(final int tickerId, final int tickType, final double value) {
 		final Runnable r = new Runnable(){
+			@Override
 			public void run(){
 				EWrapper ew = requester.getResponseHandler(tickerId);
 				if(ew != null) ew.tickGeneric(tickerId, tickType, value);
@@ -151,6 +153,7 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void tickString(final int tickerId, final int tickType, final String value) {
 		final Runnable r = new Runnable(){
+			@Override
 			public void run(){
 				
 				EWrapper ew = requester.getResponseHandler(tickerId);
@@ -174,7 +177,9 @@ public class ResponseHandler implements EWrapper {
 	public void orderStatus(int orderId, String status, int filled,
 			int remaining, double avgFillPrice, int permId, int parentId,
 			double lastFillPrice, int clientId, String whyHeld) {
-		// TODO Auto-generated method stub
+
+		getPortfolio().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId,
+				lastFillPrice, clientId, whyHeld);
 
 	}
 
@@ -182,6 +187,7 @@ public class ResponseHandler implements EWrapper {
 	public void openOrder(final int orderId, final Contract contract, final Order order,
 			final OrderState orderState) {
 		Runnable r = new Runnable(){
+			@Override
 			public void run(){ 
 				//delegate to the registered handler
 				//TODO figure out the response handler based on orderid
@@ -257,6 +263,7 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		Runnable r = new Runnable(){
+			@Override
 			public void run(){
 				EWrapper ew = requester.getResponseHandler(reqId);
 				
@@ -355,6 +362,7 @@ public class ResponseHandler implements EWrapper {
 	public void realtimeBar(final int reqId, final long time, final double open, final double high,
 			final double low, final double close, final long volume, final double wap, final int count) {
 		Runnable r = new Runnable(){
+			@Override
 			public void run(){ 
 				//delegate to the registered handler
 				final ResponseHandlerDelegate ew = requester.getResponseHandler(reqId);
