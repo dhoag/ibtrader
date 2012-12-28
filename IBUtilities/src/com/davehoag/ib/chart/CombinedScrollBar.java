@@ -35,7 +35,6 @@ public class CombinedScrollBar extends JScrollBar implements AdjustmentListener,
 		dateAxis = (DateAxis) combinedDomainPlot.getDomainAxis();
 		int min = (int) (dateAxis.getLowerBound() / SCALER);
 		int max = (int) (dateAxis.getUpperBound() / SCALER);
-		System.out.println("MIN " + min + " " + max);
 		setValues(max, 0, min, max);
 
 		dateAxis.addChangeListener(this);
