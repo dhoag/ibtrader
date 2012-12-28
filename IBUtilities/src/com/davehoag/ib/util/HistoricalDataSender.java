@@ -67,10 +67,8 @@ public class HistoricalDataSender {
 		} else {
 			// reuse the sender - has the opportunity to eliminate a call to
 			// Cassandra
-			if (end != 0)
-				result.init(start, end);
-			else
-				result.initCriticalValues(id, rh, sock);
+			if (end != 0) result.init(start, end);
+			result.initCriticalValues(id, rh, sock);
 		}
 		return result;
 	}
