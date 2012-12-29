@@ -40,6 +40,7 @@ import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.HighLowRenderer;
+import org.jfree.chart.renderer.xy.SamplingXYLineRenderer;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
 import org.jfree.data.time.Second;
@@ -56,6 +57,7 @@ import org.jfree.ui.Layer;
 import org.jfree.ui.RefineryUtilities;
 
 import com.davehoag.ib.CassandraDao;
+import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
 import com.davehoag.ib.dataTypes.LimitOrder;
@@ -70,6 +72,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  * 
  */
 public class HistoricalDataChart extends ApplicationFrame {
+	Strategy currentStrategy;
 	private static final long serialVersionUID = 1L;
 	private static final double barWidth = 3.0;
 	OHLCSeriesCollection data;
@@ -84,6 +87,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	JTextField symbolTF;
 	XYPlot pricePlot;
 	CombinedScrollBar scrollBar;
+	Strategy strategy;
 
 	{
 		// set a theme using the new shadow generator feature available in
@@ -148,19 +152,33 @@ public class HistoricalDataChart extends ApplicationFrame {
 		};
 	}
 
-	public void runStrategy() {
-		String stratData = stratTF.getText();
-		int idx = stratData.indexOf(":");
+	public String getStrategyName() {
+		String strategyName = stratTF.getText();
+		int idx = strategyName.indexOf(":");
+		if (idx > 0) {
+			strategyName = strategyName.substring(0, idx);
+		}
+		return strategyName;
+	}
 
-		final String strategyName = stratData.substring(0, idx);
-		int idx2 = stratData.indexOf(':', idx + 1);
-		final String initParms = stratData.substring(idx + 1, idx2);
+	public String getStrategyParms() {
+		String strategyName = stratTF.getText();
+		int idx = strategyName.indexOf(":");
+		if (idx < 0) return "";
+
+		final String initParms = strategyName.substring(idx + 1, strategyName.length());
+		return initParms;
+	}
+	public void runStrategy() {
+		final String strategyName = getStrategyName();
+		final String initParms = getStrategyParms();
 		final String aSymbol = StringUtils.upperCase(symbolTF.getText());
 		final String startStr = startTF.getText();
 		final String endStr = endTF.getText();
-		final String symbol = symbolTF.getText();
 		try {
-			Portfolio port = SimulateTrading.runSimulation(strategyName, startStr, endStr, symbol, initParms);
+			strategy = SimulateTrading
+					.runSimulation(strategyName, startStr, endStr, aSymbol, initParms);
+			Portfolio port = strategy.getPortfolio();
 			updateChart(port.getTrades());
 			port.displayTradeStats(strategyName);
 			port.dumpLog();
@@ -169,6 +187,11 @@ public class HistoricalDataChart extends ApplicationFrame {
 		}
 	}
 
+	/**
+	 * Mark the trading activity on the chart.
+	 * 
+	 * @param trades
+	 */
 	private void updateChart(ArrayList<LimitOrder> trades) {
 		for (Object obj : pricePlot.getAnnotations()) {
 			XYAnnotation ann = (XYAnnotation) obj;
@@ -234,6 +257,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 		return new Runnable() {
 			@Override
 			public void run() {
+				ArrayList<TimeSeries> strategyLines = new ArrayList<TimeSeries>();
+				
 				System.out.println("Getting " + aSymbol + " "
 						+ HistoricalDateManipulation.getDateAsStr(startTime) + " - "
 						+ HistoricalDateManipulation.getDateAsStr(endTime));
@@ -257,10 +282,27 @@ public class HistoricalDataChart extends ApplicationFrame {
 						series = new OHLCSeries(ohlc);
 						final TimeSeriesDataItem di = new TimeSeriesDataItem(sec, aBar.volume);
 						volumeSeries = new TimeSeries(di);
+
+						if (strategy != null) {
+							double[] lines = strategy.getStrategyData(aBar);
+							for (double priceData : lines) {
+								TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
+								TimeSeries series = new TimeSeries(mdi);
+								strategyLines.add(series);
+							}
+						}
 					}
 					else {
 						series.add(sec, open, high, low, close);
 						volumeSeries.add(sec, aBar.volume);
+						if (strategy != null) {
+							strategy.init(getStrategyParms());
+							double[] lines = strategy.getStrategyData(aBar);
+							for (int i = 0; i < strategyLines.size(); i++) {
+								strategyLines.get(i).add(sec, lines[i]);
+							}
+						}
+
 					}
 					lowestLow = lowestLow > low ? low : lowestLow;
 					highestHigh = highestHigh < high ? high : highestHigh;
@@ -272,6 +314,18 @@ public class HistoricalDataChart extends ApplicationFrame {
 				volumeData.addSeries(volumeSeries);
 				updateAxis(first, last, highestHigh, lowestLow);
 				chart.removeLegend();
+
+				if (strategyLines.size() > 0) {
+					TimeSeriesCollection maCollection = new TimeSeriesCollection();
+					int i = 0;
+					SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
+					for (TimeSeries t : strategyLines) {
+						maCollection.addSeries(t);
+						lineRender.setSeriesPaint(i++, Color.white);
+					}
+					pricePlot.setDataset(1, maCollection);
+					pricePlot.setRenderer(1, lineRender);
+				}
 
 				HistoricalDataChart.this.repaint();
 				scrollBar.updateScrollBarRanges();
@@ -378,8 +432,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 		scrollBar = new CombinedScrollBar(cplot);
 		// Create the new chart
 
-		JFreeChart jchart = new JFreeChart("Contract Name", cplot);
-		jchart.setTitle("");
+		JFreeChart jchart = new JFreeChart("", cplot);
 		ChartUtilities.applyCurrentTheme(jchart);
 		jchart.removeLegend();
 

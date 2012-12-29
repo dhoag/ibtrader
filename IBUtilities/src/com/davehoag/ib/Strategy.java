@@ -22,5 +22,17 @@ public interface Strategy {
 	public String getBarSize();
 
 	public void init(String parms);
-	
+
+	public Portfolio getPortfolio();
+
+	public void setPortfolio(Portfolio p);
+
+	/**
+	 * Used for showing relevant data (if any) on a chart
+	 * 
+	 * @param aBar
+	 * @return
+	 */
+	public double[] getStrategyData(Bar aBar);
+
 }

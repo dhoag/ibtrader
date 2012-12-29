@@ -7,13 +7,28 @@ import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.Strategy;
+import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 
 public abstract class AbstractStrategy implements Strategy {
 	boolean maxQty;
 	int qty = 100;
+	Portfolio port;
 
+	@Override
+	public Portfolio getPortfolio() {
+		return port;
+	}
+
+	@Override
+	public void setPortfolio(Portfolio p) {
+		port = p;
+	}
+
+	public double[] getStrategyData(Bar aBar) {
+		return new double[0];
+	}
 	public void maximizeQty() {
 		maxQty = true;
 	}

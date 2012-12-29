@@ -6,7 +6,6 @@ import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.QuoteRouter;
-import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -18,7 +17,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  * @author David Hoag
  * 
  */
-public class SimpleMomentumStrategy implements Strategy {
+public class SimpleMomentumStrategy extends AbstractStrategy {
 	boolean optimistic = true;
 	boolean monthly;
 	int desiredDay = 23;

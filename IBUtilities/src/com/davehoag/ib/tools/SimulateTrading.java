@@ -9,7 +9,6 @@ import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.Strategy;
-import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.HistoricalDataSender;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -61,6 +60,8 @@ public class SimulateTrading {
 				strategy.init(initParms);
 
 				final IBClientRequestExecutor clientInterface = initSimulatedClient();
+
+				strategy.setPortfolio(clientInterface.getPortfolio());
 				for (String symbol : getSymbols(symbolList)) {
 					final QuoteRouter quoteSource = clientInterface.getQuoteRouter(symbol);
 					quoteSource.addStrategy(strategy);
@@ -78,12 +79,9 @@ public class SimulateTrading {
 			}
 	}
 
-	public static Portfolio runSimulation(final String strategyName, final String startStr,
+	public static Strategy runSimulation(final String strategyName, final String startStr,
 			final String endStr, final String symbol, final String initParms) throws Exception {
 
-		Strategy strategy = (Strategy) Class.forName(
-				"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
-		strategy.init(initParms);
 		final long startTime = HistoricalDateManipulation.getTime(startStr + " 08:30:00");
 		final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:00:00");
 
@@ -93,11 +91,15 @@ public class SimulateTrading {
 		final IBClientRequestExecutor clientInterface = newClientInterface(rh, m_client);
 		m_client.setSimulationRange(startTime, endTime);
 
-		final QuoteRouter quoteSource = clientInterface.getQuoteRouter(symbol);
+		Strategy strategy = (Strategy) Class.forName(
+				"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
+		strategy.init(initParms);
+		strategy.setPortfolio(rh.getPortfolio());
+		QuoteRouter quoteSource = clientInterface.getQuoteRouter(symbol);
 		quoteSource.addStrategy(strategy);
 		clientInterface.requestQuotes();
 		clientInterface.close();
-		return clientInterface.getPortfolio();
+		return strategy;
 	}
 	/**
 	 * @return

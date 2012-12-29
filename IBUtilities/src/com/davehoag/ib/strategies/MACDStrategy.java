@@ -108,7 +108,20 @@ public class MACDStrategy extends AbstractStrategy {
 	@Override
 	public void tickPrice(String symbol, int field, double price, Portfolio holdings, QuoteRouter executionEngine) {
 		// TODO Auto-generated method stub
-		
+	}
+	@Override
+	public double[] getStrategyData(final Bar aBar) {
+		double[] data = new double[2];
+		sma.newTick(aBar.wap);
+		if (sma.isInitialized()) {
+			data[0] = sma.getFastAvg();
+			data[1] = sma.getSlowAvg();
+		}
+		else {
+			data[0] = aBar.wap;
+			data[1] = aBar.wap;
+		}
+		return data;
 	}
 
 }
