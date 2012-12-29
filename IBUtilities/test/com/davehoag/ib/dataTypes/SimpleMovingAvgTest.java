@@ -1,6 +1,9 @@
 package com.davehoag.ib.dataTypes;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +21,22 @@ public class SimpleMovingAvgTest {
 	@After
 	public void tearDown() throws Exception {
 	}
+	@Test
+	public void testGetTick() {
+		double d = sma.getTick(0);
+		assertEquals(5.0, d, .01);
+		d = sma.getTick(3);
+		assertEquals(2.0, d, .01);
+		d = sma.getTick(4);
+		assertEquals(1.0, d, .01);
+		try {
+			d = sma.getTick(5);
+			fail("Should have thrown exception");
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+
 	@Test
 	public void tetEma(){
 		double val = sma.calcEma(22.15, 22.22, 10);

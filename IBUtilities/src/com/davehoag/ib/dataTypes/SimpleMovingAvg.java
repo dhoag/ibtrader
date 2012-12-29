@@ -10,6 +10,26 @@ public class SimpleMovingAvg {
 	boolean trendingUp;
 	boolean initialized;
 	boolean useEmaForCrossOvers;
+
+	/**
+	 * 0 for the most latest tick, 1 for the next to latest, etc...
+	 * 
+	 * @param reverseIdx
+	 * @return
+	 */
+	public double getTick(int reverseIdx) {
+		// 1 and only 1, last slow is 1, proper offset is zero, reverse idx is
+		// zero
+		if (reverseIdx >= slowLeg.length)
+			throw new IllegalArgumentException("Can't exceed size, " + reverseIdx + ", of largest array "
+					+ slowLeg.length);
+		if (!initialized) throw new IllegalStateException("Structure not initialized");
+		int offset = lastSlow - 1 - reverseIdx;
+		if (offset >= 0) return slowLeg[offset];
+		// if lastSlow is zero, then we want length -1
+		offset = slowLeg.length + offset;
+		return slowLeg[offset];
+	}
 	public boolean isInitialized(){
 		return initialized;
 	}
@@ -123,6 +143,20 @@ public class SimpleMovingAvg {
 		if(!initialized) throw new IllegalStateException("SMA not yet initialized, need more data");
 		if(useEmaForCrossOvers) return fastEma > slowEma;
 		return getFastAvg() > getSlowAvg();
+	}
+
+	public boolean isRecentlyUp() {
+		if (!initialized) throw new IllegalStateException("SMA not yet initialized, need more data");
+		double latest = getTick(0);
+		int countOfUp = 0;
+		for (int i = 1; i < 5; i++) {
+			double prior = getTick(i);
+			if (latest >= prior) {
+				countOfUp++;
+			}
+			latest = prior;
+		}
+		return getTick(0) > getTick(4) && countOfUp >= 3;
 	}
 	public double getFastAvg(){
 		return getAvg(fastLeg);

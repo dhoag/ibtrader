@@ -14,9 +14,60 @@ public class BarCache {
 	public void setStdDevFactor(final double d) {
 		stdDevFactor = d;
 	}
-	public boolean isInitialized(final int periods) {
-		return periods < lastIdx || wrapped;
+
+	/**
+	 * Is the close of the most recent bar above the close of the oldest bar and
+	 * there are more than 1/2 closes above the prior bars's close
+	 * 
+	 * @param periods
+	 * @return
+	 */
+	public boolean isTrendingUp(final int periods) {
+		Bar[] bars = getBars(periods);
+		int upCount = 0;
+		double last = -1;
+		for (Bar aBar : bars) {
+			if (last != -1) {
+				if (last > aBar.close) {
+					upCount++;
+				}
+			}
+			last = aBar.close;
+		}
+		return (bars[0].close > bars[bars.length - 1].close && upCount >= (bars.length / 2));
 	}
+
+	/**
+	 * Get the moving average of the Vwap data
+	 * 
+	 * @param periods
+	 * @return
+	 */
+	public double getVwapMA(final int periods) {
+		Bar[] bars = getBars(periods);
+		double sum = 0;
+		for (Bar aBar : bars) {
+			sum += aBar.wap;
+		}
+		return sum / bars.length;
+	}
+
+	/**
+	 * Is there enough data in the cache to represent valid calculations for the
+	 * specified number of periods
+	 * 
+	 * @param periods
+	 * @return
+	 */
+	public boolean isInitialized(final int periods) {
+		return periods < lastIdx || (wrapped && periods <= localCache.length);
+	}
+
+	/**
+	 * Add another Bar into the cache
+	 * 
+	 * @param aBar
+	 */
 	public void pushLatest(final Bar aBar) {
 		if (aBar == null)
 			throw new IllegalArgumentException("aBar must not be null");
@@ -27,6 +78,13 @@ public class BarCache {
 		localCache[lastIdx++] = aBar;
 	}
 
+	/**
+	 * Get the past N bars with the first element being the most recent and the
+	 * last element in the array being the oldest.
+	 * 
+	 * @param periods
+	 * @return
+	 */
 	public Bar[] getBars(final int periods) {
 		if ((periods > localCache.length) || (periods > lastIdx && !wrapped)) {
 			throw new IllegalStateException("Not enough data to fullfill request");

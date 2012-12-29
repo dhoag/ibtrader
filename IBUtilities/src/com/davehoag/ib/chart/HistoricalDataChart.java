@@ -331,7 +331,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 				SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
 				for (TimeSeries t : strategyLines) {
 					maCollection.addSeries(t);
-					lineRender.setSeriesPaint(i++, Color.white);
+					// lineRender.setSeriesPaint(i++, Color.white);
 				}
 				plot.setDataset(1, maCollection);
 				plot.setRenderer(1, lineRender);
