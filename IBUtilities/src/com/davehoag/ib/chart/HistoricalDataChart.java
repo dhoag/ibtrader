@@ -6,7 +6,6 @@ import java.awt.Dimension;
 import java.awt.Paint;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -148,6 +147,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				runStrategy();
+				refresh();
 			}
 		};
 	}
@@ -179,7 +179,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 			strategy = SimulateTrading
 					.runSimulation(strategyName, startStr, endStr, aSymbol, initParms);
 			Portfolio port = strategy.getPortfolio();
-			updateChart(port.getTrades());
 			port.displayTradeStats(strategyName);
 			port.dumpLog();
 		} catch (Exception ex) {
@@ -202,11 +201,9 @@ public class HistoricalDataChart extends ApplicationFrame {
 			long end = closingTrade.getPortfolioTime() * 1000;
 			double top = Math.max(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
 			double bottom = Math.min(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
-			XYShapeAnnotation shape = new XYShapeAnnotation(new Rectangle2D.Double(start - 100, bottom - .05,
-					end - start + 100, top - bottom + .1));
-			System.out.println("X " + (start - 100) + " Y " + (bottom - .05) + " W " + (end - start + 100)
-					+ " H" + (top - bottom + .1));
-			System.out.println(shape);
+			XYShapeAnnotation shape = new XYShapeAnnotation(new Rectangle2D.Double(start - 500, bottom - .02,
+					end - start + 500, top - bottom + .05));
+
 			shape.setToolTipText("" + closingTrade.getOnset().getPrice() + "-" + closingTrade.getPrice());
 			pricePlot.addAnnotation(shape);
 		}
@@ -285,6 +282,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 
 						if (strategy != null) {
 							double[] lines = strategy.getStrategyData(aBar);
+							strategy.init(getStrategyParms());
 							for (double priceData : lines) {
 								TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
 								TimeSeries series = new TimeSeries(mdi);
@@ -296,7 +294,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 						series.add(sec, open, high, low, close);
 						volumeSeries.add(sec, aBar.volume);
 						if (strategy != null) {
-							strategy.init(getStrategyParms());
 							double[] lines = strategy.getStrategyData(aBar);
 							for (int i = 0; i < strategyLines.size(); i++) {
 								strategyLines.get(i).add(sec, lines[i]);
@@ -307,28 +304,37 @@ public class HistoricalDataChart extends ApplicationFrame {
 					lowestLow = lowestLow > low ? low : lowestLow;
 					highestHigh = highestHigh < high ? high : highestHigh;
 				}
+				updateAxis(first, last, highestHigh, lowestLow);
 				series.setDescription(aSymbol);
 				volumeSeries.setDescription(aSymbol);
 
 				data.addSeries(series);
 				volumeData.addSeries(volumeSeries);
-				updateAxis(first, last, highestHigh, lowestLow);
-				chart.removeLegend();
 
+				if (strategy != null) {
+					updateChart(strategy.getPortfolio().getTrades());
+				}
 				if (strategyLines.size() > 0) {
-					TimeSeriesCollection maCollection = new TimeSeriesCollection();
-					int i = 0;
-					SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
-					for (TimeSeries t : strategyLines) {
-						maCollection.addSeries(t);
-						lineRender.setSeriesPaint(i++, Color.white);
-					}
-					pricePlot.setDataset(1, maCollection);
-					pricePlot.setRenderer(1, lineRender);
+					addStrategyLines(strategyLines, pricePlot);
 				}
 
 				HistoricalDataChart.this.repaint();
 				scrollBar.updateScrollBarRanges();
+			}
+
+			/**
+			 * @param strategyLines
+			 */
+			protected void addStrategyLines(ArrayList<TimeSeries> strategyLines, XYPlot plot) {
+				TimeSeriesCollection maCollection = new TimeSeriesCollection();
+				int i = 0;
+				SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
+				for (TimeSeries t : strategyLines) {
+					maCollection.addSeries(t);
+					lineRender.setSeriesPaint(i++, Color.white);
+				}
+				plot.setDataset(1, maCollection);
+				plot.setRenderer(1, lineRender);
 			}
 
 			/**
@@ -341,12 +347,29 @@ public class HistoricalDataChart extends ApplicationFrame {
 			 */
 			protected void updateAxis(final Bar first, final Bar last, final double highestHigh,
 					final double lowestLow) {
-				System.out.println("Low " + lowestLow + " " + highestHigh);
 				final CombinedDomainXYPlot plot = (CombinedDomainXYPlot) chart.getXYPlot();
 
 				final ValueAxis timeAxis = plot.getDomainAxis();
 				timeAxis.setLowerBound(first.originalTime * 1000);
 				timeAxis.setUpperBound(last.originalTime * 1000);
+
+				// addPriceMarker(first, last, highestHigh, lowestLow);
+
+				final ValueAxis priceAxis = plot.getRangeAxis(0);
+				if (priceAxis != null) {
+					priceAxis.setLowerBound(lowestLow);
+					priceAxis.setUpperBound(highestHigh);
+				}
+			}
+
+			/**
+			 * @param first
+			 * @param last
+			 * @param highestHigh
+			 * @param lowestLow
+			 */
+			protected void addPriceMarker(final Bar first, final Bar last, final double highestHigh,
+					final double lowestLow) {
 				double halfway = (last.originalTime * 1000 + first.originalTime * 1000) / 2;
 				double markerSpot = (highestHigh + lowestLow) / 2;
 
@@ -355,19 +378,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 				marker.setLabel("A longer label of Test");
 				marker.setPaint(ChartColor.DARK_BLUE);
 				pricePlot.addRangeMarker(marker, Layer.FOREGROUND);
-
-				System.out.println("X " + halfway + " Y " + markerSpot + " W " + 100 * 5000 + " H" + .2);
-				XYShapeAnnotation shape = new XYShapeAnnotation(new Ellipse2D.Double(halfway, markerSpot,
-						100 * 5000, .2));
-				shape.setToolTipText("Test Text");
-				pricePlot.addAnnotation(shape);
-
-				final ValueAxis priceAxis = plot.getRangeAxis(0);
-				if (priceAxis != null) {
-					System.out.println(priceAxis.getClass());
-					priceAxis.setLowerBound(lowestLow);
-					priceAxis.setUpperBound(highestHigh);
-				}
 			};
 		};
 	}
@@ -377,6 +387,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 		// Put the chart in a new ChartPanel, set the panel attributes and
 		// return it.
 		chart = createCustomChart(data, volumeData);
+		chart.removeLegend();
+
 		ChartPanel combinedChartPanel = new ChartPanel(chart);
 		combinedChartPanel.setBorder(new EtchedBorder(EtchedBorder.RAISED));
 		Dimension combinedChartPanelDim = new Dimension(500, 270);
