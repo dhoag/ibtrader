@@ -25,7 +25,7 @@ public class MACDStrategy extends AbstractStrategy {
 	int fastMovingAvg = 18;
 	int slowMovingAvg = 21;
 	boolean useEma = true;
-	boolean requireTradeConfirmation = true;
+	boolean requireTradeConfirmation = false;
 
 	public MACDStrategy(){	
 		init();
@@ -53,19 +53,18 @@ public class MACDStrategy extends AbstractStrategy {
 	@Override
 	public void newBar(final Bar bar ,final Portfolio port, QuoteRouter executionEngine){		
 		smaTrades.newTick(bar.tradeCount);
-		final boolean crossOverEvent = sma.newTick(bar.wap) ;
+
+		final boolean crossOverEvent = sma.newTick(bar.wap);
 		final int holdings = port.getShares(bar.symbol);
 
 		if( inTradeWindow(bar.originalTime) ) {
 			//only trade if the # of trades is rising with the cross over
-			if(crossOverEvent){
-				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp()){
+			if (isTradeCondition(crossOverEvent)) {
 					LoggerFactory.getLogger("MACD").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
 					LimitOrder buyOrder = new LimitOrder(qty, bar.close + .02, true);
 
 					// Put a safety net out
-					LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent() * 2, false);
-					stopLoss.markAsTrailingOrder();
+					LimitOrder stopLoss = new LimitOrder(qty, bar.close - .08, false);
 					buyOrder.setStopLoss(stopLoss);
 
 					executionEngine.executeOrder(buyOrder);
@@ -76,7 +75,6 @@ public class MACDStrategy extends AbstractStrategy {
 					LimitOrder sellOrder = new LimitOrder(qty, bar.close -.02, false);
 					executionEngine.executeOrder(sellOrder);
 				}
-			}
 		}
 		else{
 			if( holdings > 0) {
@@ -90,6 +88,16 @@ public class MACDStrategy extends AbstractStrategy {
 				sma.reset();
 			}	
 		}
+	}
+	/**
+	 * @param crossOverEvent
+	 * @return
+	 */
+	protected boolean isTradeCondition(final boolean crossOverEvent) {
+		return crossOverEvent 
+				&& ((!requireTradeConfirmation || smaTrades.isTrendingUp()) 
+				&& sma.isTrendingUp()
+				&& sma.isRecentlyUp());
 	}
 	@Override
 	public String getBarSize() {

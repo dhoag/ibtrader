@@ -74,11 +74,10 @@ public class HistoricalDataChart extends ApplicationFrame {
 	Strategy currentStrategy;
 	private static final long serialVersionUID = 1L;
 	private static final double barWidth = 3.0;
-	OHLCSeriesCollection data;
-	OHLCSeries series;
+	OHLCSeriesCollection priceData;
+	OHLCSeries candlestickSeries;
 	TimeSeriesCollection volumeData;
 	TimeSeries volumeSeries;
-	ChartPanel panel;
 	JFreeChart chart;
 	JTextField startTF;
 	JTextField stratTF;
@@ -103,13 +102,12 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 */
 	public HistoricalDataChart(String title) {
 		super(title);
-		JPanel chartPanel = createPriceVolumePanels();
-		chartPanel.setPreferredSize(new java.awt.Dimension(500, 270));
+		JPanel chartPanel = createMainContent();
+		chartPanel.setPreferredSize(new Dimension(500, 370));
 		setContentPane(chartPanel);
-		addInputFields(chartPanel);
 	}
 
-	protected void addInputFields(JPanel contentPanel) {
+	protected JPanel createInputFields() {
 		JPanel top = new JPanel();
 		top.add(new JLabel("Start & End Dates:"));
 		startTF = new JTextField();
@@ -124,8 +122,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 		top.add(endTF);
 		top.add(symbolTF);
 		stratTF = new JTextField();
-		Dimension minimumSize = new Dimension(1000, 15);
-		stratTF.setMinimumSize(minimumSize);
 		stratTF.setText("SimpleMomentum");
 		top.add(stratTF);
 		JButton refresh = new JButton("Get");
@@ -134,7 +130,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 		JButton run = new JButton("Run");
 		run.addActionListener(getRunDelegate());
 		top.add(run);
-		contentPanel.add(top, BorderLayout.NORTH);
+		return top;
 	}
 
 	/**
@@ -232,7 +228,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 			final String startStr = startTF.getText();
 			final long startTime = HistoricalDateManipulation.getTime(startStr + " 08:30:00");
 			final String endStr = endTF.getText();
-			final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:00:00");
+			final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:10:00");
 			final String aSymbol = StringUtils.upperCase(symbolTF.getText());
 			Thread t = new Thread(paintHistoricalData(aSymbol, startTime, endTime));
 			t.start();
@@ -248,7 +244,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	protected Runnable paintHistoricalData(final String aSymbol, final long startTime, final long endTime)
 			throws ParseException {
 
-		data.removeAllSeries();
+		priceData.removeAllSeries();
 		volumeData.removeAllSeries();
 
 		return new Runnable() {
@@ -264,7 +260,9 @@ public class HistoricalDataChart extends ApplicationFrame {
 				Bar last = null;
 				double highestHigh = 0;
 				double lowestLow = 999999;
+				int count = 0;
 				for (Bar aBar : bars) {
+					count++;
 					last = aBar;
 					final Second sec = new Second(aBar.getTime());
 
@@ -276,7 +274,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 						first = aBar;
 						final OHLCItem ohlc = new OHLCItem(sec, open, high, low, close);
 
-						series = new OHLCSeries(ohlc);
+						candlestickSeries = new OHLCSeries(ohlc);
 						final TimeSeriesDataItem di = new TimeSeriesDataItem(sec, aBar.volume);
 						volumeSeries = new TimeSeries(di);
 
@@ -291,7 +289,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 						}
 					}
 					else {
-						series.add(sec, open, high, low, close);
+						candlestickSeries.add(sec, open, high, low, close);
 						volumeSeries.add(sec, aBar.volume);
 						if (strategy != null) {
 							double[] lines = strategy.getStrategyData(aBar);
@@ -299,16 +297,13 @@ public class HistoricalDataChart extends ApplicationFrame {
 								strategyLines.get(i).add(sec, lines[i]);
 							}
 						}
-
 					}
 					lowestLow = lowestLow > low ? low : lowestLow;
 					highestHigh = highestHigh < high ? high : highestHigh;
 				}
 				updateAxis(first, last, highestHigh, lowestLow);
-				series.setDescription(aSymbol);
-				volumeSeries.setDescription(aSymbol);
 
-				data.addSeries(series);
+				priceData.addSeries(candlestickSeries);
 				volumeData.addSeries(volumeSeries);
 
 				if (strategy != null) {
@@ -317,9 +312,9 @@ public class HistoricalDataChart extends ApplicationFrame {
 				if (strategyLines.size() > 0) {
 					addStrategyLines(strategyLines, pricePlot);
 				}
-
+				System.out.println("Displaying " + count + " records. " + last.getTime());
+				if(scrollBar != null) scrollBar.updateScrollBarRanges();
 				HistoricalDataChart.this.repaint();
-				scrollBar.updateScrollBarRanges();
 			}
 
 			/**
@@ -347,11 +342,15 @@ public class HistoricalDataChart extends ApplicationFrame {
 			 */
 			protected void updateAxis(final Bar first, final Bar last, final double highestHigh,
 					final double lowestLow) {
+				if(last == null) return;
+				
 				final CombinedDomainXYPlot plot = (CombinedDomainXYPlot) chart.getXYPlot();
 
 				final ValueAxis timeAxis = plot.getDomainAxis();
-				timeAxis.setLowerBound(first.originalTime * 1000);
-				timeAxis.setUpperBound(last.originalTime * 1000);
+				((DateAxis)timeAxis).setMinimumDate(first.getTime());
+				((DateAxis)timeAxis).setMaximumDate(last.getTime());
+				//timeAxis.setLowerBound(first.originalTime * 1000);
+				//timeAxis.setUpperBound(last.originalTime * 1000);
 
 				// addPriceMarker(first, last, highestHigh, lowestLow);
 
@@ -382,50 +381,64 @@ public class HistoricalDataChart extends ApplicationFrame {
 		};
 	}
 
-	public JPanel createPriceVolumePanels() {
+	public JPanel createMainContent() {
 		createDataset();
+		JPanel contentPanel = new JPanel(new BorderLayout());
+		
+		JPanel top = createInputFields();
+		contentPanel.add(top, BorderLayout.NORTH);
+
+		ChartPanel combinedChartPanel = createChartPanels();
+		contentPanel.add(combinedChartPanel, BorderLayout.CENTER);
+		
+	//	scrollBar = new CombinedScrollBar((CombinedDomainXYPlot)chart.getXYPlot());
+	//	contentPanel.add(scrollBar, BorderLayout.SOUTH);
+
+		return contentPanel;
+	}
+
+	/**
+	 * @return
+	 */
+	protected ChartPanel createChartPanels() {
 		// Put the chart in a new ChartPanel, set the panel attributes and
 		// return it.
-		chart = createCustomChart(data, volumeData);
-		chart.removeLegend();
+		chart = createJFreeChartAndPlots(priceData, volumeData);
 
 		ChartPanel combinedChartPanel = new ChartPanel(chart);
 		combinedChartPanel.setBorder(new EtchedBorder(EtchedBorder.RAISED));
-		Dimension combinedChartPanelDim = new Dimension(500, 270);
-		combinedChartPanel.setPreferredSize(combinedChartPanelDim);
 		combinedChartPanel.setMouseWheelEnabled(true);
-		panel = combinedChartPanel;
 
 		JMenuItem item = new JMenuItem("Refresh");
 		item.addActionListener(getRefreshDelegate());
-		panel.getPopupMenu().add(item);
-
-		JPanel scrollPanel = new JPanel(new BorderLayout());
-		scrollPanel.add(scrollBar, BorderLayout.SOUTH);
-		scrollPanel.add(combinedChartPanel, BorderLayout.CENTER);
-		// return combinedChartPanel;
-		return scrollPanel;
+		combinedChartPanel.getPopupMenu().add(item);
+		return combinedChartPanel;
 	}
 
-	protected JFreeChart createCustomChart(final OHLCDataset dataset, final TimeSeriesCollection volume) {
-		// this.upperDataSet.addSeries( this.priceTimeSeries );
-		// this.lowerDataSet.addSeries( this.volumeTimeSeries );
+	protected JFreeChart createJFreeChartAndPlots(final OHLCDataset dataset, final TimeSeriesCollection volume) {
+		pricePlot = createPricePlot(dataset);
+		XYPlot lowerPlot = createVolumePlot(volume);
 
-		pricePlot = createPricePanel(dataset);
-		XYPlot lowerPlot = createVolumePanel(volume);
+		CombinedDomainXYPlot cplot = combinePriceAndVolumePlotWithDateAxis(lowerPlot, pricePlot);
 
+		// Create the new chart
+
+		JFreeChart jchart = new JFreeChart("", cplot);
+		ChartUtilities.applyCurrentTheme(jchart);
+		jchart.removeLegend();
+		jchart.removeLegend();
+
+		return jchart;
+	}
+
+	/**
+	 * @param lowerPlot
+	 * @return
+	 */
+	protected CombinedDomainXYPlot combinePriceAndVolumePlotWithDateAxis(XYPlot lowerPlot, XYPlot upperPlot) {
 		// Create the domain axis that will be used by both plots.
 
-		DateAxis domainAxis = new DateAxis("Date Time");
-		domainAxis.setLowerMargin(0.0);
-		domainAxis.setUpperMargin(0.02);
-		// 5 second intervals 8:30 - 3:00:05 (leave a space between days)
-		SegmentedTimeline timeline = new SegmentedTimeline(5000, 6 * 12 * 60 + 6 * 60 + 1, 9 * 12 * 60 + 12
-				* 60 * 8 + 6 * 60 - 1);
-		timeline.setStartTime((long) (SegmentedTimeline.firstMondayAfter1900() + 12 * 60 * 7.5 * 5000));
-		// Limit data to Monday through Friday
-		timeline.setBaseTimeline(SegmentedTimeline.newMondayThroughFridayTimeline());
-		domainAxis.setTimeline(timeline);
+		DateAxis domainAxis = createDateAxis();
 		// domainAxis.setDateFormatOverride( this.dateFormat );
 
 		// Create the combined domain plot with the common domain axis, the
@@ -433,29 +446,39 @@ public class HistoricalDataChart extends ApplicationFrame {
 		// and the lower plot.
 
 		CombinedDomainXYPlot cplot = new CombinedDomainXYPlot(domainAxis);
-		cplot.add(pricePlot, 3);
+		cplot.add(upperPlot, 3);
 		cplot.add(lowerPlot, 1);
 		cplot.setGap(8.0);
 		cplot.setDomainGridlinePaint(Color.white);
 		cplot.setDomainGridlinesVisible(true);
 		cplot.setDomainPannable(true);
 		cplot.setRangePannable(true);
+		return cplot;
+	}
 
-		scrollBar = new CombinedScrollBar(cplot);
-		// Create the new chart
-
-		JFreeChart jchart = new JFreeChart("", cplot);
-		ChartUtilities.applyCurrentTheme(jchart);
-		jchart.removeLegend();
-
-		return jchart;
+	/**
+	 * @return
+	 */
+	protected DateAxis createDateAxis() {
+		DateAxis domainAxis = new DateAxis("Date Time");
+		domainAxis.setLowerMargin(0.0);
+		domainAxis.setUpperMargin(0.02);
+		// 5 second intervals 8:30 - 3:00:05 (leave a space between days)
+		SegmentedTimeline timeline = new SegmentedTimeline(5000, 
+				12 * 60 * 6 + 12 * 30 + 1, //6.5 hours
+				12 * 60 * 9 + 12 * 60 * 8 + 12 * 30 - 1); //9 + 8 + .5 = 17.5 hours
+		timeline.setStartTime((long) (SegmentedTimeline.firstMondayAfter1900() + 12 * 60 * 7.5 * 5000));
+		// Limit data to Monday through Friday
+		timeline.setBaseTimeline(SegmentedTimeline.newMondayThroughFridayTimeline());
+		domainAxis.setTimeline(timeline);
+		return domainAxis;
 	}
 
 	/**
 	 * @param dataset
 	 * @return
 	 */
-	protected XYPlot createPricePanel(OHLCDataset dataset) {
+	protected XYPlot createPricePlot(OHLCDataset dataset) {
 		HighLowRenderer upperRenderer = new OpenCloseRenderer();
 		upperRenderer.setBaseToolTipGenerator(new HighLowItemLabelGenerator());
 		upperRenderer.setSeriesShape(0, new Rectangle2D.Double(-1.0, -1.0, barWidth, 2.0));
@@ -478,7 +501,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @param volume
 	 * @return
 	 */
-	protected XYPlot createVolumePanel(final TimeSeriesCollection volume) {
+	protected XYPlot createVolumePlot(final TimeSeriesCollection volume) {
 		// Create the renderer for the lower plot.
 
 		XYBarRenderer lowerRenderer = new XYBarRenderer() {
@@ -512,11 +535,11 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * Initialize the structures to hold the stock data
 	 */
 	private void createDataset() {
-		data = new OHLCSeriesCollection();
+		priceData = new OHLCSeriesCollection();
 		Second sec = new Second(new Date());
 		OHLCItem ohlc = new OHLCItem(sec, 0, 0, 0, 0);
-		series = new OHLCSeries(ohlc);
-		data.addSeries(series);
+		candlestickSeries = new OHLCSeries(ohlc);
+		priceData.addSeries(candlestickSeries);
 
 		volumeData = new TimeSeriesCollection();
 		TimeSeriesDataItem di = new TimeSeriesDataItem(sec, 0);
