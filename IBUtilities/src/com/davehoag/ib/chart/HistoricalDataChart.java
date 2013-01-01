@@ -463,10 +463,11 @@ public class HistoricalDataChart extends ApplicationFrame {
 		DateAxis domainAxis = new DateAxis("Date Time");
 		domainAxis.setLowerMargin(0.0);
 		domainAxis.setUpperMargin(0.02);
-		// 5 second intervals 8:30 - 3:00:05 (leave a space between days)
+		//5 second intervals 8:30 - 4:00:05 (leave a space between days) 
+		// (moved to end at 4 due to bug with DST)
 		SegmentedTimeline timeline = new SegmentedTimeline(5000, 
-				12 * 60 * 6 + 12 * 30 + 1, //6.5 hours
-				12 * 60 * 9 + 12 * 60 * 8 + 12 * 30 - 1); //9 + 8 + .5 = 17.5 hours
+				12 * 60 * 7 + 12 * 30 + 1, //6.5 hours (dst bug means 7.5)
+				12 * 60 * 8 + 12 * 60 * 8 + 12 * 30 - 1); //9 + 8 + .5 = 17.5 hours (16.5)
 		timeline.setStartTime((long) (SegmentedTimeline.firstMondayAfter1900() + 12 * 60 * 7.5 * 5000));
 		// Limit data to Monday through Friday
 		timeline.setBaseTimeline(SegmentedTimeline.newMondayThroughFridayTimeline());
