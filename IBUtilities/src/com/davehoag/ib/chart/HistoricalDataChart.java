@@ -391,8 +391,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 		ChartPanel combinedChartPanel = createChartPanels();
 		contentPanel.add(combinedChartPanel, BorderLayout.CENTER);
 		
-	//	scrollBar = new CombinedScrollBar((CombinedDomainXYPlot)chart.getXYPlot());
-	//	contentPanel.add(scrollBar, BorderLayout.SOUTH);
+		scrollBar = new CombinedScrollBar((CombinedDomainXYPlot)chart.getXYPlot());
+		contentPanel.add(scrollBar, BorderLayout.SOUTH);
 
 		return contentPanel;
 	}
