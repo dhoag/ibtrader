@@ -135,9 +135,12 @@ public class BarCache {
 		return Stat.volatilityPerCentChange(data) / 100;
 	}
 	public PriceBands getVwapBands(final int periods) {
+		return getVwapBands(periods, stdDevFactor);
+	}
+	public PriceBands getVwapBands(final int periods, double stdDevAdjustment) {
 		final double[] vwapList = getVwap(periods);
 		final Stat stat = new Stat(vwapList);
-		final double stdDev = stat.standardDeviation() * stdDevFactor;
+		final double stdDev = stat.standardDeviation() * stdDevAdjustment;
 		final double vwap = vwapList[0];
 		final double[] result = new double[3];
 		result[0] = vwap - stdDev;
