@@ -230,7 +230,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 			final String endStr = endTF.getText();
 			final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:10:00");
 			final String aSymbol = StringUtils.upperCase(symbolTF.getText());
-			Thread t = new Thread(paintHistoricalData(aSymbol, startTime, endTime));
+			Thread t = new Thread(getPaintDelegate(aSymbol, startTime, endTime));
 			t.start();
 		} catch (ParseException pe) {
 			startTF.setBackground(Color.RED);
@@ -241,7 +241,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	/**
 	 * @return
 	 */
-	protected Runnable paintHistoricalData(final String aSymbol, final long startTime, final long endTime)
+	protected Runnable getPaintDelegate(final String aSymbol, final long startTime, final long endTime)
 			throws ParseException {
 
 		priceData.removeAllSeries();
@@ -250,137 +250,140 @@ public class HistoricalDataChart extends ApplicationFrame {
 		return new Runnable() {
 			@Override
 			public void run() {
-				ArrayList<TimeSeries> strategyLines = new ArrayList<TimeSeries>();
-				
-				System.out.println("Getting " + aSymbol + " "
-						+ HistoricalDateManipulation.getDateAsStr(startTime) + " - "
-						+ HistoricalDateManipulation.getDateAsStr(endTime));
-				BarIterator bars = CassandraDao.getInstance().getData(aSymbol, startTime, endTime, "bar5sec");
-				Bar first = null;
-				Bar last = null;
-				double highestHigh = 0;
-				double lowestLow = 999999;
-				int count = 0;
-				for (Bar aBar : bars) {
-					count++;
-					last = aBar;
-					final Second sec = new Second(aBar.getTime());
-
-					final double open = aBar.open;
-					final double high = aBar.high;
-					final double low = aBar.low;
-					final double close = aBar.close;
-					if (first == null) {
-						first = aBar;
-						final OHLCItem ohlc = new OHLCItem(sec, open, high, low, close);
-
-						candlestickSeries = new OHLCSeries(ohlc);
-						final TimeSeriesDataItem di = new TimeSeriesDataItem(sec, aBar.volume);
-						volumeSeries = new TimeSeries(di);
-
-						if (strategy != null) {
-							double[] lines = strategy.getStrategyData(aBar);
-							strategy.init(getStrategyParms());
-							for (double priceData : lines) {
-								TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
-								TimeSeries series = new TimeSeries(mdi);
-								strategyLines.add(series);
-							}
-						}
-					}
-					else {
-						candlestickSeries.add(sec, open, high, low, close);
-						volumeSeries.add(sec, aBar.volume);
-						if (strategy != null) {
-							double[] lines = strategy.getStrategyData(aBar);
-							for (int i = 0; i < strategyLines.size(); i++) {
-								strategyLines.get(i).add(sec, lines[i]);
-							}
-						}
-					}
-					lowestLow = lowestLow > low ? low : lowestLow;
-					highestHigh = highestHigh < high ? high : highestHigh;
-				}
-				updateAxis(first, last, highestHigh, lowestLow);
-
-				priceData.addSeries(candlestickSeries);
-				volumeData.addSeries(volumeSeries);
-
-				if (strategy != null) {
-					updateChart(strategy.getPortfolio().getTrades());
-				}
-				if (strategyLines.size() > 0) {
-					addStrategyLines(strategyLines, pricePlot);
-				}
-				System.out.println("Displaying " + count + " records. " + last.getTime());
-				if(scrollBar != null) scrollBar.updateScrollBarRanges();
-				HistoricalDataChart.this.repaint();
+				plotData(aSymbol, startTime, endTime);
 			}
 
-			/**
-			 * @param strategyLines
-			 */
-			protected void addStrategyLines(ArrayList<TimeSeries> strategyLines, XYPlot plot) {
-				TimeSeriesCollection maCollection = new TimeSeriesCollection();
-				int i = 0;
-				SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
-				for (TimeSeries t : strategyLines) {
-					maCollection.addSeries(t);
-					// lineRender.setSeriesPaint(i++, Color.white);
-				}
-				plot.setDataset(1, maCollection);
-				plot.setRenderer(1, lineRender);
-			}
-
-			/**
-			 * Add annotations to the historical chart
-			 * 
-			 * @param first
-			 * @param last
-			 * @param highestHigh
-			 * @param lowestLow
-			 */
-			protected void updateAxis(final Bar first, final Bar last, final double highestHigh,
-					final double lowestLow) {
-				if(last == null) return;
-				
-				final CombinedDomainXYPlot plot = (CombinedDomainXYPlot) chart.getXYPlot();
-
-				final ValueAxis timeAxis = plot.getDomainAxis();
-				((DateAxis)timeAxis).setMinimumDate(first.getTime());
-				((DateAxis)timeAxis).setMaximumDate(last.getTime());
-				//timeAxis.setLowerBound(first.originalTime * 1000);
-				//timeAxis.setUpperBound(last.originalTime * 1000);
-
-				// addPriceMarker(first, last, highestHigh, lowestLow);
-
-				final ValueAxis priceAxis = plot.getRangeAxis(0);
-				if (priceAxis != null) {
-					priceAxis.setLowerBound(lowestLow);
-					priceAxis.setUpperBound(highestHigh);
-				}
-			}
-
-			/**
-			 * @param first
-			 * @param last
-			 * @param highestHigh
-			 * @param lowestLow
-			 */
-			protected void addPriceMarker(final Bar first, final Bar last, final double highestHigh,
-					final double lowestLow) {
-				double halfway = (last.originalTime * 1000 + first.originalTime * 1000) / 2;
-				double markerSpot = (highestHigh + lowestLow) / 2;
-
-				ValueMarker marker = new ValueMarker(markerSpot);
-				System.out.println("Adding value marker " + marker.getValue());
-				marker.setLabel("A longer label of Test");
-				marker.setPaint(ChartColor.DARK_BLUE);
-				pricePlot.addRangeMarker(marker, Layer.FOREGROUND);
-			};
 		};
 	}
+	protected void plotData(final String aSymbol, final long startTime, final long endTime){
+		ArrayList<TimeSeries> strategyLines = new ArrayList<TimeSeries>();
+		
+		System.out.println("Getting " + aSymbol + " "
+				+ HistoricalDateManipulation.getDateAsStr(startTime) + " - "
+				+ HistoricalDateManipulation.getDateAsStr(endTime));
+		BarIterator bars = CassandraDao.getInstance().getData(aSymbol, startTime, endTime, "bar5sec");
+		Bar first = null;
+		Bar last = null;
+		double highestHigh = 0;
+		double lowestLow = 999999;
+		int count = 0;
+		for (Bar aBar : bars) {
+			count++;
+			last = aBar;
+			final Second sec = new Second(aBar.getTime());
 
+			final double open = aBar.open;
+			final double high = aBar.high;
+			final double low = aBar.low;
+			final double close = aBar.close;
+			if (first == null) {
+				first = aBar;
+				final OHLCItem ohlc = new OHLCItem(sec, open, high, low, close);
+
+				candlestickSeries = new OHLCSeries(ohlc);
+				final TimeSeriesDataItem di = new TimeSeriesDataItem(sec, aBar.volume);
+				volumeSeries = new TimeSeries(di);
+
+				if (strategy != null) {
+					double[] lines = strategy.getStrategyData(aBar);
+					strategy.init(getStrategyParms());
+					for (double priceData : lines) {
+						TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
+						TimeSeries series = new TimeSeries(mdi);
+						strategyLines.add(series);
+					}
+				}
+			}
+			else {
+				candlestickSeries.add(sec, open, high, low, close);
+				volumeSeries.add(sec, aBar.volume);
+				if (strategy != null) {
+					double[] lines = strategy.getStrategyData(aBar);
+					for (int i = 0; i < strategyLines.size(); i++) {
+						strategyLines.get(i).add(sec, lines[i]);
+					}
+				}
+			}
+			lowestLow = lowestLow > low ? low : lowestLow;
+			highestHigh = highestHigh < high ? high : highestHigh;
+		}
+		updateAxis(first, last, highestHigh, lowestLow);
+
+		priceData.addSeries(candlestickSeries);
+		volumeData.addSeries(volumeSeries);
+
+		if (strategy != null) {
+			updateChart(strategy.getPortfolio().getTrades());
+		}
+		if (strategyLines.size() > 0) {
+			addStrategyLines(strategyLines, pricePlot);
+		}
+		System.out.println("Displaying " + count + " records. " + last.getTime());
+		if(scrollBar != null) scrollBar.updateScrollBarRanges();
+		repaint();
+	}
+	/**
+	 * @param strategyLines
+	 */
+	protected void addStrategyLines(ArrayList<TimeSeries> strategyLines, XYPlot plot) {
+		TimeSeriesCollection maCollection = new TimeSeriesCollection();
+		int i = 0;
+		SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
+		for (TimeSeries t : strategyLines) {
+			maCollection.addSeries(t);
+			// lineRender.setSeriesPaint(i++, Color.white);
+		}
+		plot.setDataset(1, maCollection);
+		plot.setRenderer(1, lineRender);
+	}
+
+	/**
+	 * Add annotations to the historical chart
+	 * 
+	 * @param first
+	 * @param last
+	 * @param highestHigh
+	 * @param lowestLow
+	 */
+	protected void updateAxis(final Bar first, final Bar last, final double highestHigh,
+			final double lowestLow) {
+		if(last == null) return;
+		
+		final CombinedDomainXYPlot plot = (CombinedDomainXYPlot) chart.getXYPlot();
+
+		final ValueAxis timeAxis = plot.getDomainAxis();
+		((DateAxis)timeAxis).setMinimumDate(first.getTime());
+		((DateAxis)timeAxis).setMaximumDate(last.getTime());
+		//timeAxis.setLowerBound(first.originalTime * 1000);
+		//timeAxis.setUpperBound(last.originalTime * 1000);
+
+		// addPriceMarker(first, last, highestHigh, lowestLow);
+
+		final ValueAxis priceAxis = plot.getRangeAxis(0);
+		if (priceAxis != null) {
+			priceAxis.setLowerBound(lowestLow);
+			priceAxis.setUpperBound(highestHigh);
+		}
+	}
+
+	/**
+	 * @param first
+	 * @param last
+	 * @param highestHigh
+	 * @param lowestLow
+	 */
+	protected void addPriceMarker(final Bar first, final Bar last, final double highestHigh,
+			final double lowestLow) {
+		double halfway = (last.originalTime * 1000 + first.originalTime * 1000) / 2;
+		double markerSpot = (highestHigh + lowestLow) / 2;
+
+		ValueMarker marker = new ValueMarker(markerSpot);
+		System.out.println("Adding value marker " + marker.getValue());
+		marker.setLabel("A longer label of Test");
+		marker.setPaint(ChartColor.DARK_BLUE);
+		pricePlot.addRangeMarker(marker, Layer.FOREGROUND);
+	}
+	
 	public JPanel createMainContent() {
 		createDataset();
 		JPanel contentPanel = new JPanel(new BorderLayout());
@@ -409,10 +412,19 @@ public class HistoricalDataChart extends ApplicationFrame {
 		combinedChartPanel.setBorder(new EtchedBorder(EtchedBorder.RAISED));
 		combinedChartPanel.setMouseWheelEnabled(true);
 
-		JMenuItem item = new JMenuItem("Refresh");
-		item.addActionListener(getRefreshDelegate());
+		JMenuItem item = new JMenuItem("Open Window");
+		item.addActionListener(getOpenWindowDelegate());
 		combinedChartPanel.getPopupMenu().add(item);
 		return combinedChartPanel;
+	}
+
+	private ActionListener getOpenWindowDelegate() {
+		return new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				displayNewWindow();
+			}
+		};
 	}
 
 	protected JFreeChart createJFreeChartAndPlots(final OHLCDataset dataset, final TimeSeriesCollection volume) {
@@ -425,7 +437,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 
 		JFreeChart jchart = new JFreeChart("", cplot);
 		ChartUtilities.applyCurrentTheme(jchart);
-		jchart.removeLegend();
 		jchart.removeLegend();
 
 		return jchart;
@@ -547,7 +558,12 @@ public class HistoricalDataChart extends ApplicationFrame {
 		volumeSeries = new TimeSeries(di);
 		volumeData.addSeries(volumeSeries);
 	}
-
+	public static void displayNewWindow(){
+		HistoricalDataChart demo = new HistoricalDataChart("Stock Chart");
+		demo.pack();
+		RefineryUtilities.centerFrameOnScreen(demo);
+		demo.setVisible(true);
+	}
 	/**
 	 * Starting point for the demonstration application.
 	 * 
@@ -555,11 +571,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 *            ignored.
 	 */
 	public static void main(String[] args) {
-
-		HistoricalDataChart demo = new HistoricalDataChart("Time Series Chart Demo 1");
-		demo.pack();
-		RefineryUtilities.centerFrameOnScreen(demo);
-		demo.setVisible(true);
-
+		displayNewWindow();
 	}
 }
