@@ -7,35 +7,22 @@
   	<dependency>
   		<groupId>org.slf4j</groupId>
   		<artifactId>slf4j-api</artifactId>
+  		<version>1.7.2</version>
+  		<scope>runtime</scope>
   	</dependency>
   	<dependency>
   		<groupId>org.hectorclient</groupId>
   		<artifactId>hector-core</artifactId>
+  		<version>1.1-2</version>
+  		<scope>runtime</scope>
   	</dependency>
   	<dependency>
   		<groupId>com.googlecode.sli4j</groupId>
   		<artifactId>sli4j-log4j</artifactId>
+  		<version>2.0</version>
+  		<scope>runtime</scope>
   	</dependency>
   </dependencies>
-  <dependencyManagement>
-  	<dependencies>
-  		<dependency>
-  			<groupId>org.slf4j</groupId>
-  			<artifactId>slf4j-api</artifactId>
-  			<version>1.6.6</version>
-  		</dependency>
-  		<dependency>
-  			<groupId>org.hectorclient</groupId>
-  			<artifactId>hector-core</artifactId>
-  			<version>1.1-0</version>
-  		</dependency>
-  		<dependency>
-  			<groupId>com.googlecode.sli4j</groupId>
-  			<artifactId>sli4j-log4j</artifactId>
-  			<version>2.0</version>
-  		</dependency>
-  	</dependencies>
-  </dependencyManagement>
   <name>ibtrader</name>
   <url>http://code.google.com/p/ibtrader/</url>
   <scm>
@@ -44,4 +31,5 @@
   <issueManagement>
   	<url>http://code.google.com/p/ibtrader/issues/list</url>
   </issueManagement>
+  <packaging>war</packaging>
 </project>
