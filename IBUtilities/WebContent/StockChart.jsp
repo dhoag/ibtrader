@@ -37,6 +37,7 @@
 </head>
 <body>
   <div id="chart_div" style="width: 900px; height: 500px;"></div>
+  <br />
   <% java.util.Date d = new java.util.Date(); %>
 Today's date is <%= d.toString() %> and this jsp page worked! 
   

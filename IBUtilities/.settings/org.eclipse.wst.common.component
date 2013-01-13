@@ -2,7 +2,9 @@
     <wb-module deploy-name="IBUtilities">
         <wb-resource deploy-path="/" source-path="/WebContent" tag="defaultRootSource"/>
         <wb-resource deploy-path="/WEB-INF/classes" source-path="/src"/>
-        <wb-resource deploy-path="/WEB-INF/classes" source-path="/test"/>
+        <dependent-module archiveName="IB_9.67.jar" deploy-path="/WEB-INF/lib" handle="module:/resource/IB_9.67/IB_9.67">
+            <dependency-type>uses</dependency-type>
+        </dependent-module>
         <property name="context-root" value="IBUtilities"/>
         <property name="java-output-path" value="/IBUtilities/WebContent/WEB-INF/classes"/>
     </wb-module>

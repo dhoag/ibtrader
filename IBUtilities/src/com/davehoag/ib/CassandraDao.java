@@ -183,7 +183,8 @@ public class CassandraDao {
 		//do a reverse query
 		final HashMap<String, List<HColumn<Long, Double>>> priceData = getPriceHistoricalData(symbol,
 				openTime - 24*60*60*356,openTime, barSize ,true, 1);
-		final List<HColumn<Long, Double>> entry = priceData.get(symbol + ":open");
+		final String upperSymbol = symbol.toUpperCase();
+		final List<HColumn<Long, Double>> entry = priceData.get(upperSymbol + ":open");
 		if( entry != null){
 			final int recordCount = entry.size();
 			if (recordCount > 0)	return entry.get(0).getName();
@@ -464,6 +465,7 @@ public class CassandraDao {
 	public HashMap<String, List<HColumn<Long, Double>>> getPriceHistoricalData(final String symbol,
 			final long start, final long finish, final String cf, final boolean reverse, final int count) {
 		final HashMap<String, List<HColumn<Long, Double>>> result = new HashMap<String, List<HColumn<Long, Double>>>();
+		
 		RangeSlicesQuery<String, Long, Double> priceQuery = HFactory.createRangeSlicesQuery(keyspace,
 				stringSerializer, longSerializer, doubleSerializer);
 		priceQuery.setColumnFamily(cf);
@@ -474,8 +476,9 @@ public class CassandraDao {
 			priceQuery.setRange(start, finish, reverse, count);
 		}
 
+		final String upperSymbol = StringUtils.upperCase(symbol);
 		for (String key : priceKeys) {
-			final String rowKey = symbol + key;
+			final String rowKey = upperSymbol + key;
 			priceQuery.setKeys(rowKey, rowKey);
 			final QueryResult<OrderedRows<String, Long, Double>> queryResults = priceQuery.execute();
 			final OrderedRows<String, Long, Double> rows = queryResults.get();
