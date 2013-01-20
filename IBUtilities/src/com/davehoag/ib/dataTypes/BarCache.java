@@ -14,7 +14,9 @@ public class BarCache {
 	public void setStdDevFactor(final double d) {
 		stdDevFactor = d;
 	}
-
+	public int size(){
+		return wrapped ? localCache.length : lastIdx;
+	}
 	/**
 	 * Is the close of the most recent bar above the close of the oldest bar and
 	 * there are more than 1/2 closes above the prior bars's close
@@ -36,7 +38,100 @@ public class BarCache {
 		}
 		return (bars[0].close > bars[bars.length - 1].close && upCount >= (bars.length / 2));
 	}
+	/**
+	 * Method that kinds of works like an array. The zero index bar is the most recent, 
+	 * 1 is 2nd to most recent, etc...
+	 * 
+	 * @param idx
+	 * @return Bar
+	 */
+	public Bar get(final int idx){
+		validateIndex(idx );
+		int actualIdx = lastIdx - idx - 1;
+		if(actualIdx >= 0) return localCache[actualIdx];
+		return localCache[ localCache.length + actualIdx ];
+		
+	}
+	public double [] getParabolicSar(final int periods, final double accelFact){
+		// Initialize trend to whatever
+		boolean upTrend = false;
+		final double accelFactIncrement = accelFact == 0 ? .02 : accelFact;
+		Bar aBar = get(periods -1);
+		 
+		// Previous SAR: Use first data point's extreme value, depending on trend
+		double pSar = aBar.high;
+		double extremePoint = aBar.low;
+		double [] result = new double[periods];
+		result[0]= pSar;
 
+		return getParabolicSar(upTrend, 0.0, accelFactIncrement, periods -2, pSar, extremePoint, result);
+	}
+	/**
+	 * Return "tomorrow's" sar value.
+	 * 
+	 * @param upTrend
+	 * @param accelerationFactor
+	 * @param accelFactIncrement
+	 * @param barIdx
+	 * @param pSar
+	 * @param extremePoint
+	 * @return
+	 */
+	protected double [] getParabolicSar(boolean upTrend, double accelerationFactor, final double accelFactIncrement, final int barIdx, final double pSar, double extremePoint, double [] result){
+		double nSar = 0;
+		Bar todaysBar = get(barIdx);
+		
+		if(upTrend){
+			// Making higher highs: accelerate
+			if(todaysBar.high > extremePoint){
+				accelerationFactor = Math.min(accelerationFactor + accelFactIncrement, .2);
+				extremePoint = todaysBar.high;
+			}
+
+			//check for reversal
+			if(todaysBar.low > pSar){
+				upTrend = false;
+				nSar = extremePoint;
+				extremePoint = todaysBar.low;
+				accelerationFactor = accelFactIncrement;
+			}
+			else { 
+				//Calculate tomorrow's SAR
+				nSar = pSar + accelerationFactor * (extremePoint - pSar); 
+
+				//The nSar can not be higher than the current low (or the prior low)
+				final double maxSar = Math.min(todaysBar.low, get(barIdx + 1).low);
+				nSar = Math.min(maxSar, nSar);
+			}
+		} 
+		else {
+			// Making lower lows: accelerate
+			if(todaysBar.low < extremePoint){
+				accelerationFactor = Math.min(accelerationFactor + accelFactIncrement, .2);
+				extremePoint = todaysBar.low;
+			}
+
+			//check for reversal
+			if(todaysBar.high > pSar){
+				upTrend = true;
+				nSar = extremePoint;
+				extremePoint = todaysBar.high;
+				accelerationFactor = accelFactIncrement;
+			}
+			else { 
+				//Calculate tomorrow's SAR
+				nSar = pSar + accelerationFactor * (extremePoint - pSar); 
+
+				//The nSar can not be lower than the current high (or the prior high)
+				final double minSar = Math.max(todaysBar.high, get(barIdx + 1).high);
+				nSar = Math.max(minSar, nSar);
+			}		
+		}
+
+		result[result.length - 1 - barIdx] = nSar;
+		if(barIdx == 0) return result;
+		return getParabolicSar(upTrend, accelerationFactor, accelFactIncrement, barIdx - 1, nSar, extremePoint, result);
+	}
 	/**
 	 * Get the moving average of the Vwap data
 	 * 
@@ -86,9 +181,7 @@ public class BarCache {
 	 * @return
 	 */
 	public Bar[] getBars(final int periods) {
-		if ((periods > localCache.length) || (periods > lastIdx && !wrapped)) {
-			throw new IllegalStateException("Not enough data to fullfill request");
-		}
+		validateIndex(periods);
 		Bar[] result = new Bar[periods];
 		int count = 0;
 		for (int i = lastIdx - 1; i >= Math.max(lastIdx - periods, 0); i--)
@@ -102,10 +195,17 @@ public class BarCache {
 		return result;
 	}
 
-	public double[] getVwap(final int periods) {
+	/**
+	 * @param periods
+	 */
+	protected void validateIndex(final int periods) {
 		if ((periods > localCache.length) || (periods > lastIdx && !wrapped)) {
 			throw new IllegalStateException("Not enough data to fullfill request");
 		}
+	}
+
+	public double[] getVwap(final int periods) {
+		validateIndex(periods);
 		double[] result = new double[periods];
 		int count = 0;
 		final int lowerBounds = Math.max(lastIdx - periods, 0);

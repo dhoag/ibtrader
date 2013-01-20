@@ -79,6 +79,44 @@ public class BarCacheTest {
 		assertEquals(5 * 9, vals[0], .01);
 		assertEquals(4 * 9, vals[1], .01);
 	}
+
+	@Test
+	public void testGet(){
+		BarCache qr = new BarCache();
+		qr.localCache = new Bar[4];
+
+		Bar b = new Bar();
+		b.close = 2;
+		b.open = 2;
+		b.wap = 2;
+		b.low = 1;
+		b.high = 3;
+		b.volume = 100 ;
+		b.tradeCount = 3;
+		b.originalTime = System.currentTimeMillis() / 1000;
+		qr.pushLatest(b);
+		
+		send5bars(qr);
+		
+		assertEquals(4, qr.size());
+		Bar fifth = qr.get(0);
+		assertEquals(50.0, fifth.close, .01);
+		Bar fourth = qr.get(1);
+		assertEquals(40.0, fourth.close, .01);
+		Bar third = qr.get(2);
+		assertEquals(30.0, third.close, .01);
+		try{
+			qr.get(5);
+			fail("Should have thrown an error");
+		}catch(Exception ex){}
+	}
+	@Test
+	public void testPsar(){
+		BarCache qr = new BarCache();
+		send5bars(qr);
+		double [] pSar = qr.getParabolicSar(5, .02);
+		System.out.println(pSar);
+	}
 	/**
 	 * @param qr
 	 */
@@ -97,5 +135,4 @@ public class BarCacheTest {
 			qr.pushLatest(b);
 		}
 	}
-
 }
