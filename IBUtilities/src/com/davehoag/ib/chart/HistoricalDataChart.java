@@ -58,6 +58,7 @@ import org.jfree.ui.RefineryUtilities;
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.dataTypes.BarIterator;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -71,7 +72,6 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  * 
  */
 public class HistoricalDataChart extends ApplicationFrame {
-	Strategy currentStrategy;
 	private static final long serialVersionUID = 1L;
 	private static final double barWidth = 3.0;
 	OHLCSeriesCollection priceData;
@@ -86,6 +86,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	XYPlot pricePlot;
 	CombinedScrollBar scrollBar;
 	Strategy strategy;
+	ArrayList<SAR> studyCollection = new ArrayList<SAR>();
 
 	{
 		// set a theme using the new shadow generator feature available in
@@ -187,7 +188,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * 
 	 * @param trades
 	 */
-	private void updateChart(ArrayList<LimitOrder> trades) {
+	private void addTradesToPlot(final ArrayList<LimitOrder> trades) {
 		for (Object obj : pricePlot.getAnnotations()) {
 			XYAnnotation ann = (XYAnnotation) obj;
 			pricePlot.removeAnnotation(ann);
@@ -257,86 +258,163 @@ public class HistoricalDataChart extends ApplicationFrame {
 	}
 	protected void plotData(final String aSymbol, final long startTime, final long endTime){
 		ArrayList<TimeSeries> strategyLines = new ArrayList<TimeSeries>();
+		ArrayList<TimeSeries> priceStudySeries = new ArrayList<TimeSeries>();
 		
 		System.out.println("Getting " + aSymbol + " "
 				+ HistoricalDateManipulation.getDateAsStr(startTime) + " - "
 				+ HistoricalDateManipulation.getDateAsStr(endTime));
-		BarIterator bars = CassandraDao.getInstance().getData(aSymbol, startTime, endTime, "bar5sec");
+		
+		final BarIterator bars = getBars(aSymbol, startTime, endTime);
 		Bar first = null;
 		Bar last = null;
 		double highestHigh = 0;
 		double lowestLow = 999999;
 		int count = 0;
+		final BarCache cache = new BarCache();
+		
 		for (Bar aBar : bars) {
+			cache.pushLatest(aBar);
 			count++;
 			last = aBar;
 			final Second sec = new Second(aBar.getTime());
-
-			final double open = aBar.open;
-			final double high = aBar.high;
-			final double low = aBar.low;
-			final double close = aBar.close;
 			if (first == null) {
 				first = aBar;
-				final OHLCItem ohlc = new OHLCItem(sec, open, high, low, close);
-
+				final OHLCItem ohlc = new OHLCItem(sec, aBar.open, aBar.high, aBar.low, aBar.close);
 				candlestickSeries = new OHLCSeries(ohlc);
 				final TimeSeriesDataItem di = new TimeSeriesDataItem(sec, aBar.volume);
 				volumeSeries = new TimeSeries(di);
-
-				if (strategy != null) {
-					double[] lines = strategy.getStrategyData(aBar);
-					strategy.init(getStrategyParms());
-					for (double priceData : lines) {
-						TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
-						TimeSeries series = new TimeSeries(mdi);
-						strategyLines.add(series);
-					}
-				}
 			}
 			else {
-				candlestickSeries.add(sec, open, high, low, close);
+				candlestickSeries.add(sec, aBar.open, aBar.high, aBar.low, aBar.close);
 				volumeSeries.add(sec, aBar.volume);
-				if (strategy != null) {
-					double[] lines = strategy.getStrategyData(aBar);
-					for (int i = 0; i < strategyLines.size(); i++) {
-						strategyLines.get(i).add(sec, lines[i]);
-					}
-				}
 			}
-			lowestLow = lowestLow > low ? low : lowestLow;
-			highestHigh = highestHigh < high ? high : highestHigh;
+			if (strategy != null) {
+				addStrategySeries(strategy, strategyLines, aBar, sec);
+			}
+			if(studyCollection.size() > 0){
+				addStudySeries(studyCollection, priceStudySeries, aBar, sec, cache);
+			}
+			lowestLow = lowestLow > aBar.low ? aBar.low : lowestLow;
+			highestHigh = highestHigh < aBar.high ? aBar.high : highestHigh;
 		}
 		updateAxis(first, last, highestHigh, lowestLow);
 
 		priceData.addSeries(candlestickSeries);
 		volumeData.addSeries(volumeSeries);
 
-		if (strategy != null) {
-			updateChart(strategy.getPortfolio().getTrades());
-		}
-		if (strategyLines.size() > 0) {
-			addStrategyLines(strategyLines, pricePlot);
-		}
+		addAdditionalSeriesToPricePlot(strategy, strategyLines, studyCollection, priceStudySeries, pricePlot);
 		System.out.println("Displaying " + count + " records. " + last.getTime());
 		if(scrollBar != null) scrollBar.updateScrollBarRanges();
 		repaint();
 	}
+
+	/**
+	 * @param aSymbol
+	 * @param startTime
+	 * @param endTime
+	 * @return
+	 */
+	private BarIterator getBars(final String aSymbol, final long startTime, final long endTime) {
+		BarIterator bars = CassandraDao.getInstance().getData(aSymbol, startTime, endTime, "bar5sec");
+		return bars;
+	}
+
 	/**
 	 * @param strategyLines
+	 * @param priceStudySeries
 	 */
-	protected void addStrategyLines(ArrayList<TimeSeries> strategyLines, XYPlot plot) {
+	private void addAdditionalSeriesToPricePlot(final Strategy strat, ArrayList<TimeSeries> strategyLines,
+			ArrayList<SAR> studies, ArrayList<TimeSeries> priceStudySeries, XYPlot plot) {
+		//start at series 1 as series zero is taken up by the candlesticks
+		int seriesIndx = 1;
+		if (strat != null) {
+			addTradesToPlot(strat.getPortfolio().getTrades());
+			if (strategyLines.size() > 0) {
+				seriesIndx = addStrategySeriesToPlot(strategyLines, plot);
+			}
+		}
+		if(priceStudySeries.size() > 0){
+			addStudiesToPlot(priceStudySeries, studies, plot, seriesIndx);
+		}
+	}
+
+	/**
+	 * Called only on the first Bar to be rendered to initialize the TimeSeries
+	 * @param aBar
+	 * @param sec
+	 * @param strategyLines
+	 */
+	private void addStudySeries(final ArrayList<SAR> studies, final ArrayList<TimeSeries> studySeries, final Bar aBar, final Second sec, final BarCache cache) {
+		boolean initialize = studySeries.size() == 0;
+		for (int i = 0; i < studies.size(); i++) {
+			double priceData = studies.get(i).getPriceData(aBar, cache);
+			if(priceData == 0) priceData = aBar.close;
+			if(initialize){ 
+				TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
+				TimeSeries series = new TimeSeries(mdi);
+				studySeries.add(series);
+			}
+			else {
+				studySeries.get(i).add(sec, priceData);
+			}
+		}
+	}
+	/**
+	 * Called only on the first Bar to be rendered to initialize the TimeSeries
+	 * @param strategySeries
+	 * @param aBar
+	 * @param sec
+	 */
+	private void addStrategySeries(final Strategy strat, final ArrayList<TimeSeries> strategySeries, final Bar aBar, final Second sec) {
+		double[] lines = strat.getStrategyData(aBar);
+		boolean initialize = strategySeries.size() == 0;
+		if(initialize )	strat.init(getStrategyParms());
+		
+		for (int i = 0; i < lines.length; i++) {
+			double priceData = lines[i];
+			if(initialize) {
+				TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
+				TimeSeries series = new TimeSeries(mdi);
+				strategySeries.add(series);
+			}
+			else {
+				strategySeries.get(i).add(sec, priceData);
+			}
+		}
+	}
+	
+	/**
+	 * Called at the end of building the data series to add them to the plots
+	 * @param strategySeries
+	 */
+	protected int addStrategySeriesToPlot(final ArrayList<TimeSeries> strategySeries, final XYPlot plot) {
 		TimeSeriesCollection maCollection = new TimeSeriesCollection();
 		int i = 0;
 		SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
-		for (TimeSeries t : strategyLines) {
+		for (TimeSeries t : strategySeries) {
 			maCollection.addSeries(t);
 			// lineRender.setSeriesPaint(i++, Color.white);
 		}
 		plot.setDataset(1, maCollection);
 		plot.setRenderer(1, lineRender);
+		return 2;
 	}
-
+	/**
+	 * Add the price studies to the price plot
+	 * @param priceStudySeries
+	 * @param pricePlot2
+	 * @param i
+	 */
+	private void addStudiesToPlot(ArrayList<TimeSeries> priceStudySeries, ArrayList<SAR> studies, XYPlot pricePlot2, int i) {
+		TimeSeriesCollection maCollection = new TimeSeriesCollection();
+		for (TimeSeries t : priceStudySeries) {
+			maCollection.addSeries(t);
+		}
+		for(SAR study: studies){
+			pricePlot2.setDataset(i, maCollection);
+			pricePlot2.setRenderer(i++, study.getRenderer());
+		}
+	}
 	/**
 	 * Add annotations to the historical chart
 	 * 
@@ -415,6 +493,11 @@ public class HistoricalDataChart extends ApplicationFrame {
 		JMenuItem item = new JMenuItem("Open Window");
 		item.addActionListener(getOpenWindowDelegate());
 		combinedChartPanel.getPopupMenu().add(item);
+		
+		JMenuItem item2 = new JMenuItem("Toggle Study");
+		item2.addActionListener(getStudyDelegate());
+		combinedChartPanel.getPopupMenu().add(item2);
+		
 		return combinedChartPanel;
 	}
 
@@ -426,7 +509,22 @@ public class HistoricalDataChart extends ApplicationFrame {
 			}
 		};
 	}
+	private ActionListener getStudyDelegate() {
+		return new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				addStudy();
+			}
+		};
+	}
 
+	public void addStudy(){
+		if(studyCollection.size() == 0)
+			studyCollection.add(new SAR());
+		else
+			studyCollection.remove(studyCollection.get(0));
+	}
+	
 	protected JFreeChart createJFreeChartAndPlots(final OHLCDataset dataset, final TimeSeriesCollection volume) {
 		pricePlot = createPricePlot(dataset);
 		XYPlot lowerPlot = createVolumePlot(volume);
@@ -434,7 +532,6 @@ public class HistoricalDataChart extends ApplicationFrame {
 		CombinedDomainXYPlot cplot = combinePriceAndVolumePlotWithDateAxis(lowerPlot, pricePlot);
 
 		// Create the new chart
-
 		JFreeChart jchart = new JFreeChart("", cplot);
 		ChartUtilities.applyCurrentTheme(jchart);
 		jchart.removeLegend();

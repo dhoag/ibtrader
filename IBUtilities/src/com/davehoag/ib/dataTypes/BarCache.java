@@ -52,19 +52,22 @@ public class BarCache {
 		return localCache[ localCache.length + actualIdx ];
 		
 	}
-	public double [] getParabolicSar(final int periods, final double accelFact){
+	public double [] getParabolicSar(final double [] result, final double accelFact){
 		// Initialize trend to whatever
 		boolean upTrend = false;
 		final double accelFactIncrement = accelFact == 0 ? .02 : accelFact;
+		int periods = result.length;
 		Bar aBar = get(periods -1);
 		 
 		// Previous SAR: Use first data point's extreme value, depending on trend
 		double pSar = aBar.high;
 		double extremePoint = aBar.low;
-		double [] result = new double[periods];
 		result[0]= pSar;
-
+		result[1]= pSar;
 		return getParabolicSar(upTrend, 0.0, accelFactIncrement, periods -2, pSar, extremePoint, result);
+	}
+	public double [] getParabolicSar(final int periods, final double accelFact){
+		return getParabolicSar(new double [periods], accelFact);
 	}
 	/**
 	 * Return "tomorrow's" sar value.
@@ -127,9 +130,8 @@ public class BarCache {
 				nSar = Math.max(minSar, nSar);
 			}		
 		}
-
-		result[result.length - 1 - barIdx] = nSar;
-		if(barIdx == 0) return result;
+		result[result.length - barIdx] = nSar;
+		if(barIdx == 1) return result;
 		return getParabolicSar(upTrend, accelerationFactor, accelFactIncrement, barIdx - 1, nSar, extremePoint, result);
 	}
 	/**
