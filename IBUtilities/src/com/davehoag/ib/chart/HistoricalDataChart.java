@@ -38,7 +38,7 @@ import org.jfree.chart.labels.StandardXYToolTipGenerator;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.ValueMarker;
 import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.HighLowRenderer;
+import org.jfree.chart.renderer.xy.CandlestickRenderer;
 import org.jfree.chart.renderer.xy.SamplingXYLineRenderer;
 import org.jfree.chart.renderer.xy.StandardXYBarPainter;
 import org.jfree.chart.renderer.xy.XYBarRenderer;
@@ -588,10 +588,15 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @return
 	 */
 	protected XYPlot createPricePlot(OHLCDataset dataset) {
-		HighLowRenderer upperRenderer = new OpenCloseRenderer();
+		//HighLowRenderer upperRenderer = new OpenCloseRenderer();
+		//upperRenderer.setSeriesShape(0, new Rectangle2D.Double(-1.0, -1.0, barWidth, 2.0));
+//		upperRenderer.setSeriesPaint(0, Color.black);
+		CandlestickRenderer upperRenderer = new CandlestickRenderer();
+		upperRenderer.setUpPaint(Color.white);
+		upperRenderer.setDownPaint(Color.red);
+		upperRenderer.setUseOutlinePaint(true);
+		
 		upperRenderer.setBaseToolTipGenerator(new HighLowItemLabelGenerator());
-		upperRenderer.setSeriesShape(0, new Rectangle2D.Double(-1.0, -1.0, barWidth, 2.0));
-		upperRenderer.setSeriesPaint(0, Color.blue);
 
 		// Create the upper plot
 
