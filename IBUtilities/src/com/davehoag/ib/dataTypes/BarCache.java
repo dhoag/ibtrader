@@ -64,7 +64,7 @@ public class BarCache {
 		double extremePoint = aBar.low;
 		result[0]= pSar;
 		result[1]= pSar;
-		return getParabolicSar(upTrend, 0.0, accelFactIncrement, periods -2, pSar, extremePoint, result);
+		return getParabolicSar(upTrend, accelFactIncrement, accelFactIncrement, periods -2, pSar, extremePoint, result);
 	}
 	public double [] getParabolicSar(final int periods, final double accelFact){
 		return getParabolicSar(new double [periods], accelFact);
@@ -92,7 +92,7 @@ public class BarCache {
 			}
 
 			//check for reversal
-			if(todaysBar.low > pSar){
+			if(todaysBar.low < pSar){
 				upTrend = false;
 				nSar = extremePoint;
 				extremePoint = todaysBar.low;

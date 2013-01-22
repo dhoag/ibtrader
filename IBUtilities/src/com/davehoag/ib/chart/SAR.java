@@ -17,8 +17,8 @@ public class SAR {
 	
 	public double getPriceData(final Bar currentBar, final BarCache cache ){
 		cache.pushLatest(currentBar);
-		if(cache.size() < 10) return 0.0;
-		return cache.getParabolicSar(sarCurve, .02)[29];
+		if(cache.size() < sarCurve.length) return 0.0;
+		return cache.getParabolicSar(sarCurve, .005)[sarCurve.length - 1];
 	}
 	public XYItemRenderer getRenderer(){
 		System.out.println(dotRender.getDotHeight() + " " + dotRender.getDotWidth());
