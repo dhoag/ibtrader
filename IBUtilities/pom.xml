@@ -23,15 +23,15 @@
   		</exclusions>
   	</dependency>
   	<dependency>
-  		<groupId>com.googlecode.sli4j</groupId>
-  		<artifactId>sli4j-log4j</artifactId>
-  		<version>2.0</version>
-  		<scope>runtime</scope>
-  	</dependency>
-  	<dependency>
   		<groupId>javax.servlet</groupId>
   		<artifactId>jsp-api</artifactId>
   		<version>2.0</version>
+  	</dependency>
+  	<dependency>
+  		<groupId>org.apache.logging.log4j.adapters</groupId>
+  		<artifactId>log4j-slf4j-impl</artifactId>
+  		<version>2.0-beta4</version>
+  		<scope>runtime</scope>
   	</dependency>
   </dependencies>
   <name>ibtrader</name>

@@ -5,7 +5,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.dataTypes.LimitOrder;
@@ -88,7 +88,7 @@ public class HistoricalDataClient extends EClientSocket {
 		Runnable r = new Runnable() {
 			@Override
 			public void run() {
-				Logger.getLogger("HistoricalData").info("Starting to send all data for client");
+				LoggerFactory.getLogger("HistoricalData").info("Starting to send all data for client");
 				while(true){
 					boolean hasNext = true;
 					for(HistoricalDataSender sender: mktDataFeed.values()){
@@ -104,7 +104,7 @@ public class HistoricalDataClient extends EClientSocket {
 							System.exit(-1);
 						}
 					} else {
-						Logger.getLogger("HistoricalData").info("Completed sending all data for client");
+						LoggerFactory.getLogger("HistoricalData").info("Completed sending all data for client");
 						break;
 					}
 				}
