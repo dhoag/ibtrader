@@ -1,8 +1,6 @@
 package com.davehoag.ib;
 
 public interface IBConstants {
-	final String userId = "hoagda195";
-	final String passwd = "buffy6x";
 	final int port = 7496;
 	//Not sure what clientId means, but zero seems to support repeat connections
 	final int clientId = (int) System.currentTimeMillis();
