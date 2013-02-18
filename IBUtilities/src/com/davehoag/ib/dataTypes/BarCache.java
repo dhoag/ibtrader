@@ -11,6 +11,10 @@ public class BarCache {
 	public BarCache() {
 	}
 
+	public BarCache(int i) {
+		localCache = new Bar[i];
+	}
+
 	public void setStdDevFactor(final double d) {
 		stdDevFactor = d;
 	}

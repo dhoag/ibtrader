@@ -1,6 +1,6 @@
 package com.davehoag.ib;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
@@ -61,25 +61,25 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	 * @param message
 	 */
 	public void info( final String message) {
-		LoggerFactory.getLogger("Delegate").info(message);
+		LogManager.getLogger("Delegate").info(message);
 	}
 	public void setRequestor(final IBClientRequestExecutor req) {
 		requester = req;
 	}
 	@Override
 	public void error(Exception e) {
-		LoggerFactory.getLogger("Delegate").warn("RH Delegate error: " + e);
+		LogManager.getLogger("Delegate").warn("RH Delegate error: " + e);
 		e.printStackTrace();
 	}
 
 	@Override
 	public void error(String str) {
-		LoggerFactory.getLogger("Delegate").warn( "RH Delegate error: " + str );
+		LogManager.getLogger("Delegate").warn( "RH Delegate error: " + str );
 	}
 
 	@Override
 	public void error(int id, int errorCode, String errorMsg) {
-		LoggerFactory.getLogger("Delegate").error( "Order failed or realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
+		LogManager.getLogger("Delegate").error( "Order failed or realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
 	}
 
 	@Override

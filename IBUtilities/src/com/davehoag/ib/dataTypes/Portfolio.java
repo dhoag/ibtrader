@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Stack;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
@@ -46,7 +46,7 @@ public class Portfolio {
 		for(String symbol: portfolio.keySet()){
 			displayValue(symbol);
 		}
-		LoggerFactory.getLogger("Portfolio").info("Overall value: " + getNetValue());
+		LogManager.getLogger("Portfolio").info("Overall value: " + getNetValue());
 		dumpLog();
 	}
 
@@ -105,7 +105,7 @@ public class Portfolio {
 			if(tradeProfit > 0) winningTrades++;
 		}
 
-		LoggerFactory.getLogger(strategyName).info(
+		LogManager.getLogger(strategyName).info(
 				"Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: "
 						+ nf.format(profit));
 		if (results.length > 0) {
@@ -116,11 +116,11 @@ public class Portfolio {
 			double[] cols = hist[0];
 			double[] count = hist[1];
 			for (int i1 = 0; i1 < cols.length; i1++) {
-				LoggerFactory.getLogger(strategyName).info(nf.format(cols[i1]) + " " + count[i1]);
+				LogManager.getLogger(strategyName).info(nf.format(cols[i1]) + " " + count[i1]);
 			}
 		}
 		
-		LoggerFactory.getLogger(strategyName).info( "Drawdown " + maxDrawdown );
+		LogManager.getLogger(strategyName).info( "Drawdown " + maxDrawdown );
 	}
 	/**
 	 * Walk through all open/closed trades and calculate the total profit
@@ -147,7 +147,7 @@ public class Portfolio {
 		return value + cashFromTrading;
 	}
 	public void displayValue(final String symbol ){
-		LoggerFactory.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash())+ " " + lastPrice.get(symbol) + " * " + getShares(symbol) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
+		LogManager.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash())+ " " + lastPrice.get(symbol) + " * " + getShares(symbol) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
 	}
 	/**
 	 * sometimes knowing yesterday's data is valuable. Could be null 
@@ -162,7 +162,7 @@ public class Portfolio {
 	 * @param qty
 	 */
 	public void update(final String symbol, final int qty){
-		LoggerFactory.getLogger("AccountManagement").info( "Updating account " + symbol + " " + qty);
+		LogManager.getLogger("AccountManagement").info( "Updating account " + symbol + " " + qty);
 		portfolio.put(symbol, qty);
 	}
 	public void updatePrice(final String symbol, final double price){
@@ -220,7 +220,7 @@ public class Portfolio {
 		}
 		else
 		{
-			LoggerFactory.getLogger("Portfolio").error("Confirming an order [" + orderId + "] " + symbol + " " + price + " " + qty + " I don't know about!!");
+			LogManager.getLogger("Portfolio").error("Confirming an order [" + orderId + "] " + symbol + " " + price + " " + qty + " I don't know about!!");
 		}
 		history.add("[" + orderId + "] " + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Confirm transaction of " + qty + " Cash: " +  nf.format(getCash()) + " Value:" + nf.format(getValue(symbol, price)));
 	}
@@ -331,9 +331,9 @@ public class Portfolio {
 		return currentQty.intValue() * price;
 	}
 	public synchronized void dumpLog(){
-		LoggerFactory.getLogger("TradingHistory").info( "#### Display trade history ####");
+		LogManager.getLogger("TradingHistory").info( "#### Display trade history ####");
 		for(String entry: history){
-			LoggerFactory.getLogger("TradingHistory").info( entry);
+			LogManager.getLogger("TradingHistory").info( entry);
 		}
 	}
 	/**

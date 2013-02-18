@@ -5,7 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.IBClientRequestExecutor;
@@ -34,7 +34,7 @@ public class PullStockData {
 		try {
 			pullData(startDateStr, barSize, clientInterface, i, args);
 		} catch (ParseException e) {
-			LoggerFactory.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);
+			LogManager.getLogger("PullStockData").error( "Parse Exception!! " + startDateStr, e);
 		}
 		finally { 
 			clientInterface.close();

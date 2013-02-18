@@ -3,7 +3,7 @@ package com.davehoag.ib.tools;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
@@ -31,7 +31,8 @@ public class SimulateTrading {
 	public static void main(String[] args) {
 		int i = 0;
 		HistoricalDataSender.daysToBackTest = Integer.parseInt(args[i++]);
-
+		LogManager.getLogger("TEST").info("Going back " + HistoricalDataSender.daysToBackTest);
+		
 		executeStrategies(args, i);
 		System.exit(0);
 	}
@@ -68,7 +69,7 @@ public class SimulateTrading {
 				}
 				clientInterface.requestQuotes();
 				clientInterface.close();
-				LoggerFactory.getLogger(strategyName).info(
+				LogManager.getLogger(strategyName).info(
 						"Portfolio " + nf.format(clientInterface.getPortfolio().getNetValue()));
 				clientInterface.getPortfolio().displayTradeStats(strategyName + " " + initParms);
 				clientInterface.getPortfolio().writeTradeDetails(strategyName + "_" + initParms);

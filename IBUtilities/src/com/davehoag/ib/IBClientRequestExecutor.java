@@ -9,7 +9,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
@@ -64,7 +64,7 @@ public class IBClientRequestExecutor {
 	 * Got a disconnect from the TWS and I'm responding as best I can
 	 */
 	protected synchronized void forcedClose() {
-		LoggerFactory.getLogger("RequestManager").error("Forced Exit");
+		LogManager.getLogger("RequestManager").error("Forced Exit");
 		client.eDisconnect();
 		if(executor instanceof ExecutorService)
 			((ExecutorService)executor).shutdownNow();
@@ -76,7 +76,7 @@ public class IBClientRequestExecutor {
 	 * Gracefully exit
 	 */
 	public void close() {
-		LoggerFactory.getLogger("RequestManager").info( "Shutting down");
+		LogManager.getLogger("RequestManager").info( "Shutting down");
 		client.eDisconnect();
 		if(executor instanceof ExecutorService)
 			((ExecutorService)executor).shutdown();
@@ -93,7 +93,7 @@ public class IBClientRequestExecutor {
 					+ client.TwsConnectionTime());
 
 		} else {
-			LoggerFactory.getLogger("RequestManager").error(
+			LogManager.getLogger("RequestManager").error(
 					"Failed to connect " + IBConstants.host + " " + IBConstants.port);
 			System.exit(1);
 		}
@@ -242,10 +242,10 @@ public class IBClientRequestExecutor {
 		final Integer id = Integer.valueOf(reqId);
 		final ResponseHandlerDelegate rd = map.get(id);
 		if(rd != null) {
-			LoggerFactory.getLogger("PerfMetrics").debug( "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
+			LogManager.getLogger("PerfMetrics").debug( "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
 		}
 		else
-			LoggerFactory.getLogger("RequestManager").info( "[" + reqId + "] Ending request " );
+			LogManager.getLogger("RequestManager").info( "[" + reqId + "] Ending request " );
 		
 		//A tracked request
 		if(reqId < 1066544174) { 
@@ -258,7 +258,7 @@ public class IBClientRequestExecutor {
 					rd.info( "All submitted requests are complete");
 				}
 				else
-					LoggerFactory.getLogger("RequestManager").info( "All submitted requests are complete");
+					LogManager.getLogger("RequestManager").info( "All submitted requests are complete");
 				this.notifyAll();
 			}
 		}
@@ -271,10 +271,10 @@ public class IBClientRequestExecutor {
 	public synchronized void waitForCompletion() {
 		while (requests != 0 || !tasks.isEmpty() || active != null)
 			try {
-				LoggerFactory.getLogger("RequestManager").info( "Waiting " + requests + " " + tasks.isEmpty());
+				LogManager.getLogger("RequestManager").info( "Waiting " + requests + " " + tasks.isEmpty());
 				wait();
 			} catch (InterruptedException e) {
-				LoggerFactory.getLogger("RequestManager").error( "Interrupted!!", e);
+				LogManager.getLogger("RequestManager").error( "Interrupted!!", e);
 			}
 	}
 	/**
@@ -293,7 +293,7 @@ public class IBClientRequestExecutor {
 	 *            
 	 */
 	protected synchronized void execute(final Runnable r, final int seconds, final StoreHistoricalData histData) {
-		LoggerFactory.getLogger("RequestManager").debug( "Enqueing request");
+		LogManager.getLogger("RequestManager").debug( "Enqueing request");
 		
 		boolean result = tasks.offer(new Runnable() {
 			@Override
@@ -306,7 +306,7 @@ public class IBClientRequestExecutor {
 							try {
 								wait(1000 * seconds);
 							} catch (InterruptedException e) {
-								LoggerFactory.getLogger("RequestManager").error( "Interrupted!!", e);
+								LogManager.getLogger("RequestManager").error( "Interrupted!!", e);
 							}
 						}
 					}
@@ -335,7 +335,7 @@ public class IBClientRequestExecutor {
 			executor.execute(active);
 		}
 		else {
-			LoggerFactory.getLogger("RequestManager").info( "All queued requests are complete");
+			LogManager.getLogger("RequestManager").info( "All queued requests are complete");
 			this.notifyAll();
 		}
 	}
@@ -456,7 +456,7 @@ public class IBClientRequestExecutor {
 				final int reqId = pushRequest();
 				rh.setReqId(reqId);
 				pushResponseHandler(reqId, rh);
-				LoggerFactory.getLogger("MarketData").info(
+				LogManager.getLogger("MarketData").info(
 						"Submitting request for real time bars" + reqId + " " + stock.m_symbol);
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
@@ -464,7 +464,7 @@ public class IBClientRequestExecutor {
 				final boolean snapshot = false;
 				final int tickReqId = pushRequest();
 				pushResponseHandler(tickReqId, rh);
-				LoggerFactory.getLogger("MarketData").info(
+				LogManager.getLogger("MarketData").info(
 						"Submitting request for tick data" + tickReqId + " " + stock.m_symbol);
 				client.reqMktData(tickReqId, stock, "", snapshot);
 

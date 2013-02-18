@@ -3,7 +3,7 @@ package com.davehoag.ib.util;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.ResponseHandler;
@@ -160,7 +160,7 @@ public class HistoricalDataSender {
 		for (OrderOnBook order : restingOrders) {
 			if (order.isTriggered(high, low)) {
 				executed.add(order);
-				LoggerFactory.getLogger("Trading").debug("Filling a booked limit order ");
+				LogManager.getLogger("Trading").debug("Filling a booked limit order ");
 				client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 			} else // If its a trailing order we need update the new lmt price
 			if (order.isTrail()) {
@@ -168,7 +168,7 @@ public class HistoricalDataSender {
 					// check if the swing could have caused an exit
 					if (order.isTriggered(high, low)) {
 						executed.add(order);
-						LoggerFactory.getLogger("Trading").debug("Filling a booked trailing limit order ");
+						LogManager.getLogger("Trading").debug("Filling a booked trailing limit order ");
 						client.fillOrder(order.orderId, order.lmtContract, order.lmtOrder);
 					}
 			}
@@ -231,7 +231,7 @@ public class HistoricalDataSender {
 
 	public synchronized void addLimitOrder(final int id, final Contract lmtContract, final Order order) {
 		final OrderOnBook oob = getOrderOnBook(id, lmtContract, order);
-		LoggerFactory.getLogger("Trading").info(oob + " BOOKED");
+		LogManager.getLogger("Trading").info(oob + " BOOKED");
 		restingOrders.add(oob);
 	}
 
@@ -242,7 +242,7 @@ public class HistoricalDataSender {
 	public void cancelOrder(final LimitOrder lmtOrder) {
 		for (OrderOnBook ord : restingOrders) {
 			if (lmtOrder.getId() == ord.orderId) {
-				LoggerFactory.getLogger("Trading").info(ord + " CANCEL");
+				LogManager.getLogger("Trading").info(ord + " CANCEL");
 				restingOrders.remove(ord);
 				return;
 			}

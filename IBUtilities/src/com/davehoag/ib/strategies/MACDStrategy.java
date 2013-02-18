@@ -2,7 +2,7 @@ package com.davehoag.ib.strategies;
 
 import java.util.ArrayList;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.dataTypes.Bar;
@@ -60,7 +60,7 @@ public class MACDStrategy extends AbstractStrategy {
 		if( inTradeWindow(bar.originalTime) ) {
 			//only trade if the # of trades is rising with the cross over
 			if (isTradeCondition(crossOverEvent)) {
-					LoggerFactory.getLogger("MACD").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
+					LogManager.getLogger("MACD").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
 					LimitOrder buyOrder = new LimitOrder(qty, bar.close + .02, true);
 
 					// Put a safety net out
@@ -71,7 +71,7 @@ public class MACDStrategy extends AbstractStrategy {
 				}
 				else if(holdings > 0 && !sma.isTrendingUp()){
 					executionEngine.cancelOpenOrders();
-					LoggerFactory.getLogger("MACD").debug(port.getTime() + " Close position " + bar.symbol + " " + qty);
+					LogManager.getLogger("MACD").debug(port.getTime() + " Close position " + bar.symbol + " " + qty);
 					LimitOrder sellOrder = new LimitOrder(qty, bar.close -.02, false);
 					executionEngine.executeOrder(sellOrder);
 				}
@@ -80,7 +80,7 @@ public class MACDStrategy extends AbstractStrategy {
 			if( holdings > 0) {
 				executionEngine.cancelOpenOrders();
 				 //end of the day, liquidate
-				LoggerFactory.getLogger("MACD").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
+				LogManager.getLogger("MACD").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
 				LimitOrder sellAll = new LimitOrder(holdings, bar.close - .05, false);
 				executionEngine.executeOrder(sellAll);
 			}

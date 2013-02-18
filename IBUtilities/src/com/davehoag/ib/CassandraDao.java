@@ -7,7 +7,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.logging.Logger;
 
 import me.prettyprint.cassandra.serializers.BooleanSerializer;
 import me.prettyprint.cassandra.serializers.DoubleSerializer;
@@ -27,7 +26,7 @@ import me.prettyprint.hector.api.query.RangeSlicesQuery;
 import me.prettyprint.hector.api.query.SliceQuery;
 
 import org.apache.commons.lang.StringUtils;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarIterator;
@@ -189,7 +188,7 @@ public class CassandraDao {
 			final int recordCount = entry.size();
 			if (recordCount > 0)	return entry.get(0).getName();
 		}
-		LoggerFactory.getLogger("HistoricalData").warn(
+		LogManager.getLogger("HistoricalData").warn(
 				"Checked the past 356 days and there is no data for " + symbol + " in bar " + barSize);
 		return 0;
 	}
@@ -205,7 +204,7 @@ public class CassandraDao {
 		if(iterator.hasNext()) {
 			final Bar b = iterator.next();
 			if(b.originalTime == seconds){ return b; }
-			Logger.getLogger("HistoricalData").warning("Bar found with wrong time: looking for " + seconds + " found: " + b.originalTime);
+			LogManager.getLogger("HistoricalData").warn("Bar found with wrong time: looking for " + seconds + " found: " + b.originalTime);
 		}
 		
 		return null;
@@ -251,7 +250,7 @@ public class CassandraDao {
 		try {
 			return new BarIterator(symbol, priceData,volData, barSize);
 		} catch (Exception ex) {
-			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
+			LogManager.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
 			ex.printStackTrace();
 			return new BarIterator(symbol);
 		}
@@ -322,7 +321,7 @@ public class CassandraDao {
 	public Bar getOpen(final String symbol, final long todayInSec) {
 		final long openTime = HistoricalDateManipulation.getOpenTime(todayInSec);
 
-		LoggerFactory.getLogger("HistoricalData").debug(
+		LogManager.getLogger("HistoricalData").debug(
 				"Get " + symbol + " open of day: " + new Date(openTime * 1000));
 		return getBar(symbol, openTime, "bar5sec");
 	}
@@ -346,7 +345,7 @@ public class CassandraDao {
 		final long actualFinish = determineEndDate(start < 1000, finish);
 		final long actualStart = start < 1000 ? HistoricalDateManipulation.getOpen(actualFinish - 24 * 60
 				* 60 * start) : start;
-		LoggerFactory.getLogger("HistoricalData").info(
+		LogManager.getLogger("HistoricalData").info(
 				"Getting " + barSize + " " + symbol + " data between " + new Date(actualStart * 1000)
 						+ " and " + new Date(actualFinish * 1000));
 		return getDataIterator(symbol, actualFinish, actualStart, barSize);
@@ -368,7 +367,7 @@ public class CassandraDao {
 			result.setPagingSize(maxRecordsReturned);
 			return result;
 		} catch (Exception ex) {
-			LoggerFactory.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
+			LogManager.getLogger("DAO").warn("Exception fetching data in DAO for " + symbol + ". " + ex);
 			ex.printStackTrace();
 			return new BarIterator(symbol);
 		}
@@ -435,7 +434,7 @@ public class CassandraDao {
 		final Iterator<Bar> bars = getData(symbol, openTime, openTime, "bar1day");
 		if (bars.hasNext())
 			return bars.next();
-		LoggerFactory.getLogger("HistoricalData").warn(
+		LogManager.getLogger("HistoricalData").warn(
 				"No prior data for " + symbol + " " + HistoricalDateManipulation.getDateAsStr(seconds));
 		// try going back one more day - could be a holiday.
 		if (firstTime)

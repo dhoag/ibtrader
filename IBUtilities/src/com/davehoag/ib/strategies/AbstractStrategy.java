@@ -3,7 +3,7 @@ package com.davehoag.ib.strategies;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.Strategy;
@@ -136,11 +136,11 @@ public abstract class AbstractStrategy implements Strategy {
 		if (onePosition.hasNext()) {
 			original = onePosition.next();
 			if (onePosition.hasNext())
-				LoggerFactory.getLogger("Strategy").error(
+				LogManager.getLogger("Strategy").error(
 						"There should be only one open trade to offset when selling existing positions");
 		}
 		else {
-			LoggerFactory.getLogger("Strategy").error(
+			LogManager.getLogger("Strategy").error(
 					"There should be an open trade to offset when selling existing positions");
 		}
 		return original;

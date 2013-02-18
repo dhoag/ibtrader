@@ -1,6 +1,6 @@
 package com.davehoag.ib.strategies;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.dataTypes.Bar;
@@ -55,7 +55,7 @@ public class TrailingExitsStrategy extends AbstractStrategy {
 			//only trade if the # of trades is rising with the cross over
 			if(crossOverEvent){
 				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && sma.isTrendingUp() && sma.recentJumpExceedsAverage()){
-					LoggerFactory.getLogger("TrailingExits").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
+					LogManager.getLogger("TrailingExits").debug(port.getTime() + " Open position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close + .02, true);
 
 					LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent(), false);
@@ -65,7 +65,7 @@ public class TrailingExitsStrategy extends AbstractStrategy {
 				}
 				else
 				if( (!requireTradeConfirmation || smaTrades.isTrendingUp()) && ! sma.isTrendingUp() && sma.recentJumpExceedsAverage()){
-					LoggerFactory.getLogger("TrailingExits").debug(port.getTime() + " Open short position " + bar.symbol + " " + qty);
+					LogManager.getLogger("TrailingExits").debug(port.getTime() + " Open short position " + bar.symbol + " " + qty);
 					order = new LimitOrder(qty, bar.close + .02, false);
 
 					LimitOrder stopLoss = new LimitOrder(qty, sma.getVolatilityPercent(), true);
@@ -80,7 +80,7 @@ public class TrailingExitsStrategy extends AbstractStrategy {
 			if( holdings > 0) {
 				executionEngine.cancelOpenOrders();
 				 //end of the day, liquidate
-				LoggerFactory.getLogger("TrailingExits").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
+				LogManager.getLogger("TrailingExits").debug("Outside trading hours - Liquidate open position " + bar.symbol + " " + holdings);
 				order = new LimitOrder(holdings, bar.close - .05, holdings  < 0);
 			}
 			else{

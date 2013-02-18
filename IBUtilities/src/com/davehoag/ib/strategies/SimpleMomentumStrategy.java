@@ -2,7 +2,7 @@ package com.davehoag.ib.strategies;
 
 import java.util.Calendar;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.QuoteRouter;
@@ -146,9 +146,9 @@ public class SimpleMomentumStrategy extends AbstractStrategy {
 	public boolean takePositions(){
 		final SimpleMomentumStrategy other = getOther();
 		final boolean take = getReturn() > other.getReturn();
-		LoggerFactory.getLogger("SimpleMomentum").info( other.symbol + "\n" + other.latestBar + "\n" + other.oldestBar);
-		LoggerFactory.getLogger("SimpleMomentum").info( symbol + "\n" + latestBar + "\n" + oldestBar);
-		LoggerFactory.getLogger("SimpleMomentum").info( symbol + getReturn() + " " + other.symbol + " " + other.getReturn());
+		LogManager.getLogger("SimpleMomentum").info( other.symbol + "\n" + other.latestBar + "\n" + other.oldestBar);
+		LogManager.getLogger("SimpleMomentum").info( symbol + "\n" + latestBar + "\n" + oldestBar);
+		LogManager.getLogger("SimpleMomentum").info( symbol + getReturn() + " " + other.symbol + " " + other.getReturn());
 		changeToLast();
 		other.changeToLast();
 		return take;

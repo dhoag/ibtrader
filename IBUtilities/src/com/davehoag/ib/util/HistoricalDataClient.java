@@ -5,9 +5,12 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
+import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.BarIterator;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
@@ -88,7 +91,7 @@ public class HistoricalDataClient extends EClientSocket {
 		Runnable r = new Runnable() {
 			@Override
 			public void run() {
-				LoggerFactory.getLogger("HistoricalData").info("Starting to send all data for client");
+				LogManager.getLogger("HistoricalData").info("Starting to send all data for client");
 				while(true){
 					boolean hasNext = true;
 					for(HistoricalDataSender sender: mktDataFeed.values()){
@@ -104,7 +107,7 @@ public class HistoricalDataClient extends EClientSocket {
 							System.exit(-1);
 						}
 					} else {
-						LoggerFactory.getLogger("HistoricalData").info("Completed sending all data for client");
+						LogManager.getLogger("HistoricalData").info("Completed sending all data for client");
 						break;
 					}
 				}
@@ -112,11 +115,32 @@ public class HistoricalDataClient extends EClientSocket {
 		};
 		service.execute(r);
 	}
+	/**
+	 * Crippled implementation. Only/always sends the past 365 records
+	 */
 	@Override
     public void reqHistoricalData( final int tickerId, final Contract contract,
             final String endDateTime, final String durationStr,
             final String barSizeSetting, final String whatToShow,
             final int useRTH, final int formatDate) {
+		
+		Runnable r = new Runnable() { public void run() { 
+			final int daysToGoBack = 365;
+			BarIterator bars = CassandraDao.getInstance().getData(contract.m_symbol, daysToGoBack, 0, barSizeSetting);
+			LogManager.getLogger("HistoricalData").info("Starting to send historical data to client " + contract.m_symbol);
+			while(bars.hasNext()){
+				final Bar aBar = bars.next();
+				rh.historicalData(tickerId, 
+						String.valueOf(aBar.originalTime), aBar.open, 
+						aBar.high, aBar.low, 
+						aBar.close, (int)aBar.volume, 
+						aBar.tradeCount, aBar.wap, 
+						aBar.hasGaps);
+			}
+			LogManager.getLogger("HistoricalData").info("Completed historical data request " + contract.m_symbol);
+		}
+		};
+		service.execute(r);
     }
 	@Override
 	public void eDisconnect() {

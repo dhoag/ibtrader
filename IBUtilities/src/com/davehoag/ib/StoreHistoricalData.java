@@ -4,9 +4,10 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 /**
@@ -19,6 +20,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	String barSize =  "bar5sec";
 	long currentOpen = 0;
 	boolean skip = false;
+	BarCache barCache = null;
 
 	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
 		super(ibInterface);
@@ -100,7 +102,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	 */
 	@Override
 	public void info(  final String msg) {
-		LoggerFactory.getLogger("HistoricalData" ).info( msg + " " + sym);
+		LogManager.getLogger("HistoricalData" ).info( msg + " " + sym);
 	}
 	/**
 	 * Delegated response from the ResponseHandler that is actually getting the call
@@ -112,7 +114,19 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 			final double WAP, final boolean hasGaps) {
 
 		final String actualDateStr = getModifiedDateString(dateStr);
-		CassandraDao.getInstance().insertHistoricalData(barSize, sym, actualDateStr, open, high, low, close, volume, count, WAP, hasGaps);
+		if(barCache == null){
+			CassandraDao.getInstance().insertHistoricalData(barSize, sym, actualDateStr, open, high, low, close, volume, count, WAP, hasGaps);
+		}
+		else {
+			Bar aBar = new Bar();
+			aBar.symbol = sym; aBar.close = close; aBar.hasGaps = hasGaps; aBar.high = high;
+			aBar.low = low; aBar.close =close;
+			aBar.volume = volume; aBar.tradeCount = count; aBar.wap = WAP;
+			
+			aBar.originalTime = Long.valueOf(actualDateStr);
+
+			barCache.pushLatest(aBar);
+		}
 		countOfRecords++;
 		/* DecimalFormat df = new DecimalFormat("#.##");
 		System.out.println("His Data for " + sym + " - Req: " + reqId + " " + dateStr + " O:"
@@ -139,13 +153,19 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 	}
 	@Override
 	public void error(int id, int errorCode, String errorMsg) {
-		LoggerFactory.getLogger("HistoricalData" ).error( "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
+		LogManager.getLogger("HistoricalData" ).error( "Realtime bar failed: " + id+ " " + errorCode + " "+ errorMsg);
 		switch(errorCode){
 		case 162:
 		case 321: //skip that day?
-			LoggerFactory.getLogger("HistoricalData").warn(
+			LogManager.getLogger("HistoricalData").warn(
 					"Skiping current day " + HistoricalDateManipulation.getDateAsStr(currentOpen));
 			skip = true;
 		}
+	}
+	public void setCacheOnly(int i) {
+		barCache = new BarCache(i); 
+	}
+	public BarCache getCache() {
+		return barCache;
 	}
 }

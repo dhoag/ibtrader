@@ -2,7 +2,7 @@ package com.davehoag.ib.tools;
 
 import java.text.NumberFormat;
 
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
@@ -42,7 +42,7 @@ public class AnalyzeOptions {
 			altSource.addStrategy(swap);
 			clientInterface.requestQuotes();
 			clientInterface.close();
-			LoggerFactory.getLogger("Swap").info(
+			LogManager.getLogger("Swap").info(
 					"Portfolio " + nf.format(clientInterface.getPortfolio().getNetValue()));
 			clientInterface.getPortfolio().displayTradeStats("swap " + val);
 		}
