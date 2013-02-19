@@ -400,7 +400,17 @@ public class IBClientRequestExecutor {
 		final StockContract stock = new StockContract(symbol);
 		requestHistoricalData(missingData, stock, sh);
 	}
-
+	/**
+	 * Enable an ending date request
+	 * @param date
+	 * @param symbol
+	 * @param rh
+	 */
+	public void requestHistDataEnding(final String symbol,final String date,  final StoreHistoricalData rh){
+		final StockContract stock = new StockContract(symbol);
+		final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
+		execute(r, 11, rh);
+	}
 	/**
 	 * Assumes the date list is separated into intervals that comply with the
 	 * historical data request limits imposed by IB API.

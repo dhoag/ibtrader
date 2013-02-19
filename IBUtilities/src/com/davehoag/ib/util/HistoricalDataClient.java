@@ -1,5 +1,7 @@
 package com.davehoag.ib.util;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -125,22 +127,30 @@ public class HistoricalDataClient extends EClientSocket {
             final int useRTH, final int formatDate) {
 		
 		Runnable r = new Runnable() { @Override
-		public void run() { 
-			final int daysToGoBack = 365;
-			BarIterator bars = CassandraDao.getInstance().getData(contract.m_symbol, daysToGoBack, 0, "bar1day");
-			LogManager.getLogger("HistoricalData").info("Starting to send historical data to client " + contract.m_symbol);
-			while(bars.hasNext()){
-				final Bar aBar = bars.next();
-				rh.historicalData(tickerId, 
-						String.valueOf(aBar.originalTime), aBar.open, 
-						aBar.high, aBar.low, 
-						aBar.close, (int)aBar.volume, 
-						aBar.tradeCount, aBar.wap, 
-						aBar.hasGaps);
+		public void run() {
+			try { 
+				final int daysToGoBack = 365;
+				final long endTime = HistoricalDateManipulation.getTime(endDateTime);
+				final BarIterator bars = CassandraDao.getInstance().getData(contract.m_symbol, endTime - daysToGoBack*24*60*60, endTime, "bar1day");
+				LogManager.getLogger("HistoricalData").info("Starting to send historical data to client " + contract.m_symbol);
+				SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
+				//for bar1day it is not sent as seconds, I store it as seconds so need to convert
+				while(bars.hasNext()){
+					final Bar aBar = bars.next();
+					String date = df.format(aBar.getTime());
+					
+					rh.historicalData(tickerId, 
+							date, aBar.open, 
+							aBar.high, aBar.low, 
+							aBar.close, (int)aBar.volume, 
+							aBar.tradeCount, aBar.wap, 
+							aBar.hasGaps);
+				}
+				//send marker indicating data is complete
+				rh.historicalData(tickerId, "", -1, -1, 0, 0, 0, 0, 0, false);
+				LogManager.getLogger("HistoricalData").info("Completed historical data request " + contract.m_symbol);
 			}
-			//send marker indicating data is complete
-			rh.historicalData(tickerId, "", -1, -1, 0, 0, 0, 0, 0, false);
-			LogManager.getLogger("HistoricalData").info("Completed historical data request " + contract.m_symbol);
+			catch(ParseException pe){ pe.printStackTrace(); }
 		}
 		};
 		service.execute(r);

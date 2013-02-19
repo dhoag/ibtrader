@@ -1,7 +1,6 @@
 package com.davehoag.ib;
 
 import java.text.NumberFormat;
-import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 
@@ -58,20 +57,13 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * Get 1 day bars for the past year - we only keep the last N based on the size of the 
 	 * cache
 	 */
-	public void initPastData() {
-		String date = HistoricalDateManipulation.getDateAsStr(new Date());
-		final StoreHistoricalData histStore = new StoreHistoricalData(date, getRequester());
+	public void initPastData(final long seconds) {
+		String date = HistoricalDateManipulation.getDateAsStr(new Date(seconds * 1000));
+		final StoreHistoricalData histStore = new StoreHistoricalData(symbol, getRequester());
 		histStore.setBarSize("bar1day");
 		histStore.setCacheOnly(200);
-		try { 
-			requester.reqHistoricalData(symbol, date, histStore);
-		} catch (ParseException pe){
-			System.err.println("SHOULD BE IMPOSSIBLE " + pe);
-			pe.printStackTrace();
-			System.exit(-1);
-		}
+		requester.requestHistDataEnding(symbol, date, histStore);
 		historicalDataCache = histStore.getCache();
-		System.out.println(historicalDataCache.get(0));
 	}
 	/**
 	 * 
@@ -252,7 +244,8 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		
 		try {
 			QuoteRouter qr = new QuoteRouter("QQQ", clientInterface, clientInterface.getPortfolio());
-			qr.initPastData();
+			long time = HistoricalDateManipulation.getTime("20130214 07:44:30");
+			qr.initPastData(time );
 			clientInterface.waitForCompletion();
 			System.out.println(qr.historicalDataCache.get(0));
 		} catch (Exception e) {
