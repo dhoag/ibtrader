@@ -27,7 +27,6 @@ public class Portfolio {
 	double maxDrawdown;
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
-	Bar yesterday;
 	SimpleRiskLimits risk = new SimpleRiskLimits();
 	HashMap<String, Stack<LimitOrder>> positionToUnwind = new HashMap<String, Stack<LimitOrder>>();
 
@@ -148,13 +147,6 @@ public class Portfolio {
 	}
 	public void displayValue(final String symbol ){
 		LogManager.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash())+ " " + lastPrice.get(symbol) + " * " + getShares(symbol) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
-	}
-	/**
-	 * sometimes knowing yesterday's data is valuable. Could be null 
-	 * @param aOneDayBar
-	 */
-	public void setYesterday(final Bar aOneDayBar){
-		yesterday = aOneDayBar;
 	}
 	/**
 	 * Called at start time when we are initializing the portfolio

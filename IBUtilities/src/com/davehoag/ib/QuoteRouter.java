@@ -33,10 +33,17 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	ArrayList<Strategy> strategies = new ArrayList<Strategy>();
 	final String symbol;
 	Portfolio portfolio;
-	long initialTimeStamp;
-	BarCache cache = new BarCache();
+	BarCache cache;
 	BarCache historicalDataCache;
 
+	/**
+	 * Reset some data
+	 */
+	public void initialize(final Portfolio port) {
+		historicalDataCache = null;
+		cache = new BarCache();
+		portfolio = port;
+	}
 	/**
 	 * One strategy, one symbol, one IBClient, and one portfolio per
 	 * "TradingStrategy" instance. If you want to have multiple strategies on a
@@ -51,13 +58,13 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	public QuoteRouter(final String sym, final IBClientRequestExecutor exec, final Portfolio port) {
 		super(exec);
 		symbol = sym;
-		portfolio =port;
+		initialize(port);
 	}
 	/**
 	 * Get 1 day bars for the past year - we only keep the last N based on the size of the 
 	 * cache
 	 */
-	public void initPastData(final long seconds) {
+	public void requestHistorical1dayBars(final long seconds) {
 		String date = HistoricalDateManipulation.getDateAsStr(new Date(seconds * 1000));
 		final StoreHistoricalData histStore = new StoreHistoricalData(symbol, getRequester());
 		histStore.setBarSize("bar1day");
@@ -102,6 +109,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			final double low, final double close, final long volume, final double wap, final int count) {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
+		if(historicalDataCache == null){
+			//Set a marker to stop a second request because the request for historical data is asynchronous
+			historicalDataCache = new BarCache(1);
+			requestHistorical1dayBars(time);
+		}
 		cache.pushLatest(bar);
 		updatePortfolioTime(time);
 		portfolio.updatePrice(symbol, close);
@@ -153,17 +165,6 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 */
 	protected void updatePortfolioTime(final long time) {
 		portfolio.setTime(time);
-		//if time is 10 hours beyond the last check, update "yesterday"
-		if(time - initialTimeStamp > (10*60*60)){
-			try { 
-				initialTimeStamp = time;
-				final Bar yest = CassandraDao.getInstance().getYesterday(symbol, time);
-				portfolio.setYesterday( yest );
-			} catch(Exception ex){
-				LogManager.getLogger("MarketData").warn( "Can't getting yesterday's bar", ex);
-			}
-			
-		}
 	}
 
 	@Override
@@ -245,7 +246,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		try {
 			QuoteRouter qr = new QuoteRouter("QQQ", clientInterface, clientInterface.getPortfolio());
 			long time = HistoricalDateManipulation.getTime("20130214 07:44:30");
-			qr.initPastData(time );
+			qr.requestHistorical1dayBars(time );
 			clientInterface.waitForCompletion();
 			System.out.println(qr.historicalDataCache.get(0));
 		} catch (Exception e) {
