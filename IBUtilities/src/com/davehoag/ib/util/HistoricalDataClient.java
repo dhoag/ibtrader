@@ -124,9 +124,10 @@ public class HistoricalDataClient extends EClientSocket {
             final String barSizeSetting, final String whatToShow,
             final int useRTH, final int formatDate) {
 		
-		Runnable r = new Runnable() { public void run() { 
+		Runnable r = new Runnable() { @Override
+		public void run() { 
 			final int daysToGoBack = 365;
-			BarIterator bars = CassandraDao.getInstance().getData(contract.m_symbol, daysToGoBack, 0, barSizeSetting);
+			BarIterator bars = CassandraDao.getInstance().getData(contract.m_symbol, daysToGoBack, 0, "bar1day");
 			LogManager.getLogger("HistoricalData").info("Starting to send historical data to client " + contract.m_symbol);
 			while(bars.hasNext()){
 				final Bar aBar = bars.next();
@@ -137,6 +138,8 @@ public class HistoricalDataClient extends EClientSocket {
 						aBar.tradeCount, aBar.wap, 
 						aBar.hasGaps);
 			}
+			//send marker indicating data is complete
+			rh.historicalData(tickerId, "", -1, -1, 0, 0, 0, 0, 0, false);
 			LogManager.getLogger("HistoricalData").info("Completed historical data request " + contract.m_symbol);
 		}
 		};
@@ -200,7 +203,7 @@ public class HistoricalDataClient extends EClientSocket {
 	}
 	@Override
 	public void reqAccountUpdates(final boolean keepGetting, final String accountName){
-		//Do nothing
+		
 	}
 
 	long historicalDataStart;

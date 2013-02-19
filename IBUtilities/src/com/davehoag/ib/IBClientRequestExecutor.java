@@ -239,7 +239,6 @@ public class IBClientRequestExecutor {
 	final public void initializePortfolio( ){
 		//@TODO hard coded account name
 		String testAccountName = "DU132661";
-		int reqId = pushRequest();
 		client.reqAccountUpdates(true, testAccountName);
 		System.err.println("In client initializePortfolio - hard coded account name " + testAccountName);
 	}
@@ -307,6 +306,7 @@ public class IBClientRequestExecutor {
 			} catch (InterruptedException e) {
 				LogManager.getLogger("RequestManager").error( "Interrupted!!", e);
 			}
+		LogManager.getLogger("RequestManager").debug( "Waiting complete" );
 	}
 	/**
 	 * Wait before - no need to penalize the request after the historical data request.
