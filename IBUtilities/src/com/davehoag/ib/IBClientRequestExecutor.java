@@ -15,6 +15,7 @@ import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDataClient;
+import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
 
@@ -42,6 +43,36 @@ public class IBClientRequestExecutor {
 		EClientSocket  m_client = new EClientSocket( rh );
 		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
+		return clientInterface;
+	}
+
+	/**
+	 * Create a simulated client.
+	 * @return
+	 */
+	public static IBClientRequestExecutor initSimulatedClient() {
+		final ResponseHandler rh = new ResponseHandler();
+
+		HistoricalDataClient m_client = new HistoricalDataClient(rh);
+		return newClientInterface(rh, m_client);
+	}
+
+	/**
+	 * Similar to the initSimulatedClient but it reuses the ResponseHandler & client
+	 * 
+	 * @param rh
+	 * @param m_client
+	 * @return
+	 */
+	public static IBClientRequestExecutor newClientInterface(final ResponseHandler rh,
+			HistoricalDataClient m_client) {
+		rh.setExecutorService(new ImmediateExecutor());
+
+		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
+		clientInterface.setExecutor(new ImmediateExecutor());
+		clientInterface.connect();
+		clientInterface.initializePortfolio();
+		rh.getPortfolio().setCash(100000.0);
 		return clientInterface;
 	}
 	/**

@@ -11,6 +11,7 @@ import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.davehoag.ib.tools.SimulateTrading;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
@@ -247,7 +248,8 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * @param args
 	 */
 	public static void main(String[] args) {
-		IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+		//IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+		IBClientRequestExecutor clientInterface = IBClientRequestExecutor.initSimulatedClient();
 		
 		try {
 			QuoteRouter qr = new QuoteRouter("IBM", clientInterface, clientInterface.getPortfolio());

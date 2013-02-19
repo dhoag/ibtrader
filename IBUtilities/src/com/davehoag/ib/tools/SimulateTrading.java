@@ -12,7 +12,6 @@ import com.davehoag.ib.Strategy;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.HistoricalDataSender;
 import com.davehoag.ib.util.HistoricalDateManipulation;
-import com.davehoag.ib.util.ImmediateExecutor;
 
 /**
  * Run multiple strategies concurrently. Creates an instance of this class for
@@ -60,7 +59,7 @@ public class SimulateTrading {
 						"com.davehoag.ib.strategies." + strategyName + "Strategy").newInstance();
 				strategy.init(initParms);
 
-				final IBClientRequestExecutor clientInterface = initSimulatedClient();
+				final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.initSimulatedClient();
 
 				strategy.setPortfolio(clientInterface.getPortfolio());
 				for (String symbol : getSymbols(symbolList)) {
@@ -89,7 +88,7 @@ public class SimulateTrading {
 		final ResponseHandler rh = new ResponseHandler();
 
 		HistoricalDataClient m_client = new HistoricalDataClient(rh);
-		final IBClientRequestExecutor clientInterface = newClientInterface(rh, m_client);
+		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.newClientInterface(rh, m_client);
 		m_client.setSimulationRange(startTime, endTime);
 
 		Strategy strategy = (Strategy) Class.forName(
@@ -101,32 +100,6 @@ public class SimulateTrading {
 		clientInterface.requestQuotes();
 		clientInterface.close();
 		return strategy;
-	}
-	/**
-	 * @return
-	 */
-	protected static IBClientRequestExecutor initSimulatedClient() {
-		final ResponseHandler rh = new ResponseHandler();
-
-		HistoricalDataClient m_client = new HistoricalDataClient(rh);
-		return newClientInterface(rh, m_client);
-	}
-
-	/**
-	 * @param rh
-	 * @param m_client
-	 * @return
-	 */
-	protected static IBClientRequestExecutor newClientInterface(final ResponseHandler rh,
-			HistoricalDataClient m_client) {
-		rh.setExecutorService(new ImmediateExecutor());
-
-		IBClientRequestExecutor clientInterface = new IBClientRequestExecutor(m_client, rh);
-		clientInterface.setExecutor(new ImmediateExecutor());
-		clientInterface.connect();
-		clientInterface.initializePortfolio();
-		rh.getPortfolio().setCash(100000.0);
-		return clientInterface;
 	}
 
 	/**
