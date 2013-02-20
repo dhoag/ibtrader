@@ -90,32 +90,81 @@ public class HistoricalDataClient extends EClientSocket {
 	 * Send all of the data found in the market data feeds
 	 */
 	public void sendData() {
-		Runnable r = new Runnable() {
-			@Override
-			public void run() {
-				LogManager.getLogger("HistoricalData").info("Starting to send all data for client");
-				while(true){
-					boolean hasNext = true;
-					for(HistoricalDataSender sender: mktDataFeed.values()){
-						hasNext = hasNext & sender.hasNext();
-					}
-					if (hasNext) {
-						try {
-						for (HistoricalDataSender sender : mktDataFeed.values()) {
-							sender.sendBar();
-						}
-						} catch (Exception ex) {
-							ex.printStackTrace(System.err);
-							System.exit(-1);
-						}
-					} else {
-						LogManager.getLogger("HistoricalData").info("Completed sending all data for client");
-						break;
-					}
+		Runnable r = new RealtimeBarSender();
+		service.execute(r);
+	}
+	/**
+	 * Send the stored historical data as realtime 5 second bars
+	 * @author David Hoag
+	 *
+	 */
+	class RealtimeBarSender implements Runnable{
+		@Override
+		public void run() {
+			LogManager.getLogger("HistoricalData").info("Starting to send all data for client");
+			long currentDay = 0;
+			while(true){
+				final boolean hasNext = allMarketDataFeedsHaveNext();
+				if (hasNext) {
+					final long time = sendRealtimeBar();
+					currentDay = processPotentialNewDay(currentDay, time);
+				} else {
+					LogManager.getLogger("HistoricalData").info("Completed sending all data for client");
+					break;
 				}
 			}
-		};
-		service.execute(r);
+		}
+
+		/**
+		 * @param currentDay
+		 * @param time
+		 * @return
+		 */
+		protected long processPotentialNewDay(long currentDay, final long time) {
+			if(currentDay == 0) currentDay = HistoricalDateManipulation.getOpenTime(time); 
+			else {
+				final long newDay = HistoricalDateManipulation.getOpenTime(time);
+				if(currentDay != newDay ){
+					//reset as if the trading process was reset
+					rh.reset();
+					currentDay = newDay;
+				}
+			}
+			return currentDay;
+		}
+
+		/**
+		 * @return
+		 */
+		protected boolean allMarketDataFeedsHaveNext() {
+			boolean hasNext = true;
+			for(HistoricalDataSender sender: mktDataFeed.values()){
+				hasNext = hasNext & sender.hasNext();
+			}
+			return hasNext;
+		}
+
+		/**
+		 * @param time
+		 * @return
+		 */
+		protected long sendRealtimeBar() {
+			long time = 0;
+			try {
+			for (HistoricalDataSender sender : mktDataFeed.values()) {
+				long barTime = sender.sendBar();
+				if(time == 0) time = barTime;
+				else
+					if(time != barTime){
+						throw new IllegalStateException("Market data feeds are not synchronized! " + HistoricalDateManipulation.getDateAsStr(time) + " != " + HistoricalDateManipulation.getDateAsStr(barTime));
+					}
+			}
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
+				System.exit(-1);
+			}
+			return time;
+		}	
 	}
 	/**
 	 * Crippled implementation. Only/always sends the past 365 records

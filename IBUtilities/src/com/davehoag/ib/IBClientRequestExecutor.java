@@ -580,4 +580,15 @@ public class IBClientRequestExecutor {
 			((HistoricalDataClient) client).sendData();
 		}
 	}
+	/**
+	 * Event originates in HistoricalDataSender - a new day is being sent through. This will
+	 * reset internal caches to ensure processing is somewhat consistent with actual processing.
+	 * Things it doesn't do - result in a new request for quotes (current request is being fulfilled)
+	 * Doesn't reset the portfolio - don't want to keep a simulated server version of the portfolio 
+	 */
+	public void reset() {
+		for (QuoteRouter strat : quoteRouters.values()) {
+			strat.initialize(getPortfolio());
+		}
+	}
 }

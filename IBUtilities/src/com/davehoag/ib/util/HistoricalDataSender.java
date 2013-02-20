@@ -123,7 +123,7 @@ public class HistoricalDataSender {
 	 * Each bar represents a forward looking 5 second period - thus the first
 	 * time is 8:30 and last is 2:55:55
 	 */
-	public void sendBar() {
+	public long sendBar() {
 		final Bar bar = data.next();
 		lastBar = bar;
 		sendTick(bar.open);
@@ -134,6 +134,7 @@ public class HistoricalDataSender {
 		sendTick(bar.close);
 		handler.realtimeBar(reqId, bar.originalTime, bar.open, bar.high, bar.low, bar.close, bar.volume,
 				bar.wap, bar.tradeCount);
+		return bar.originalTime;
 	}
 	/**
 	 * @param bar

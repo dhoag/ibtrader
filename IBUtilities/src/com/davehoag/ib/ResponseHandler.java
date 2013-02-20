@@ -408,5 +408,9 @@ public class ResponseHandler implements EWrapper {
 		// TODO Auto-generated method stub
 
 	}
+	public void reset() {
+		requester.reset();
+		
+	}
 
 }
