@@ -43,6 +43,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		historicalDataCache = null;
 		cache = new BarCache();
 		portfolio = port;
+		historicalDataCache = null;
 	}
 	/**
 	 * One strategy, one symbol, one IBClient, and one portfolio per

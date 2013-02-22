@@ -67,6 +67,7 @@ public class SimulateTrading {
 					quoteSource.addStrategy(strategy);
 				}
 				clientInterface.requestQuotes();
+				clientInterface.waitForCompletion();
 				clientInterface.close();
 				LogManager.getLogger(strategyName).info(
 						"Portfolio " + nf.format(clientInterface.getPortfolio().getNetValue()));

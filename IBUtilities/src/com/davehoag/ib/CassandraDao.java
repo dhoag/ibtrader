@@ -235,13 +235,19 @@ public class CassandraDao {
 		final HashMap<String, List<HColumn<Long, Long>>> volData;
 		if( reverse ){ 
 			long start = originalTime - 1;
+			if(start < end) {
+				return new BarIterator(symbol);
+			}
 			priceData = getPriceHistoricalData(symbol,
 					end, start, barSize ,reverse, count);
 		
 			volData = getHistoricalData(symbol, end, start, barSize, reverse, count);
 		}
 		else {
-			long start = originalTime + 1;
+			final long start = originalTime + 1;
+			if(start > end){//all done with the data
+				return new BarIterator(symbol);
+			}
 			priceData = getPriceHistoricalData(symbol,
 					start, end, barSize ,reverse, count);
 		
@@ -479,12 +485,19 @@ public class CassandraDao {
 		for (String key : priceKeys) {
 			final String rowKey = upperSymbol + key;
 			priceQuery.setKeys(rowKey, rowKey);
-			final QueryResult<OrderedRows<String, Long, Double>> queryResults = priceQuery.execute();
-			final OrderedRows<String, Long, Double> rows = queryResults.get();
-			final Row<String, Long, Double> row = rows.getByKey(rowKey);
-			if(row != null){
-				final List<HColumn<Long, Double>> column = row.getColumnSlice().getColumns();
-				result.put(rowKey, column);
+			try { 
+				final QueryResult<OrderedRows<String, Long, Double>> queryResults = priceQuery.execute();
+				final OrderedRows<String, Long, Double> rows = queryResults.get();
+				final Row<String, Long, Double> row = rows.getByKey(rowKey);
+				if(row != null){
+					final List<HColumn<Long, Double>> column = row.getColumnSlice().getColumns();
+					result.put(rowKey, column);
+				}
+			}
+			catch(Throwable t){
+				System.err.println(t);
+				System.err.println("Start " + start+ " Finish " + finish + " " + reverse);
+				t.printStackTrace(System.err);
 			}
 		}
 		return result;

@@ -184,9 +184,15 @@ public class HistoricalDataClient extends EClientSocket {
 				LogManager.getLogger("HistoricalData").info("Starting to send historical data to client " + contract.m_symbol);
 				SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 				//for bar1day it is not sent as seconds, I store it as seconds so need to convert
+				long prior = 0;
 				while(bars.hasNext()){
 					final Bar aBar = bars.next();
-					String date = df.format(aBar.getTime());
+					final String date = df.format(aBar.getTime());
+					final long current = aBar.originalTime;
+					if(prior == current){
+						System.out.println(Thread.currentThread() + " " + aBar.getTime() + " " + date);
+					}
+					prior =current;
 					
 					rh.historicalData(tickerId, 
 							date, aBar.open, 
