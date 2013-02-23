@@ -108,6 +108,7 @@ public class IBClientRequestExecutor {
 	 */
 	public void close() {
 		LogManager.getLogger("RequestManager").info( "Shutting down");
+		Thread.currentThread().dumpStack();
 		client.eDisconnect();
 		if(executor instanceof ExecutorService)
 			((ExecutorService)executor).shutdown();
@@ -272,10 +273,10 @@ public class IBClientRequestExecutor {
 		final Integer id = Integer.valueOf(reqId);
 		final ResponseHandlerDelegate rd = map.get(id);
 		if(rd != null) {
-			LogManager.getLogger("PerfMetrics").debug( "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
+			LogManager.getLogger("PerfMetrics").info( "[" + reqId + "] ending executionTime: " + (System.currentTimeMillis() - rd.getStartTime()));
 		}
-		else
-			LogManager.getLogger("RequestManager").info( "[" + reqId + "] Ending request " );
+	
+		LogManager.getLogger("RequestManager").info( "[" + reqId + "] Ending request " );
 		
 		//A tracked request
 		if(reqId < 1066544174) { 
@@ -331,7 +332,8 @@ public class IBClientRequestExecutor {
 			public void run() {
 				try {
 					final boolean skip = histData != null ? histData.isSkippingDate(((HistoricalDataRequest)r).date) : false;
-					if (seconds > 0 && ! skip) {
+					if (seconds > 0 && ! skip && (!(executor instanceof ImmediateExecutor))) {
+						
 						// Send the request then wait for 10 seconds
 						synchronized (this) {
 							try {
@@ -366,7 +368,7 @@ public class IBClientRequestExecutor {
 			executor.execute(active);
 		}
 		else {
-			LogManager.getLogger("RequestManager").info( "All queued requests are complete");
+			LogManager.getLogger("RequestManager").debug( "All queued requests are complete");
 			this.notifyAll();
 		}
 	}
@@ -421,7 +423,10 @@ public class IBClientRequestExecutor {
 	 */
 	protected void requestHistoricalData(final ArrayList<String> dates, final StockContract stock,
 			final StoreHistoricalData rh) {
+		
 		final int markerRequestId = pushRequest();
+		LogManager.getLogger("RequestManager").info( "[" + markerRequestId + "] " + 
+				"Submitting HistoricalData marker" );
 		boolean first = true;
 		for (final String date : dates) {
 			final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
@@ -497,16 +502,16 @@ public class IBClientRequestExecutor {
 				final int reqId = pushRequest();
 				rh.setReqId(reqId);
 				pushResponseHandler(reqId, rh);
-				LogManager.getLogger("MarketData").info(
-						"Submitting request for real time bars" + reqId + " " + stock.m_symbol);
+				LogManager.getLogger("RequestManager").info(
+						"Submitting request for real time bars [" + reqId + "] " + stock.m_symbol);
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
 				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
 				final boolean snapshot = false;
 				final int tickReqId = pushRequest();
 				pushResponseHandler(tickReqId, rh);
-				LogManager.getLogger("MarketData").info(
-						"Submitting request for tick data" + tickReqId + " " + stock.m_symbol);
+				LogManager.getLogger("RequestManager").info(
+						"Submitting request for tick data [" + tickReqId + "] " + stock.m_symbol);
 				client.reqMktData(tickReqId, stock, "", snapshot);
 
 			}

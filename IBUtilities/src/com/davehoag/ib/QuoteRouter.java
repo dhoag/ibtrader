@@ -87,8 +87,6 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		if(contract.m_symbol.equals(symbol)){
-			
-			requester.endRequest(reqId);
 			portfolio.confirm(execution.m_orderId, contract.m_symbol ,execution.m_price, execution.m_shares);
 			LogManager.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
 		}

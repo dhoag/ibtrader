@@ -250,5 +250,12 @@ public class HistoricalDataSender {
 		}
 		throw new IllegalStateException("Tried to cancel an order that doesn't exist");
 	}
+	/**
+	 * Tell the system that I'm all done sending historical data as real-time bars
+	 */
+	public void endRequests() {
+		handler.endRequest(reqId);
+		
+	}
 
 }

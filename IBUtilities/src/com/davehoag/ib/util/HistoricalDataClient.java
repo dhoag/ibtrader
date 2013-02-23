@@ -2,6 +2,7 @@ package com.davehoag.ib.util;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -31,6 +32,7 @@ public class HistoricalDataClient extends EClientSocket {
 	protected HashMap<String, HistoricalDataSender> mktDataFeed = new HashMap<String, HistoricalDataSender>();
 
 	public ExecutorService service = Executors.newFixedThreadPool(10);
+	HashMap<String, BarIterator> pastOneDayBars = new HashMap<String, BarIterator>();
 
 	@Override
 	public void cancelOrder(final int id) {
@@ -87,11 +89,17 @@ public class HistoricalDataClient extends EClientSocket {
 	}
 
 	/**
-	 * Send all of the data found in the market data feeds
+	 * Send all of the data found in the market data feeds.
+	 * Only called when we are simulating realtime bars
 	 */
 	public void sendData() {
-		Runnable r = new RealtimeBarSender();
-		service.execute(r);
+		RealtimeBarSender r = new RealtimeBarSender();
+		//Don't really run through the thread pool. Block until all historical data is sent. 
+		//service.execute(r);
+		r.run();
+		for(HistoricalDataSender sender: mktDataFeed.values()){
+			sender.endRequests();
+		}
 	}
 	/**
 	 * Send the stored historical data as realtime 5 second bars
@@ -178,21 +186,16 @@ public class HistoricalDataClient extends EClientSocket {
 		Runnable r = new Runnable() { @Override
 		public void run() {
 			try { 
-				final int daysToGoBack = 365;
 				final long endTime = HistoricalDateManipulation.getTime(endDateTime);
-				final BarIterator bars = CassandraDao.getInstance().getData(contract.m_symbol, endTime - daysToGoBack*24*60*60, endTime, "bar1day");
 				LogManager.getLogger("HistoricalData").info("Starting to send historical data to client " + contract.m_symbol);
 				SimpleDateFormat df = new SimpleDateFormat("yyyyMMdd");
 				//for bar1day it is not sent as seconds, I store it as seconds so need to convert
-				long prior = 0;
+				final BarIterator bars = getOneDayBars(contract.m_symbol, endTime); 
 				while(bars.hasNext()){
 					final Bar aBar = bars.next();
+					//the bar iterator may have more data then I should send
+					if(HistoricalDateManipulation.getOpen(aBar.originalTime) >= endTime ) break;
 					final String date = df.format(aBar.getTime());
-					final long current = aBar.originalTime;
-					if(prior == current){
-						System.out.println(Thread.currentThread() + " " + aBar.getTime() + " " + date);
-					}
-					prior =current;
 					
 					rh.historicalData(tickerId, 
 							date, aBar.open, 
@@ -210,6 +213,31 @@ public class HistoricalDataClient extends EClientSocket {
 		};
 		service.execute(r);
     }
+	/**
+	 * Reuse the prior iterator or query for the data
+	 * 
+	 * @param symbol
+	 * @param endTime
+	 * @return
+	 */
+	protected BarIterator getOneDayBars(final String symbol, final long endTime){
+		BarIterator bars = pastOneDayBars.get(symbol);
+		if(bars != null ) {
+			bars.reset();
+			return bars;
+		}
+		final int daysToGoBack = 365;
+		final String dateAsStr = HistoricalDateManipulation.getDateAsStr(new Date());
+		try {
+			bars = CassandraDao.getInstance().getData(symbol, endTime - daysToGoBack*24*60*60, HistoricalDateManipulation.getTime(dateAsStr), "bar1day");
+			pastOneDayBars.put(symbol, bars);
+			return bars;
+		} catch (ParseException e) {
+			//Should be impossible
+			e.printStackTrace();
+		}
+		return null;
+	}
 	@Override
 	public void eDisconnect() {
 
@@ -243,7 +271,10 @@ public class HistoricalDataClient extends EClientSocket {
 	 * Noop for now, send realtime data later
 	 */
 	@Override
-	public void reqMktData(int tickReqId, Contract stock, String genericTypes, boolean snapshot){}
+	public void reqMktData(int tickReqId, Contract stock, String genericTypes, boolean snapshot){
+		//immediately terminate it - realtime bar request will actually send it
+		rh.endRequest(tickReqId);
+	}
 	/**
 	 * Create an execution and send it 
 	 * @param id

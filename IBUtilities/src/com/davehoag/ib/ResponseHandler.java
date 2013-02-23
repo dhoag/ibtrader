@@ -1,5 +1,6 @@
 package com.davehoag.ib;
 
+import java.net.Authenticator.RequestorType;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -7,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
+import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
 import com.ib.client.ContractDetails;
@@ -367,7 +369,7 @@ public class ResponseHandler implements EWrapper {
 				//delegate to the registered handler
 				final ResponseHandlerDelegate ew = requester.getResponseHandler(reqId);
 				if(ew != null) ew.realtimeBar(reqId, time, open, high, low, close, volume, wap, count);
-				else LogManager.getLogger("RealTimeBar").warn( "[" + reqId + "] Reveived realtime bar but no delegate registered " );
+				else LogManager.getLogger("RealTimeBar").warn( "[" + reqId + "] Reveived realtime bar " + HistoricalDateManipulation.getDateAsStr(time) + " but no delegate registered " );
 			};
 		};
 		executorService.execute(r);
@@ -407,6 +409,9 @@ public class ResponseHandler implements EWrapper {
 	public void commissionReport(CommissionReport commissionReport) {
 		// TODO Auto-generated method stub
 
+	}
+	public void endRequest(int reqId){
+		requester.endRequest(reqId);
 	}
 	public void reset() {
 		requester.reset();
