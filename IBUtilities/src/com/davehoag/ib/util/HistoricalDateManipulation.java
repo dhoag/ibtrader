@@ -11,7 +11,7 @@ import java.util.Date;
  * @author dhoag
  */
 public class HistoricalDateManipulation {
-	final static DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+	final static ThreadLocal<SimpleDateFormat> df = new ThreadLocal<SimpleDateFormat>(); 
 	/**
 	 * Get a list of Dates for which we want data.
 	 * @param startingDateStr
@@ -129,7 +129,9 @@ public class HistoricalDateManipulation {
 	 * @throws ParseException
 	 */
 	public static long getTime(String dateStr) throws ParseException{
-		final Date d = df.parse(dateStr );
+		if(df.get() == null) df.set( new SimpleDateFormat("yyyyMMdd HH:mm:ss"));
+		
+		final Date d = df.get().parse(dateStr );
 		return d.getTime() / 1000;
 	}
 	public static String getDateAsStr(final long seconds){
@@ -137,7 +139,9 @@ public class HistoricalDateManipulation {
 		return getDateAsStr(d);
 	}
 	public static String getDateAsStr(final Date date){
-		return df.format(date);
+		if(df.get() == null) df.set( new SimpleDateFormat("yyyyMMdd HH:mm:ss"));
+
+		return df.get().format(date);
 	}
 	/**
 	 * From the starting date figure out how how many discrete entries are required to request
@@ -177,6 +181,8 @@ public class HistoricalDateManipulation {
 	 * @throws ParseException
 	 */
 	public static ArrayList<String> getDatesBrokenIntoWeeks(final String startingDateStr, final Calendar today) throws ParseException {
+		if(df.get() == null) df.set( new SimpleDateFormat("yyyyMMdd HH:mm:ss"));
+
 		ArrayList<String> result = new ArrayList<String>();
 		Calendar startingDate = getStartCalendar(startingDateStr, today);
 		
@@ -185,9 +191,9 @@ public class HistoricalDateManipulation {
 		
 		for(int j=0; j < count; j++){
 			startingDate.add( Calendar.DAY_OF_WEEK, 7);
-			result.add(df.format(startingDate.getTime()));
+			result.add(df.get().format(startingDate.getTime()));
 		}
-		result.add( df.format(today.getTime()));
+		result.add( df.get().format(today.getTime()));
 		return result;
 	}
 	/**
@@ -224,7 +230,9 @@ public class HistoricalDateManipulation {
 	 * @throws ParseException
 	 */
 	private static Calendar getStartCalendar(final String startingDateStr, final Calendar today) throws ParseException {
-		final Date d = df.parse(startingDateStr + " 00:00:00");
+		if(df.get() == null) df.set( new SimpleDateFormat("yyyyMMdd HH:mm:ss"));
+
+		final Date d = df.get().parse(startingDateStr + " 00:00:00");
 		Calendar startingDate = Calendar.getInstance();
 		startingDate.setMinimalDaysInFirstWeek(4);
 		today.setMinimalDaysInFirstWeek(4);
