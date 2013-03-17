@@ -34,7 +34,9 @@ public class BarCacheTest {
 		qr.pushLatest(newBar(13, 16));
 		//17 - 10 * 1
 		double res = qr.getFibonacciRetracement(6, 1);
-		assertEquals(7.0, res, .01);
+		assertEquals(10.0, res, .01);
+		res = qr.getFibonacciRetracement(6, 0);
+		assertEquals(17.0, res, .01);
 		qr.pushLatest(newBar(12, 15));
 		qr.pushLatest(newBar(12, 14));
 		qr.pushLatest(newBar(11, 13));
@@ -45,13 +47,13 @@ public class BarCacheTest {
 		qr.pushLatest(newBar(13, 14));
 		qr.pushLatest(newBar(13, 15));
 		res = qr.getFibonacciRetracement(6, 1);
-		assertEquals(4.0, res, .01);
+		assertEquals(11.0, res, .01);
 		res = qr.getFibonacciRetracement(9, 1);
 		//should still be 4 as the 16 doesn't have a low behind it
-		assertEquals(4.0, res, .01);
+		assertEquals(11.0, res, .01);
 		//should reset to the original wider band
 		res = qr.getFibonacciRetracement(12, 1);
-		assertEquals(7.0, res, .01);
+		assertEquals(10.0, res, .01);
 	}
 	Bar newBar(double low, double high){
 		Bar b = new Bar();

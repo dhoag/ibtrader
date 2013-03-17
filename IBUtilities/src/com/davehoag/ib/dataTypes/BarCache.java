@@ -92,7 +92,7 @@ public class BarCache {
 			}
 		}
 		if(!valid) return 0;
-		return (high - low) * percent;
+		return high - ( (high - low) * percent);
 	}
 	public double [] getParabolicSar(final double [] result, final double accelFact){
 		// Initialize trend to whatever
