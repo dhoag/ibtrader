@@ -10,7 +10,6 @@ public class BarCache {
 
 	public BarCache() {
 	}
-
 	public BarCache(int i) {
 		localCache = new Bar[i];
 	}
@@ -55,6 +54,45 @@ public class BarCache {
 		if(actualIdx >= 0) return localCache[actualIdx];
 		return localCache[ localCache.length + actualIdx ];
 		
+	}
+
+	/**
+	 * The main Fibonacci retracement levels. To be valid we need a "high" that is the
+	 * most recent bar or higher than the most recent and a low that is in the same
+	 * bar as the high or older.  Additional Fibonacci retracement 
+	 * levels include 76.4 percent and 23.6 percent
+	 * 
+	 * @param periods
+	 * @param percent —38.2 percent, 50 percent and 61.8 percent.
+	 * @return
+	 */
+	public double getFibonacciRetracement(final int periods, final double percent){
+		Bar b = get(0);
+		double high = b.high; double low = b.low;
+		double candidateHigh = 0;
+		boolean valid = false;
+		for(int i = 1; i < periods; i++){
+			final Bar aBar = get(i);
+			if(high < aBar.high) { 
+				if(valid) { //had a good high low sequence but found older high
+					candidateHigh = aBar.high;
+				}
+				else {
+					high = aBar.high;
+				}
+			}
+			if(low > aBar.low) {
+				low = aBar.low;
+				valid = true;
+				//Found a new low after the candidate high
+				if(candidateHigh != 0){
+					high = candidateHigh;
+					candidateHigh = 0;
+				}
+			}
+		}
+		if(!valid) return 0;
+		return (high - low) * percent;
 	}
 	public double [] getParabolicSar(final double [] result, final double accelFact){
 		// Initialize trend to whatever

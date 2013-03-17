@@ -9,7 +9,6 @@ import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.dataTypes.BarIterator;
-import com.davehoag.ib.dataTypes.PriceBands;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class DumpData {
@@ -29,24 +28,18 @@ public class DumpData {
 			long start = df.parse(startTime).getTime()/1000;
 			long finish = df.parse(endTime).getTime()/1000;
 			//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
-			System.out.println("Sym,date,open,high,low,close,vol,vwapLow,vwapHigh,vwapMA");
+			System.out.println("Sym,date,open,high,low,close,vol,vwap");
 			BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
-			final int periods = 12*5;
-			for(Bar bar: data){
+			for(Bar aBar: data){
 				
-				cache.pushLatest(bar);
-				if(cache.isInitialized(periods)) { 
-					final Bar aBar = cache.get(periods -1 );
-					PriceBands bands = cache.getVwapBands(periods);
-					System.out.print(symbol + "," + HistoricalDateManipulation.getDateAsStr(aBar.originalTime));
-					System.out.print( "," + nf.format(aBar.open) );
-					System.out.print( "," + nf.format(aBar.high) );
-					System.out.print( "," + nf.format(aBar.low) );
-					System.out.print( "," + nf.format(aBar.close) );
-					System.out.println( "," + nf.format(aBar.volume) );
-					System.out.println( ","+nf.format(bands.getLow()) +","+nf.format(bands.getHigh()));
-					System.out.println( "," + nf.format(cache.getVwapMA(periods)));
-				}
+				cache.pushLatest(aBar);
+				System.out.print(symbol + "," + HistoricalDateManipulation.getDateAsStr(aBar.originalTime));
+				System.out.print( "," + nf.format(aBar.open) );
+				System.out.print( "," + nf.format(aBar.high) );
+				System.out.print( "," + nf.format(aBar.low) );
+				System.out.print( "," + nf.format(aBar.close) );
+				System.out.print( "," + nf.format(aBar.volume) );
+				System.out.println( "," + nf.format(aBar.wap) );
 
 			}
 		}//end try

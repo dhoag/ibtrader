@@ -23,7 +23,41 @@ public class BarCacheTest {
 		assertEquals(5, cache[0].tradeCount);
 		assertEquals(4, cache[1].tradeCount);
 	}
-
+	@Test
+	public void testFib(){
+		BarCache qr = new BarCache();
+		qr.pushLatest(newBar(10, 12));
+		qr.pushLatest(newBar(12, 13));
+		qr.pushLatest(newBar(12, 15));
+		qr.pushLatest(newBar(14, 17));
+		qr.pushLatest(newBar(15, 16));
+		qr.pushLatest(newBar(13, 16));
+		//17 - 10 * 1
+		double res = qr.getFibonacciRetracement(6, 1);
+		assertEquals(7.0, res, .01);
+		qr.pushLatest(newBar(12, 15));
+		qr.pushLatest(newBar(12, 14));
+		qr.pushLatest(newBar(11, 13));
+		res = qr.getFibonacciRetracement(6, 1);
+		//Down trend - no low for the high - would need a low below 11
+		assertEquals(0, res, .01);
+		qr.pushLatest(newBar(12, 13));
+		qr.pushLatest(newBar(13, 14));
+		qr.pushLatest(newBar(13, 15));
+		res = qr.getFibonacciRetracement(6, 1);
+		assertEquals(4.0, res, .01);
+		res = qr.getFibonacciRetracement(9, 1);
+		//should still be 4 as the 16 doesn't have a low behind it
+		assertEquals(4.0, res, .01);
+		//should reset to the original wider band
+		res = qr.getFibonacciRetracement(12, 1);
+		assertEquals(7.0, res, .01);
+	}
+	Bar newBar(double low, double high){
+		Bar b = new Bar();
+		b.high = high; b.low = low;
+		return b;
+	}
 	@Test
 	public void testPartialFilled() {
 		BarCache qr = new BarCache();
