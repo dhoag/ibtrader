@@ -164,6 +164,15 @@ public class BarCache {
 		return periods < lastIdx || (wrapped && periods <= localCache.length);
 	}
 
+
+	/**
+	 * @param periods
+	 * @return
+	 */
+	public boolean haslessThanNBars(final int periods) {
+		return (periods > localCache.length) || (periods > lastIdx && !wrapped);
+	}
+
 	/**
 	 * Add another Bar into the cache
 	 * 
@@ -205,7 +214,7 @@ public class BarCache {
 	 * @param periods
 	 */
 	protected void validateIndex(final int periods) {
-		if ((periods > localCache.length) || (periods > lastIdx && !wrapped)) {
+		if (haslessThanNBars(periods)) {
 			throw new IllegalStateException("Not enough data to fullfill request");
 		}
 	}
