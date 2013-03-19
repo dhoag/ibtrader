@@ -60,11 +60,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * cache
 	 */
 	public void requestHistorical1dayBars(final long seconds) {
-		String date = HistoricalDateManipulation.getDateAsStr(new Date(seconds * 1000));
+		final String date = HistoricalDateManipulation.getDateAsStr(new Date(seconds * 1000));
 		final StoreHistoricalData histStore = new StoreHistoricalData(symbol, getRequester());
 		histStore.setBarSize("bar1day");
 		histStore.setCacheOnly(200);
-		requester.requestHistDataEnding(symbol, date, histStore);
+		getRequester().requestHistDataEnding(symbol, date, histStore);
 		portfolio.getQuoteData().putDayBarCache(symbol, histStore.getCache());
 	}
 	/**
