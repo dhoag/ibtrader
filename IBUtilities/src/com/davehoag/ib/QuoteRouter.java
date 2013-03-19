@@ -7,7 +7,6 @@ import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Bar;
-import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.util.HistoricalDateManipulation;
@@ -33,17 +32,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	ArrayList<Strategy> strategies = new ArrayList<Strategy>();
 	final String symbol;
 	Portfolio portfolio;
-	BarCache cache;
-	BarCache historicalDataCache;
-
+	boolean requestedHistoricalData = false;
 	/**
 	 * Reset some data
 	 */
 	public void initialize(final Portfolio port) {
-		historicalDataCache = null;
-		cache = new BarCache();
 		portfolio = port;
-		historicalDataCache = null;
 	}
 	/**
 	 * One strategy, one symbol, one IBClient, and one portfolio per
@@ -71,7 +65,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		histStore.setBarSize("bar1day");
 		histStore.setCacheOnly(200);
 		requester.requestHistDataEnding(symbol, date, histStore);
-		historicalDataCache = histStore.getCache();
+		portfolio.getQuoteData().putDayBarCache(symbol, histStore.getCache());
 	}
 	/**
 	 * 
@@ -108,14 +102,13 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			final double low, final double close, final long volume, final double wap, final int count) {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
-		if(historicalDataCache == null){
-			//Set a marker to stop a second request because the request for historical data is asynchronous
-			historicalDataCache = new BarCache(1);
+		if(!requestedHistoricalData){
+			requestedHistoricalData = true;
 			requestHistorical1dayBars(time);
 		}
-		cache.pushLatest(bar);
-		updatePortfolioTime(time);
+		portfolio.getQuoteData().push5SecBar(symbol, bar);
 		portfolio.updatePrice(symbol, close);
+		updatePortfolioTime(time);
 		if( time % (60*30) == 0) { 
 			LogManager.getLogger("MarketData").info( "Realtime bar : " + reqId + " " + bar);
 			portfolio.displayValue(symbol);
@@ -227,11 +220,6 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		return bar;
 	}
 
-	public BarCache getBarCache() {
-		return cache;
-
-	}
-
 	public void cancelOrder(final LimitOrder stopLoss) {
 		requester.cancelOrder(stopLoss.getId());
 	}
@@ -247,7 +235,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			long time = HistoricalDateManipulation.getTime("20130214 07:44:30");
 			qr.requestHistorical1dayBars(time );
 			clientInterface.waitForCompletion();
-			System.out.println(qr.historicalDataCache.get(0));
+			System.out.println(qr.portfolio.getQuoteData().getDayBarCache("QQQ").get(0));
 		} catch (Exception e) {
 			LogManager.getLogger("QuoteRouter").error( "Exception!! " , e);
 		}

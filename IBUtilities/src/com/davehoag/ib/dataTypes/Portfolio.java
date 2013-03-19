@@ -29,7 +29,11 @@ public class Portfolio {
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	SimpleRiskLimits risk = new SimpleRiskLimits();
 	HashMap<String, Stack<LimitOrder>> positionToUnwind = new HashMap<String, Stack<LimitOrder>>();
-
+	TradingDay quoteData = new TradingDay();
+	
+	public TradingDay getQuoteData(){
+		return quoteData;
+	}
 	/**
 	 * 
 	 * @param symbol
