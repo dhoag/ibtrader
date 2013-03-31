@@ -153,6 +153,14 @@ public class BarCacheTest {
 		double [] pSar = qr.getParabolicSar(5, .02);
 		System.out.println(pSar);
 	}
+	@Test
+	public void testMA(){
+		BarCache qr = new BarCache();
+		send5bars(qr);
+		
+		double closeMa = qr.getMA(5, 'c');
+		assertEquals((10+20+30+40+50)/5, closeMa, .002);
+	}
 	/**
 	 * @param qr
 	 */

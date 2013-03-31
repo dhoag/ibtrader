@@ -28,7 +28,7 @@ public class BarCache {
 	 * @return
 	 */
 	public boolean isTrendingUp(final int periods) {
-		Bar[] bars = getBars(periods);
+		final Bar[] bars = getBars(periods);
 		int upCount = 0;
 		double last = -1;
 		for (Bar aBar : bars) {
@@ -50,7 +50,7 @@ public class BarCache {
 	 */
 	public Bar get(final int idx){
 		validateIndex(idx );
-		int actualIdx = lastIdx - idx - 1;
+		final int actualIdx = lastIdx - idx - 1;
 		if(actualIdx >= 0) return localCache[actualIdx];
 		return localCache[ localCache.length + actualIdx ];
 		
@@ -64,7 +64,7 @@ public class BarCache {
 	 * 
 	 * @param periods
 	 * @param percent —38.2 percent, 50 percent and 61.8 percent.
-	 * @return
+	 * @return price that represents the retracement point or zero if it can't be determined
 	 */
 	public double getFibonacciRetracement(final int periods, final double percent){
 		Bar b = get(0);
@@ -124,7 +124,7 @@ public class BarCache {
 	 */
 	protected double [] getParabolicSar(boolean upTrend, double accelerationFactor, final double accelFactIncrement, final int barIdx, final double pSar, double extremePoint, double [] result){
 		double nSar = 0;
-		Bar todaysBar = get(barIdx);
+		final Bar todaysBar = get(barIdx);
 		
 		if(upTrend){
 			// Making higher highs: accelerate
@@ -182,11 +182,19 @@ public class BarCache {
 	 * @param periods
 	 * @return
 	 */
-	public double getVwapMA(final int periods) {
-		Bar[] bars = getBars(periods);
+	public double getMA(final int periods, final char field) {
+		final Bar[] bars = getBars(periods);
 		double sum = 0;
-		for (Bar aBar : bars) {
-			sum += aBar.wap;
+		for (final Bar aBar : bars) {
+			switch(field){
+			case 'w' : sum += aBar.wap; break;
+			case 'v' : sum += aBar.volume; break;
+			case 'o' : sum += aBar.open; break;
+			case 'h' : sum += aBar.high; break;
+			case 'l' : sum += aBar.low; break;
+			case 'c' : sum += aBar.close; break;
+			default : throw new IllegalArgumentException("Field "+ field + " not supported. ");
+			}
 		}
 		return sum / bars.length;
 	}
@@ -290,7 +298,7 @@ public class BarCache {
 	public PriceBands getVwapBands(final int periods) {
 		return getVwapBands(periods, stdDevFactor);
 	}
-	public PriceBands getVwapBands(final int periods, double stdDevAdjustment) {
+	public PriceBands getVwapBands(final int periods, final double stdDevAdjustment) {
 		final double[] vwapList = getVwap(periods);
 		final Stat stat = new Stat(vwapList);
 		final double stdDev = stat.standardDeviation() * stdDevAdjustment;
