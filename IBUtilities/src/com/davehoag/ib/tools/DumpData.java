@@ -13,8 +13,6 @@ import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.dataTypes.BarIterator;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
-import flanagan.io.FileOutput;
-
 public class DumpData {
 	public static void main(String [] args){
 		DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
@@ -67,8 +65,8 @@ public class DumpData {
 				out.print(nf.format(dailyData.getFibonacciRetracement(fibRange, 0)) + ",");
 				out.print(nf.format(dailyData.getFibonacciRetracement(fibRange, .382)) + ",");
 				out.print(nf.format(dailyData.getFibonacciRetracement(fibRange, .618)) + ",");
-				out.print(nf.format( dailyData.getVwapMA(20)) + ",");
-				out.print(nf.format( dailyData.getVwapMA(13)) + ",");
+				out.print(nf.format( dailyData.getMA(20, 'w')) + ",");
+				out.print(nf.format( dailyData.getMA(13, 'w')) + ",");
 				out.print(nf.format( dailyData.getParabolicSar(15, 0)[0]) + ",");
 				out.print(nf.format( dailyData.getParabolicSar(15, 0)[1] ));
 				out.print( "," + nf.format(aBar.open) );

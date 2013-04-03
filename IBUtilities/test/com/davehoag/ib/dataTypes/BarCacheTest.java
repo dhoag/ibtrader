@@ -195,7 +195,18 @@ public class BarCacheTest {
 		assertEquals(3, idx);
 		idx=bc.indexOf(15);
 		assertEquals(4, idx);
+		b = newBar(12,15);
+		b.originalTime = 150;
+		bc.pushLatest(b);
+		b = newBar(12,15);
+		b.originalTime = 155;
+		bc.pushLatest(b);
+		idx = bc.indexOf(150);
+		assertEquals(1, idx);
+		idx = bc.indexOf(21);
+		assertEquals(3, idx);
 	}
+	
 	/**
 	 * @param qr
 	 */

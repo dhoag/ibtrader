@@ -250,12 +250,17 @@ public class BarCache {
 			int guess= (int) (wrapped ? lastIdx - (int)(localCache.length * spread) : Math.min(lastIdx*spread, lastIdx-1));
 			if(guess < 0) guess = localCache.length + guess;
 			int idx = guess;
+			//There are large gaps at day boundaries that could screw this up
+			//the algo only works if the initial idx yields a bar time that is 
+			//greater than than the passed in parameter
+			if(localCache[idx].originalTime < originalTime) idx = lastIdx -1;
 			while(true){
 				//where should I look for the index
 				final Bar candidate = localCache[idx];
-				if(originalTime >= candidate.originalTime) {					
-					int gotIt =lastIdx - (lastIdx - idx ) -1;
-					gotIt = gotIt <= 0 ?  Math.abs(gotIt) : (lastIdx ) + (localCache.length - 1 - idx );
+				if(originalTime >= candidate.originalTime) {
+					int gotIt;
+					if(idx > lastIdx -1 ) gotIt = (lastIdx ) + (localCache.length - 1 - idx );
+					else gotIt = lastIdx - 1 -idx; 
 					if(wrapped ){
 						System.out.println(gotIt);
 					}
