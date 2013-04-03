@@ -1,5 +1,7 @@
 package com.davehoag.ib.dataTypes;
 
+import com.davehoag.ib.util.HistoricalDateManipulation;
+
 import flanagan.analysis.Stat;
 
 public class BarCache {
@@ -224,7 +226,7 @@ public class BarCache {
 	 * 
 	 * @param aBar
 	 */
-	public void pushLatest(final Bar aBar) {
+	public synchronized void pushLatest(final Bar aBar) {
 		if (aBar == null)
 			throw new IllegalArgumentException("aBar must not be null");
 		if (lastIdx == localCache.length) {
@@ -233,7 +235,40 @@ public class BarCache {
 		}
 		localCache[lastIdx++] = aBar;
 	}
-
+	/**
+	 * 
+	 * @param originalTime
+	 * @return
+	 */
+	public synchronized int indexOf(final long originalTime ){
+		final Bar mostRecent = localCache[lastIdx -1];
+		final Bar oldest = wrapped ? localCache[lastIdx] : localCache[0];
+		if(mostRecent.originalTime >= originalTime && oldest.originalTime <= originalTime){
+			if(mostRecent.originalTime == originalTime) return 0;
+			double spread = (mostRecent.originalTime - originalTime) / (mostRecent.originalTime - oldest.originalTime);
+			if(spread < .01) spread = .5;
+			int guess= (int) (wrapped ? lastIdx - (int)(localCache.length * spread) : Math.min(lastIdx*spread, lastIdx-1));
+			if(guess < 0) guess = localCache.length + guess;
+			int idx = guess;
+			while(true){
+				//where should I look for the index
+				final Bar candidate = localCache[idx];
+				if(originalTime >= candidate.originalTime) {					
+					int gotIt =lastIdx - (lastIdx - idx ) -1;
+					gotIt = gotIt <= 0 ?  Math.abs(gotIt) : (lastIdx ) + (localCache.length - 1 - idx );
+					if(wrapped ){
+						System.out.println(gotIt);
+					}
+					return gotIt;
+				}
+				
+				idx = (idx > 0) ? idx-1 : localCache.length - 1;
+			}
+		}
+		else{
+			throw new IllegalArgumentException("Time " + HistoricalDateManipulation.getDateAsStr(originalTime) + " not in cache");
+		}
+	}
 	/**
 	 * Get the past N bars with the first element being the most recent and the
 	 * last element in the array being the oldest.

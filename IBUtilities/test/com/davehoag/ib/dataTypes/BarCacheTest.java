@@ -161,6 +161,41 @@ public class BarCacheTest {
 		double closeMa = qr.getMA(5, 'c');
 		assertEquals((10+20+30+40+50)/5, closeMa, .002);
 	}
+	@Test
+	public void testIndexOf(){
+		BarCache bc = new BarCache(5);
+		Bar b = newBar(12,15) ;
+		b.originalTime = 10;
+		bc.pushLatest(b);
+		int idx=bc.indexOf(10);
+		assertEquals(0, idx); 
+		b = newBar(12,15) ;
+		b.originalTime = 15;
+		bc.pushLatest(b);
+		idx=bc.indexOf(10);
+		assertEquals(1, idx); 
+		idx=bc.indexOf(12);
+		assertEquals(1, idx); 
+		idx=bc.indexOf(15);
+		assertEquals(0, idx);
+		for(int i = 0; i < 5; i++){
+			b = newBar(12,15) ;
+			b.originalTime = 15 + (i*2);
+			bc.pushLatest(b);
+		}
+		idx=bc.indexOf(15+(4*2));
+		assertEquals(0, idx);
+		idx=bc.indexOf(15+(3*2));
+		assertEquals(1, idx);
+		idx=bc.indexOf(15+(3*2)+1);
+		assertEquals(1, idx);
+		idx=bc.indexOf(15+(2*2));
+		assertEquals(2, idx);
+		idx=bc.indexOf(15+(1*2));
+		assertEquals(3, idx);
+		idx=bc.indexOf(15);
+		assertEquals(4, idx);
+	}
 	/**
 	 * @param qr
 	 */
