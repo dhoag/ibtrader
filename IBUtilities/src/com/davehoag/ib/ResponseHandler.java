@@ -1,6 +1,5 @@
 package com.davehoag.ib;
 
-import java.net.Authenticator.RequestorType;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -184,7 +183,26 @@ public class ResponseHandler implements EWrapper {
 				lastFillPrice, clientId, whyHeld);
 
 	}
-
+	@Override
+	public void position(String account, Contract contract, int pos) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void positionEnd() {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void accountSummary(int reqId, String account, String tag, String value, String currency) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void accountSummaryEnd(int reqId) {
+		// TODO Auto-generated method stub
+		
+	}
 	@Override
 	public void openOrder(final int orderId, final Contract contract, final Order order,
 			final OrderState orderState) {

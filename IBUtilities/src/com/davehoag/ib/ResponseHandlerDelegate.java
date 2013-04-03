@@ -136,7 +136,25 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 		// TODO Auto-generated method stub
 
 	}
-
+	@Override
+	public void position(String account, Contract contract, int pos) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void positionEnd() {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void accountSummary(int reqId, String account, String tag, String value, String currency) {
+		// TODO Auto-generated method stub
+	}
+	@Override
+	public void accountSummaryEnd(int reqId) {
+		// TODO Auto-generated method stub
+		
+	}
 	@Override
 	public void updateAccountValue(String key, String value, String currency, String accountName) {
 		// TODO Auto-generated method stub

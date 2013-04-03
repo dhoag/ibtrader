@@ -24,7 +24,8 @@ public class VerifyData {
 		}
 		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
 		pullLatestMarketData(clientInterface);
-		cleanupMissingData(clientInterface);
+		if(System.getProperty("updateOnly") == null)
+			cleanupMissingData(clientInterface);
 		clientInterface.close();
 	}
 
