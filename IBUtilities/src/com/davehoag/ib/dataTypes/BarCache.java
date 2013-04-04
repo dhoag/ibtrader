@@ -179,6 +179,40 @@ public class BarCache {
 		return getParabolicSar(upTrend, accelerationFactor, accelFactIncrement, barIdx - 1, nSar, extremePoint, result);
 	}
 	/**
+	 * A numeric value representing the future price action after this bar
+	 * @param b
+	 * @param periods
+	 * @return
+	 */
+	public int getFutureTrend(final Bar b, final int periods){
+		final int idx = indexOf(b.originalTime);
+		if(get(idx) != b) throw new IllegalArgumentException("Bar not found in cache" + b);
+		if(idx < periods) throw new IllegalArgumentException("Not enough future periods for " + periods + " but only have " + idx + " after this bar");
+		double resultTotal = 0;
+		Bar prior = b;
+		for(int i = idx -1; i >= (idx - periods); i--){
+			final Bar next = get(i);
+			double result = 0;
+			if(next.close > prior.close) result +=2;
+			if(next.high > prior.close) result +=1;
+			if(next.wap > prior.close) result +=2;
+			if(next.low >= prior.close) result +=2;
+			if(next.low > prior.low) result +=1;
+			if(next.high >= prior.high) result +=2;
+			if(next.close < prior.close) result -=2;
+			if(next.high <= prior.close) result -=2;
+			if(next.high < prior.high) result -=1;
+			if(next.wap < prior.close) result -=2;
+			if(next.low < prior.close) result -=1;
+			if(next.low < prior.low) result -=2;
+			double wapChange = next.wap - b.wap;
+			double absoluteChange = wapChange == 0 ? 0.0 : 100*wapChange/b.wap;
+			resultTotal += (result + absoluteChange);
+			prior = next;
+		}
+		return (int)resultTotal;
+	}
+	/**
 	 * Get the moving average of the Vwap data
 	 * 
 	 * @param periods

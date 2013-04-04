@@ -13,6 +13,30 @@ public class BarCacheTest {
 
 	}
 	@Test
+	public void testFutureWeight(){
+		int idx = 1;
+		BarCache qr = new BarCache();
+		Bar b = newBar(12, 15, 12, 16, 14.5 );
+		Bar orig = b;
+		b.originalTime = idx++;
+		qr.pushLatest(b);
+		b = newBar(12, 15, 12, 16, 14.5 );
+		b.originalTime = idx++;
+		qr.pushLatest(b);
+		b = newBar(15, 17, 14.5, 17.1, 15.5 );
+		b.originalTime = idx++;
+		qr.pushLatest(b);
+		b = newBar(17, 19, 16, 20, 18 );
+		b.originalTime = idx++;
+		qr.pushLatest(b);
+		b = newBar(19, 19.6, 18.7, 20, 19.5 );
+		b.originalTime = idx++;
+		qr.pushLatest(b);
+		int future = qr.getFutureTrend(orig, 4);
+		System.out.println(future);
+		assert(future > 0);
+	}
+	@Test
 	public void testLocalCache() {
 		BarCache qr = new BarCache();
 		qr.localCache = new Bar[3];
@@ -58,6 +82,16 @@ public class BarCacheTest {
 	Bar newBar(double low, double high){
 		Bar b = new Bar();
 		b.high = high; b.low = low;
+		return b;
+	}
+	Bar newBar(double open, double close, double low, double high, double wap){
+		assert( open >= low && open <= high);
+		assert( close >= low && close <= high);
+		assert( wap >= low && wap <= high);
+		Bar b = new Bar();
+		b.high = high; b.low = low;
+		b.open = open; b.close = close;
+		b.wap = wap;
 		return b;
 	}
 	@Test
