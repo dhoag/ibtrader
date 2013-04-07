@@ -211,7 +211,7 @@ public class BarCache {
 			if(next.low < prior.close) result -=1;
 			if(next.low < prior.low) result -=2;
 			double wapChange = next.wap - original.wap;
-			double absoluteChange = wapChange == 0 ? 0.0 : 100*wapChange/original.wap;
+			double absoluteChange = wapChange == 0 ? 0.0 : 2000*wapChange/original.wap;
 			resultTotal += (result + absoluteChange);
 			prior = next;
 		}
