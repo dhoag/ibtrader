@@ -19,19 +19,19 @@ public class BarCacheTest {
 		Bar b = newBar(12, 15, 12, 16, 14.5 );
 		Bar orig = b;
 		b.originalTime = idx++;
-		qr.pushLatest(b);
+		qr.push(b);
 		b = newBar(12, 15, 12, 16, 14.5 );
 		b.originalTime = idx++;
-		qr.pushLatest(b);
+		qr.push(b);
 		b = newBar(15, 17, 14.5, 17.1, 15.5 );
 		b.originalTime = idx++;
-		qr.pushLatest(b);
+		qr.push(b);
 		b = newBar(17, 19, 16, 20, 18 );
 		b.originalTime = idx++;
-		qr.pushLatest(b);
+		qr.push(b);
 		b = newBar(19, 19.6, 18.7, 20, 19.5 );
 		b.originalTime = idx++;
-		qr.pushLatest(b);
+		qr.push(b);
 		int future = qr.getFutureTrend(orig, 4);
 		System.out.println(future);
 		assert(future > 0);
@@ -50,26 +50,26 @@ public class BarCacheTest {
 	@Test
 	public void testFib(){
 		BarCache qr = new BarCache();
-		qr.pushLatest(newBar(10, 12));
-		qr.pushLatest(newBar(12, 13));
-		qr.pushLatest(newBar(12, 15));
-		qr.pushLatest(newBar(14, 17));
-		qr.pushLatest(newBar(15, 16));
-		qr.pushLatest(newBar(13, 16));
+		qr.push(newBar(10, 12));
+		qr.push(newBar(12, 13));
+		qr.push(newBar(12, 15));
+		qr.push(newBar(14, 17));
+		qr.push(newBar(15, 16));
+		qr.push(newBar(13, 16));
 		//17 - 10 * 1
 		double res = qr.getFibonacciRetracement(6, 1);
 		assertEquals(10.0, res, .01);
 		res = qr.getFibonacciRetracement(6, 0);
 		assertEquals(17.0, res, .01);
-		qr.pushLatest(newBar(12, 15));
-		qr.pushLatest(newBar(12, 14));
-		qr.pushLatest(newBar(11, 13));
+		qr.push(newBar(12, 15));
+		qr.push(newBar(12, 14));
+		qr.push(newBar(11, 13));
 		res = qr.getFibonacciRetracement(6, 1);
 		//Down trend - no low for the high - would need a low below 11
 		assertEquals(0, res, .01);
-		qr.pushLatest(newBar(12, 13));
-		qr.pushLatest(newBar(13, 14));
-		qr.pushLatest(newBar(13, 15));
+		qr.push(newBar(12, 13));
+		qr.push(newBar(13, 14));
+		qr.push(newBar(13, 15));
 		res = qr.getFibonacciRetracement(6, 1);
 		assertEquals(11.0, res, .01);
 		res = qr.getFibonacciRetracement(9, 1);
@@ -164,7 +164,7 @@ public class BarCacheTest {
 		b.volume = 100 ;
 		b.tradeCount = 3;
 		b.originalTime = System.currentTimeMillis() / 1000;
-		qr.pushLatest(b);
+		qr.push(b);
 		
 		send5bars(qr);
 		
@@ -200,12 +200,12 @@ public class BarCacheTest {
 		BarCache bc = new BarCache(5);
 		Bar b = newBar(12,15) ;
 		b.originalTime = 10;
-		bc.pushLatest(b);
+		bc.push(b);
 		int idx=bc.indexOf(10);
 		assertEquals(0, idx); 
 		b = newBar(12,15) ;
 		b.originalTime = 15;
-		bc.pushLatest(b);
+		bc.push(b);
 		idx=bc.indexOf(10);
 		assertEquals(1, idx); 
 		idx=bc.indexOf(12);
@@ -215,7 +215,7 @@ public class BarCacheTest {
 		for(int i = 0; i < 5; i++){
 			b = newBar(12,15) ;
 			b.originalTime = 15 + (i*2);
-			bc.pushLatest(b);
+			bc.push(b);
 		}
 		idx=bc.indexOf(15+(4*2));
 		assertEquals(0, idx);
@@ -231,10 +231,10 @@ public class BarCacheTest {
 		assertEquals(4, idx);
 		b = newBar(12,15);
 		b.originalTime = 150;
-		bc.pushLatest(b);
+		bc.push(b);
 		b = newBar(12,15);
 		b.originalTime = 155;
-		bc.pushLatest(b);
+		bc.push(b);
 		idx = bc.indexOf(150);
 		assertEquals(1, idx);
 		idx = bc.indexOf(21);
@@ -256,7 +256,7 @@ public class BarCacheTest {
 			b.tradeCount = i;
 			b.originalTime = System.currentTimeMillis() / 1000;
 
-			qr.pushLatest(b);
+			qr.push(b);
 		}
 	}
 }

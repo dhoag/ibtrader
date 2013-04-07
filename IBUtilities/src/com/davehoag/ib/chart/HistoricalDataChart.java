@@ -273,7 +273,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 		final BarCache cache = new BarCache();
 		
 		for (Bar aBar : bars) {
-			cache.pushLatest(aBar);
+			cache.push(aBar);
 			count++;
 			last = aBar;
 			final Second sec = new Second(aBar.getTime());

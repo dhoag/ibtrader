@@ -125,7 +125,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 			
 			aBar.originalTime = Long.valueOf(actualDateStr);
 
-			barCache.pushLatest(aBar);
+			barCache.push(aBar);
 		}
 		countOfRecords++;
 		/* DecimalFormat df = new DecimalFormat("#.##");

@@ -187,9 +187,14 @@ public class BarCache {
 	public int getFutureTrend(final Bar b, final int periods){
 		final int idx = indexOf(b.originalTime);
 		if(get(idx) != b) throw new IllegalArgumentException("Bar not found in cache" + b);
+		return getFutureTrend(b.originalTime, periods);
+	}
+	public int getFutureTrend(final long origTime, final int periods){
+		final int idx = indexOf(origTime);
 		if(idx < periods) throw new IllegalArgumentException("Not enough future periods for " + periods + " but only have " + idx + " after this bar");
 		double resultTotal = 0;
-		Bar prior = b;
+		Bar prior = get(idx);
+		final Bar original = prior;
 		for(int i = idx -1; i >= (idx - periods); i--){
 			final Bar next = get(i);
 			double result = 0;
@@ -205,8 +210,8 @@ public class BarCache {
 			if(next.wap < prior.close) result -=2;
 			if(next.low < prior.close) result -=1;
 			if(next.low < prior.low) result -=2;
-			double wapChange = next.wap - b.wap;
-			double absoluteChange = wapChange == 0 ? 0.0 : 100*wapChange/b.wap;
+			double wapChange = next.wap - original.wap;
+			double absoluteChange = wapChange == 0 ? 0.0 : 100*wapChange/original.wap;
 			resultTotal += (result + absoluteChange);
 			prior = next;
 		}
@@ -260,7 +265,7 @@ public class BarCache {
 	 * 
 	 * @param aBar
 	 */
-	public synchronized void pushLatest(final Bar aBar) {
+	public synchronized void push(final Bar aBar) {
 		if (aBar == null)
 			throw new IllegalArgumentException("aBar must not be null");
 		if (lastIdx == localCache.length) {
@@ -295,9 +300,6 @@ public class BarCache {
 					int gotIt;
 					if(idx > lastIdx -1 ) gotIt = (lastIdx ) + (localCache.length - 1 - idx );
 					else gotIt = lastIdx - 1 -idx; 
-					if(wrapped ){
-						System.out.println(gotIt);
-					}
 					return gotIt;
 				}
 				

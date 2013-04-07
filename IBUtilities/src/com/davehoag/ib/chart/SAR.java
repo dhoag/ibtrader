@@ -16,7 +16,7 @@ public class SAR {
 	XYDotRenderer dotRender = new XYDotRenderer();
 	
 	public double getPriceData(final Bar currentBar, final BarCache cache ){
-		cache.pushLatest(currentBar);
+		cache.push(currentBar);
 		if(cache.size() < sarCurve.length) return 0.0;
 		return cache.getParabolicSar(sarCurve, .005)[sarCurve.length - 1];
 	}

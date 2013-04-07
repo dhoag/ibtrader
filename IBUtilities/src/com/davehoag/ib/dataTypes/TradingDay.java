@@ -52,14 +52,14 @@ public class TradingDay {
 		assert symbol != null;
 		
 		final BarCache cache = getDayBarCache(symbol);
-		cache.pushLatest(aBar);
+		cache.push(aBar);
 	}
 	public void push5SecBar(final String symbol, final Bar aBar){
 		assert aBar.barSize.equals("bar5sec");
 		assert symbol != null;
 		
 		final BarCache cache = get5SecBarCache(symbol);
-		cache.pushLatest(aBar);
+		cache.push(aBar);
 	}
 	public BarCache getDayBarCache(final String symbol){
 		return getBarCache(symbol, true);
