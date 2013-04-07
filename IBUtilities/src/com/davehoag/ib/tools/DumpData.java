@@ -3,6 +3,7 @@ package com.davehoag.ib.tools;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -17,7 +18,8 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 public class DumpData {
 	public static void main(String [] args){
 		DateFormat df = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-		NumberFormat nf = NumberFormat.getNumberInstance();
+		DecimalFormat nf = new DecimalFormat("###.##");
+		
 		int i = 0;
 		final String barSize = args[i++];
 		final String startTime = args[i++];
@@ -37,7 +39,7 @@ public class DumpData {
 			long finish = df.parse(endTime).getTime()/1000;
 			
 			//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
-			out.println("Sym,date,yesterdayClose,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh,open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
+			out.println("Sym,date,yesterdayClose,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh,open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618,100sec");
 			final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
 			//go back one year
 			final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, 356, finish, "bar1day");
