@@ -69,6 +69,19 @@ public class HistoricalDateManipulation {
 		return getOpen(actualToday);
 	}
 	/**
+	 * Is the provided time the start of the day?
+	 * @param time
+	 * @return
+	 */
+	public boolean isOpen(final long time){
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		final int hour = cal.get(Calendar.HOUR_OF_DAY);
+		final int minutes = cal.get(Calendar.MINUTE);
+		final int seconds = cal.get(Calendar.SECOND);
+		return (hour == 8 && minutes == 30 && seconds == 00);
+	}
+	/**
 	 * Tweak the time to be 8:30, the time of the first bar
 	 * @param time
 	 * @return
@@ -80,6 +93,21 @@ public class HistoricalDateManipulation {
 		cal.set(Calendar.HOUR_OF_DAY, 8);
 		cal.set(Calendar.MINUTE, 30);
 		cal.set(Calendar.SECOND, 0);
+		return cal.getTimeInMillis() / 1000;
+	}
+	/**
+	 * Tweak the time to be 2:55:55, the time of the last bar (on most days)
+	 * TODO Somedays its not the last trading hour
+	 * @param time
+	 * @return
+	 */
+	public static long getClose(final long time){
+		final Date d = new Date(time*1000);
+		final Calendar cal = Calendar.getInstance();
+		cal.setTime(d);
+		cal.set(Calendar.HOUR_OF_DAY, 14);
+		cal.set(Calendar.MINUTE, 55);
+		cal.set(Calendar.SECOND, 55);
 		return cal.getTimeInMillis() / 1000;
 	}
 	/**
