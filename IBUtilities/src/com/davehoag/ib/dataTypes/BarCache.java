@@ -217,27 +217,58 @@ public class BarCache {
 		}
 		return (int)resultTotal;
 	}
+	public double getSlope(final int periods, final char field ){
+		Bar old = get(periods);
+		Bar recent = get(0);
+		return (old.getField(field) - recent.getField(field))/ periods;
+	}
+	public double getDelta(final int fast, final int slow, final char field){
+		double fastMa = getMA(fast, field);
+		double slowMa = getMA(slow, field);
+		return fastMa - slowMa;
+	}
 	/**
-	 * Get the moving average of the Vwap data
-	 * 
+	 * Do have have a MACD cross over event
+	 * @param fast
+	 * @param slow
+	 * @param field
+	 * @param up
+	 * @return
+	 */
+	public boolean isInflection(final int fast, final int slow, final char field, final boolean up){
+		double fastPrice = getMA(fast, field);
+		double priorFastPrice = getMA(1, fast, field);
+		double slowPrice = getMA(slow, field);
+		double priorSlowPrice = getMA(1, slow, field);
+		if(up)
+			return (fastPrice > slowPrice && priorFastPrice < priorSlowPrice);
+		else
+			return (fastPrice < slowPrice && priorFastPrice > priorSlowPrice);
+	}
+	/**
+	 * Get the moving average of data for the provided field. 
+	 * 'w' Volume Weighted Price
+	 * 'v' Volume
+	 * 'c' Close
+	 * 'o' Open
+	 * 'h' High
+	 * 'l' Low
+	 * 't' Trade Count 
 	 * @param periods
+	 * @param field The price bar field to use in the calculation
 	 * @return
 	 */
 	public double getMA(final int periods, final char field) {
+		return getMA(0, periods, field);
+	}
+	public double getMA(final int start, final int periods, final char field) {
 		final Bar[] bars = getBars(periods);
 		double sum = 0;
-		for (final Bar aBar : bars) {
-			switch(field){
-			case 'w' : sum += aBar.wap; break;
-			case 'v' : sum += aBar.volume; break;
-			case 'o' : sum += aBar.open; break;
-			case 'h' : sum += aBar.high; break;
-			case 'l' : sum += aBar.low; break;
-			case 'c' : sum += aBar.close; break;
-			default : throw new IllegalArgumentException("Field "+ field + " not supported. ");
-			}
+		for (int i = start; i < bars.length; i++) {
+			final Bar aBar= bars[i];
+			sum += aBar.getField(field);
 		}
-		return sum / bars.length;
+		return sum / (bars.length - start);
 	}
 
 	/**
@@ -356,7 +387,6 @@ public class BarCache {
 		}
 		return result;
 	}
-
 
 	public double getVolatility(final int periods) {
 		Bar[] bars = getBars(periods);

@@ -32,22 +32,30 @@ public class FindModel {
 			final LinkedList<Double > depList = new LinkedList<Double >();
 			final LinkedList<double []> indepList = new LinkedList<double []>();
 			populateRegressionModelData(symbol, start, finish, depList, indepList);
-			double [][] indepVars = independentVars(indepList);
-			double [] depVars = depdentVars(depList);
+			final double [][] indepVars = independentVars(indepList);
+			final double [] depVars = depdentVars(depList);
 			indepList.clear(); depList.clear(); 
-			Regression reg = runRegression(indepVars, depVars);
-			System.out.println("Independent Vars " + indepVars.length + " of data " + depVars.length);
-			System.out.println("Model Strength: " + reg.getCoefficientOfDetermination());
-			double [] pValues = reg.getPvalues();
-			System.out.print("Constant " + pValues[0]);
-			for(int j = 1; j < indepVars.length; j++){
-				System.out.print(" [" + j + "] " + pValues[j] );
-			}
-			System.out.println();
+			final Regression reg = runRegression(indepVars, depVars);
+			printStats(indepVars, depVars, reg);
 		}
 		catch(Exception ex){
 			ex.printStackTrace();
 		}
+	}
+	/**
+	 * @param indepVars
+	 * @param depVars
+	 * @param reg
+	 */
+	protected static void printStats(double[][] indepVars, double[] depVars, Regression reg) {
+		System.out.println("Independent Vars " + indepVars.length + " of data " + depVars.length);
+		System.out.println("Model Strength: " + reg.getCoefficientOfDetermination());
+		final double [] pValues = reg.getPvalues();
+		System.out.print("Constant " + pValues[0]);
+		for(int j = 1; j < indepVars.length; j++){
+			System.out.print(" [" + j + "] " + pValues[j] );
+		}
+		System.out.println();
 	}
 	/**
 	 * @param symbol
@@ -63,7 +71,7 @@ public class FindModel {
 		final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
 		final BarCache cache = new BarCache(12*60*24*90);
 		final LinkedList<Bar> bars = new LinkedList<Bar >();
-		int numParms = 4;
+		int numParms = 5;
 		final Bar PLACEHOLDER = new Bar();
 		while(data.hasNext()) {
 			final Bar aBar = data.next();
@@ -77,10 +85,13 @@ public class FindModel {
 				indepList.add(indies);
 				//set some vals
 				double retracementPrice = cache.getFibonacciRetracement(30, 38.2);
-				indies[0] = retracementPrice != 0 ? (aBar.low - retracementPrice) / retracementPrice : 0;
-				indies[1] = (cache.getMA(12, 'w') - cache.getMA(23, 'w'))/cache.getMA(23, 'w');
-				indies[2] = cache.isTrendingUp(13) ? 1 : 0;
-				indies[3] = cache.isTrendingUp(23) ? 1 : 0;
+				//indies[0] = retracementPrice != 0 ? (aBar.low - retracementPrice) / retracementPrice : 0;
+				indies[0] = cache.getMA(5, 'v') / cache.getMA(30, 'v');
+				indies[4] = cache.getMA(5,'t') / cache.getMA(30, 't');
+				indies[1] = aBar.originalTime < (openTime + 60*60) ? 1 : 0;
+				indies[2] = cache.isInflection(13, 20, 'w', true) ? 1 : 0;
+				indies[3] = cache.isInflection(13, 20, 'w', false) ? 1  : 0;
+				indies[3] = cache.getSlope(15, 'l');
 			}
 			else {
 				bars.add(PLACEHOLDER);

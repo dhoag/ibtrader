@@ -1,7 +1,7 @@
 package com.davehoag.ib.dataTypes;
 
-import java.util.Date;
 import java.util.Calendar;
+import java.util.Date;
 
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
@@ -21,6 +21,7 @@ public class Bar {
 		Date d = originalTime != 0 ? new Date(originalTime * 1000) : Calendar.getInstance().getTime();
 		return d;
 	}
+	@Override
 	public String toString(){
 		Date d = getTime();
 		return symbol + " "+ d + " O:" + open + " C: " + close + " H:" + high + " L:" + low + " W:" + wap + " V:" + volume + " TC:" + tradeCount;
@@ -38,5 +39,30 @@ public class Bar {
 		long open = HistoricalDateManipulation.getOpen(originalTime);
 		long otherOpen = HistoricalDateManipulation.getOpen(aBar.originalTime);
 		return open == otherOpen;
+	}
+
+	/**
+	 * 'w' Volume Weighted Price
+	 * 'v' Volume
+	 * 'c' Close
+	 * 'o' Open
+	 * 'h' High
+	 * 'l' Low
+	 * 't' Trade Count 
+	 * @param aBar
+	 * @param field
+	 * @return
+	 */
+	public final double getField(final char field) {
+		switch(field){
+			case 'w' : return wap; 
+			case 'v' : return volume; 
+			case 'o' : return open; 
+			case 'h' : return high; 
+			case 'l' : return low; 
+			case 'c' : return close; 
+			case 't' : return tradeCount; 
+			default : throw new IllegalArgumentException("Field "+ field + " not supported. ");
+		}
 	}
 }
