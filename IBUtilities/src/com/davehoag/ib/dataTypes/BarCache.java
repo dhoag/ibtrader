@@ -189,6 +189,9 @@ public class BarCache {
 		if(get(idx) != b) throw new IllegalArgumentException("Bar not found in cache" + b);
 		return getFutureTrend(b.originalTime, periods);
 	}
+	public int getFutureTrend(final long origTime){
+		return getFutureTrend(origTime, indexOf(origTime));
+	}
 	public int getFutureTrend(final long origTime, final int periods){
 		final int idx = indexOf(origTime);
 		if(idx < periods) throw new IllegalArgumentException("Not enough future periods for " + periods + " but only have " + idx + " after this bar");

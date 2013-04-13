@@ -71,7 +71,8 @@ public class FindModel {
 		final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
 		final BarCache cache = new BarCache(12*60*24*90);
 		final LinkedList<Bar> bars = new LinkedList<Bar >();
-		int numParms = 5;
+		final int numParms = 8;
+
 		final Bar PLACEHOLDER = new Bar();
 		while(data.hasNext()) {
 			final Bar aBar = data.next();
@@ -79,19 +80,38 @@ public class FindModel {
 			final long openTime = HistoricalDateManipulation.getOpen(aBar.originalTime);
 			final long closeTime = HistoricalDateManipulation.getClose(aBar.originalTime);
 			//skip the first and last 5 minutes of the trading day in my regressions
-			if(aBar.originalTime > (openTime + (5*12*5)) && aBar.originalTime < (closeTime - (5*12*5))){
-				bars.add(aBar);
+			if(aBar.volume == 0 || (aBar.originalTime > (openTime + (5*12*5)) && aBar.originalTime < (closeTime - (5*12*5)))){
 				double [] indies = new double[numParms];
-				indepList.add(indies);
 				//set some vals
 				double retracementPrice = cache.getFibonacciRetracement(30, 38.2);
-				//indies[0] = retracementPrice != 0 ? (aBar.low - retracementPrice) / retracementPrice : 0;
+				indies[5] = retracementPrice != 0 ? 100-((aBar.wap - retracementPrice)*100 / retracementPrice) : 0;
 				indies[0] = cache.getMA(5, 'v') / cache.getMA(30, 'v');
-				indies[4] = cache.getMA(5,'t') / cache.getMA(30, 't');
+				indies[7] = cache.getMA(5,'t') / cache.getMA(30, 't');
 				indies[1] = aBar.originalTime < (openTime + 60*60) ? 1 : 0;
 				indies[2] = cache.isInflection(13, 20, 'w', true) ? 1 : 0;
 				indies[3] = cache.isInflection(13, 20, 'w', false) ? 1  : 0;
-				indies[3] = cache.getSlope(15, 'l');
+				indies[6] = cache.getSlope(15, 'l');
+				//There are 12 5 second bars in a minute and look at the prior 10 minutes
+				final int minutesBack = 20;
+				final long startTime = Math.max( aBar.originalTime - 5*12*minutesBack, openTime);
+				indies[4] = cache.getFutureTrend(startTime);
+				
+				boolean pullRecord = false;
+				for(double d : indies){
+					if( Double.isNaN(d)|| Double.isInfinite(d)) {
+						System.out.println(aBar);
+						pullRecord = true;
+						for(int c = 0; c < indies.length; c++) System.out.println("[" + c + "] " + indies[c]);
+						System.out.println( "MA tradecounts " + cache.getMA(5,'t') + " " + cache.getMA(30,'t'));   
+					}
+				}
+				if(pullRecord){
+					bars.add(PLACEHOLDER);
+				}
+				else {
+					bars.add(aBar);
+					indepList.add(indies);
+				}
 			}
 			else {
 				bars.add(PLACEHOLDER);
