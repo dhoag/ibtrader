@@ -115,6 +115,7 @@ public class FindModel {
 				if((count++ % oneTenth) == 0){ System.out.println( count ); }
 			}
 		}
+		cache.dumpStats();
 		if(indepList.size()!= depList.size()) throw new IllegalStateException("Failed to create dependent results for all bars! " + depList.size() + ":" + indepList.size());
 		
 	}

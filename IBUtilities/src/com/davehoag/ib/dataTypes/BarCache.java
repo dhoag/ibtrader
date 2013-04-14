@@ -7,8 +7,11 @@ import flanagan.analysis.Stat;
 public class BarCache {
 	Bar[] localCache = new Bar[5 * (60 / 5) * 60 * 8];
 	int lastIdx = 0;
+	transient int cachedIndexOf = 0;
 	boolean wrapped = false;
 	double stdDevFactor = 1;
+	int hitCount = 0;
+	int missCount = 0;
 
 	public BarCache() {
 	}
@@ -16,6 +19,10 @@ public class BarCache {
 		localCache = new Bar[i];
 	}
 
+	public void dumpStats(){
+		System.out.println("Hit count " + hitCount);
+		System.out.println("Miss count " + missCount);
+	}
 	public void setStdDevFactor(final double d) {
 		stdDevFactor = d;
 	}
@@ -314,6 +321,17 @@ public class BarCache {
 	 * @return
 	 */
 	public synchronized int indexOf(final long originalTime ){
+		if(cachedIndexOf == 0){
+			if(wrapped) cachedIndexOf = localCache.length - 1;
+			else cachedIndexOf = lastIdx - 1;
+		}
+		
+		Bar b = localCache[cachedIndexOf];
+		if(b.originalTime == originalTime){
+			hitCount++;
+			return convertToExternalIndex(cachedIndexOf);
+		}
+		
 		final Bar mostRecent = localCache[lastIdx -1];
 		final Bar oldest = wrapped ? localCache[lastIdx] : localCache[0];
 		if(mostRecent.originalTime >= originalTime && oldest.originalTime <= originalTime){
@@ -331,10 +349,9 @@ public class BarCache {
 				//where should I look for the index
 				final Bar candidate = localCache[idx];
 				if(originalTime >= candidate.originalTime) {
-					int gotIt;
-					if(idx > lastIdx -1 ) gotIt = (lastIdx ) + (localCache.length - 1 - idx );
-					else gotIt = lastIdx - 1 -idx; 
-					return gotIt;
+					cachedIndexOf = idx;
+					missCount++;
+					return convertToExternalIndex(idx);
 				}
 				
 				idx = (idx > 0) ? idx-1 : localCache.length - 1;
@@ -343,6 +360,16 @@ public class BarCache {
 		else{
 			throw new IllegalArgumentException("Time " + HistoricalDateManipulation.getDateAsStr(originalTime) + " not in cache");
 		}
+	}
+	/**
+	 * @param idx
+	 * @return
+	 */
+	protected int convertToExternalIndex(int idx) {
+		int gotIt;
+		if(idx > lastIdx -1 ) gotIt = (lastIdx ) + (localCache.length - 1 - idx );
+		else gotIt = lastIdx - 1 -idx; 
+		return gotIt;
 	}
 	/**
 	 * Get the past N bars with the first element being the most recent and the
