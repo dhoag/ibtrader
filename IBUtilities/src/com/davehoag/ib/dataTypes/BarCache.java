@@ -280,7 +280,38 @@ public class BarCache {
 		}
 		return sum / (bars.length - start);
 	}
-
+	/**
+	 * 
+	 * @param start 0 will be the most recent bar
+	 * @param periods
+	 * @return
+	 */
+	public int getRSI(final int start, final int periods){
+		
+		int oldestIdx = start+periods+periods-1;
+		validateIndex(oldestIdx);
+		double firstGainSum = 0;
+		double firstLossSum = 0;
+		Bar b = get(oldestIdx);
+		for(int i = oldestIdx-1; i >= start+periods ;i--){
+			final Bar nextBar = get(i);
+			if(nextBar.close > b.close) firstGainSum+= (nextBar.close - b.close);
+			else firstLossSum += (b.close - nextBar.close);
+			b = nextBar;
+		}
+		double avgGain = firstGainSum / periods;
+		double avgLoss = firstLossSum / periods;
+		for(int i = start+periods -1; i >= start ;i--){
+			final Bar nextBar = get(i);
+			if(nextBar.close > b.close) avgGain = (avgGain / (periods-1)) + 
+					((nextBar.close - b.close) / periods);
+			else avgLoss = (avgLoss / (periods-1)) + 
+					((b.close - nextBar.close) / periods);
+			b = nextBar;
+		}
+		final double RS = avgGain / avgLoss;
+		return (int) (100 - (100 / (1+RS)));
+	}
 	/**
 	 * Is there enough data in the cache to represent valid calculations for the
 	 * specified number of periods

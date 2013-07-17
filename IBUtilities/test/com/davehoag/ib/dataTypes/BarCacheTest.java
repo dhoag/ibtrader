@@ -13,6 +13,35 @@ public class BarCacheTest {
 
 	}
 	@Test
+	public void testRSI(){
+		int idx = 1;
+		BarCache qr = new BarCache();
+		Bar b = newBar(12, 15, 0, 0, 0);
+		Bar orig = b;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(12, 15, 0,0,0);
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(15, 17, 0,0,0 );
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(17, 19, 0,0,0);
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(19, 19.6, 0,0,0 );
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(19.6, 18.6, 0,0,0 );
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(18.6, 22.2, 0,0,0 );
+		b.originalTime = idx++;
+		qr.push(b);
+		System.out.println(qr.getRSI(0, 2));
+		System.out.println(qr.getRSI(0, 3));
+	}
+	@Test
 	public void testFutureWeight(){
 		int idx = 1;
 		BarCache qr = new BarCache();
