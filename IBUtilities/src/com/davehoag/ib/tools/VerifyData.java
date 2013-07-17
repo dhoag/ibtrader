@@ -13,7 +13,7 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class VerifyData {
 	static String [] bars = { "bar1day", "bar5sec" };
-	static String[] symbols = { "QQQ", "SPY", "TIP", "AGG", "AAPL" };
+	static String[] symbols = { "QQQ", "SPY", "TIP", "AGG", "AAPL", "DDD" };
 	/**
 	 * @param args
 	 */
