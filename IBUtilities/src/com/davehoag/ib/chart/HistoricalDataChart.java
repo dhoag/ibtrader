@@ -17,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
 import javax.swing.border.EtchedBorder;
 
@@ -54,6 +55,7 @@ import org.jfree.data.xy.XYBarDataset;
 import org.jfree.ui.ApplicationFrame;
 import org.jfree.ui.Layer;
 import org.jfree.ui.RefineryUtilities;
+import org.jfree.ui.tabbedui.TabbedFrame;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.Strategy;
@@ -345,17 +347,21 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @param strategyLines
 	 */
 	private void addStudySeries(final ArrayList<SAR> studies, final ArrayList<TimeSeries> studySeries, final Bar aBar, final Second sec, final BarCache cache) {
-		boolean initialize = studySeries.size() == 0;
+		int countOfActive = 0;
 		for (int i = 0; i < studies.size(); i++) {
-			double priceData = studies.get(i).getPriceData(aBar, cache);
-			if(priceData == 0) priceData = aBar.close;
-			if(initialize){ 
-				TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
-				TimeSeries series = new TimeSeries(mdi);
-				studySeries.add(series);
-			}
-			else {
-				studySeries.get(i).add(sec, priceData);
+			SAR sar = studies.get(i);
+			if(sar.isActive()){
+				countOfActive++;
+				double priceData = sar.getPriceData(aBar, cache);
+				if(priceData == 0) priceData = aBar.close;
+				if(countOfActive > studySeries.size()){ 
+					TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
+					TimeSeries series = new TimeSeries(mdi);
+					studySeries.add(series);
+				}
+				else {
+					studySeries.get(i).add(sec, priceData);
+				}
 			}
 		}
 	}
@@ -494,7 +500,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 		item.addActionListener(getOpenWindowDelegate());
 		combinedChartPanel.getPopupMenu().add(item);
 		
-		JMenuItem item2 = new JMenuItem("Toggle Study");
+		JMenuItem item2 = new JMenuItem("Study Data");
 		item2.addActionListener(getStudyDelegate());
 		combinedChartPanel.getPopupMenu().add(item2);
 		
@@ -513,16 +519,24 @@ public class HistoricalDataChart extends ApplicationFrame {
 		return new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				addStudy();
+				showStudyProperties();
 			}
 		};
 	}
-
-	public void addStudy(){
-		if(studyCollection.size() == 0)
-			studyCollection.add(new SAR());
-		else
-			studyCollection.remove(studyCollection.get(0));
+	public void showStudyProperties(){
+		 TabbedFrame frame = new TabbedFrame();
+		 JTabbedPane pane = new JTabbedPane();
+		 SAR sar = studyCollection.get(0);
+		 pane.addTab(sar.getName(), sar.getPropertyPanel());
+		 frame.add(pane);
+		 RefineryUtilities.centerFrameOnScreen(frame);
+		 frame.setVisible(true);
+	}
+	/**
+	 * Add all the possible price studies. One and only one instance per chart.  
+	 */
+	void initializeStudies(){
+		studyCollection.add(new SAR());
 	}
 	
 	protected JFreeChart createJFreeChartAndPlots(final OHLCDataset dataset, final TimeSeriesCollection volume) {
@@ -663,6 +677,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	public static void displayNewWindow(){
 		HistoricalDataChart demo = new HistoricalDataChart("Stock Chart");
 		demo.pack();
+		demo.initializeStudies();
 		RefineryUtilities.centerFrameOnScreen(demo);
 		demo.setVisible(true);
 	}
