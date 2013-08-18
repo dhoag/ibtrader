@@ -247,8 +247,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	protected Runnable getPaintDelegate(final String aSymbol, final long startTime, final long endTime)
 			throws ParseException {
 
-		priceData.removeAllSeries();
-		volumeData.removeAllSeries();
+		clearChartData();
 
 		return new Runnable() {
 			@Override
@@ -257,6 +256,20 @@ public class HistoricalDataChart extends ApplicationFrame {
 			}
 
 		};
+	}
+
+	/**
+	 * 
+	 */
+	protected void clearChartData() {
+		//Remove studies
+		int idx = pricePlot.getDatasetCount();
+		for(int i = 1; i < idx; i++){
+			TimeSeriesCollection set = (TimeSeriesCollection)pricePlot.getDataset(i);
+			set.removeAllSeries();
+		}
+		priceData.removeAllSeries();
+		volumeData.removeAllSeries();
 	}
 	protected void plotData(final String aSymbol, final long startTime, final long endTime){
 		ArrayList<TimeSeries> strategyLines = new ArrayList<TimeSeries>();
@@ -411,7 +424,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @param pricePlot2
 	 * @param i
 	 */
-	private void addStudiesToPlot(ArrayList<TimeSeries> priceStudySeries, ArrayList<SAR> studies, XYPlot pricePlot2, int i) {
+	private void addStudiesToPlot(ArrayList<TimeSeries> priceStudySeries, ArrayList<SAR> studies, final XYPlot pricePlot2, int i) {
 		TimeSeriesCollection maCollection = new TimeSeriesCollection();
 		for (TimeSeries t : priceStudySeries) {
 			maCollection.addSeries(t);
@@ -523,12 +536,17 @@ public class HistoricalDataChart extends ApplicationFrame {
 			}
 		};
 	}
+	/**
+	 * Popup a windows frame with each possible study as a new tab to be configured.
+	 */
 	public void showStudyProperties(){
 		 TabbedFrame frame = new TabbedFrame();
-		 JTabbedPane pane = new JTabbedPane();
-		 SAR sar = studyCollection.get(0);
-		 pane.addTab(sar.getName(), sar.getPropertyPanel());
-		 frame.add(pane);
+		 frame.setSize(300, 200);
+		 for(SAR sar : studyCollection ){
+			 JTabbedPane pane = new JTabbedPane();
+			 pane.addTab(sar.getName(), sar.getPropertyPanel());
+			 frame.add(pane);
+		 }
 		 RefineryUtilities.centerFrameOnScreen(frame);
 		 frame.setVisible(true);
 	}

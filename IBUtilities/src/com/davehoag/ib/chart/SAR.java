@@ -5,6 +5,7 @@ import java.awt.GridLayout;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 import org.jfree.chart.renderer.xy.XYDotRenderer;
 import org.jfree.chart.renderer.xy.XYItemRenderer;
@@ -21,11 +22,20 @@ public class SAR {
 	double [] sarCurve = new double [30];
 	XYDotRenderer dotRender = new XYDotRenderer();
 	JCheckBox check = new JCheckBox("Enabled", false);
+	JTextField accelField;
 	
+	{
+		accelField = new JTextField();
+		accelField.setText(".005");
+	}
 	public double getPriceData(final Bar currentBar, final BarCache cache ){
 		cache.push(currentBar);
 		if(cache.size() < sarCurve.length) return 0.0;
-		return cache.getParabolicSar(sarCurve, .005)[sarCurve.length - 1];
+		double accel = .005;
+		try{
+			accel = Double.parseDouble(accelField.getText());
+		} catch(Exception e){ System.out.println(e); }
+		return cache.getParabolicSar(sarCurve, accel)[sarCurve.length - 1];
 	}
 	public XYItemRenderer getRenderer(){
 		System.out.println(dotRender.getDotHeight() + " " + dotRender.getDotWidth());
@@ -38,8 +48,10 @@ public class SAR {
 	}
 	public JPanel getPropertyPanel(){
 		JPanel panel = new JPanel(false);
-	    JLabel filler = new JLabel("HEY");
-	    filler.setHorizontalAlignment(JLabel.CENTER);
+	    JPanel filler = new JPanel(false);
+	    filler.setLayout(new GridLayout(1,2));
+	    filler.add( new JLabel("Accel Fact:"));
+	    filler.add(accelField);
 	    panel.setLayout(new GridLayout(2, 1));
 	    panel.add(filler);
 	    panel.add(check);
