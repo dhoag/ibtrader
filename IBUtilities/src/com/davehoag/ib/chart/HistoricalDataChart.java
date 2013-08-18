@@ -88,7 +88,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	XYPlot pricePlot;
 	CombinedScrollBar scrollBar;
 	Strategy strategy;
-	ArrayList<SAR> studyCollection = new ArrayList<SAR>();
+	ArrayList<PriceStudy> studyCollection = new ArrayList<PriceStudy>();
 
 	{
 		// set a theme using the new shadow generator feature available in
@@ -306,9 +306,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 			if (strategy != null) {
 				addStrategySeries(strategy, strategyLines, aBar, sec);
 			}
-			if(studyCollection.size() > 0){
-				addStudySeries(studyCollection, priceStudySeries, aBar, sec, cache);
-			}
+			updateStudySeriesData(priceStudySeries, aBar, sec, cache);
+			
 			lowestLow = lowestLow > aBar.low ? aBar.low : lowestLow;
 			highestHigh = highestHigh < aBar.high ? aBar.high : highestHigh;
 		}
@@ -317,7 +316,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 		priceData.addSeries(candlestickSeries);
 		volumeData.addSeries(volumeSeries);
 
-		addAdditionalSeriesToPricePlot(strategy, strategyLines, studyCollection, priceStudySeries, pricePlot);
+		addAdditionalSeriesToPricePlot(strategy, strategyLines, priceStudySeries, pricePlot);
 		System.out.println("Displaying " + count + " records. " + last.getTime());
 		if(scrollBar != null) scrollBar.updateScrollBarRanges();
 		repaint();
@@ -339,7 +338,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @param priceStudySeries
 	 */
 	private void addAdditionalSeriesToPricePlot(final Strategy strat, ArrayList<TimeSeries> strategyLines,
-			ArrayList<SAR> studies, ArrayList<TimeSeries> priceStudySeries, XYPlot plot) {
+			 ArrayList<TimeSeries> priceStudySeries, XYPlot plot) {
 		//start at series 1 as series zero is taken up by the candlesticks
 		int seriesIndx = 1;
 		if (strat != null) {
@@ -349,31 +348,32 @@ public class HistoricalDataChart extends ApplicationFrame {
 			}
 		}
 		if(priceStudySeries.size() > 0){
-			addStudiesToPlot(priceStudySeries, studies, plot, seriesIndx);
+			addStudiesToPlot(priceStudySeries, plot, seriesIndx);
 		}
 	}
 
 	/**
-	 * Called only on the first Bar to be rendered to initialize the TimeSeries
-	 * @param aBar
-	 * @param sec
-	 * @param strategyLines
+	 * For each bar being rendered update the studySeries with the study data.  
+	 * @param aBar Current OHLC bar
+	 * @param studySeries The series being updated.
 	 */
-	private void addStudySeries(final ArrayList<SAR> studies, final ArrayList<TimeSeries> studySeries, final Bar aBar, final Second sec, final BarCache cache) {
+	private void updateStudySeriesData( final ArrayList<TimeSeries> studySeries, final Bar aBar, final Second sec, final BarCache cache) {
+		//There are lest studySeries then there are studies and need to keep an index
 		int countOfActive = 0;
-		for (int i = 0; i < studies.size(); i++) {
-			SAR sar = studies.get(i);
+		for (int i = 0; i < studyCollection.size(); i++) {
+			PriceStudy sar = studyCollection.get(i);
 			if(sar.isActive()){
 				countOfActive++;
 				double priceData = sar.getPriceData(aBar, cache);
 				if(priceData == 0) priceData = aBar.close;
+				//May not yet of created the series
 				if(countOfActive > studySeries.size()){ 
 					TimeSeriesDataItem mdi = new TimeSeriesDataItem(sec, priceData);
 					TimeSeries series = new TimeSeries(mdi);
 					studySeries.add(series);
 				}
 				else {
-					studySeries.get(i).add(sec, priceData);
+					studySeries.get(countOfActive-1).add(sec, priceData);
 				}
 			}
 		}
@@ -424,14 +424,17 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @param pricePlot2
 	 * @param i
 	 */
-	private void addStudiesToPlot(ArrayList<TimeSeries> priceStudySeries, ArrayList<SAR> studies, final XYPlot pricePlot2, int i) {
-		TimeSeriesCollection maCollection = new TimeSeriesCollection();
-		for (TimeSeries t : priceStudySeries) {
-			maCollection.addSeries(t);
-		}
-		for(SAR study: studies){
-			pricePlot2.setDataset(i, maCollection);
-			pricePlot2.setRenderer(i++, study.getRenderer());
+	private void addStudiesToPlot(ArrayList<TimeSeries> priceStudySeries, final XYPlot pricePlot2, int i) {
+		
+		int currentStudyIdx = 0;
+		for(PriceStudy study: studyCollection){
+			if(study.isActive()){
+				TimeSeriesCollection maCollection = new TimeSeriesCollection();
+				maCollection.addSeries(priceStudySeries.get(currentStudyIdx));
+				pricePlot2.setDataset(i + currentStudyIdx, maCollection);
+				pricePlot2.setRenderer(i + currentStudyIdx, study.getRenderer());
+				currentStudyIdx++;
+			}
 		}
 	}
 	/**
@@ -537,24 +540,25 @@ public class HistoricalDataChart extends ApplicationFrame {
 		};
 	}
 	/**
+	 * Add all the possible price studies. One and only one instance per chart.  
+	 */
+	void initializeStudies(){
+		studyCollection.add(new SAR());
+		studyCollection.add(new MovingAverage());
+	}
+	/**
 	 * Popup a windows frame with each possible study as a new tab to be configured.
 	 */
 	public void showStudyProperties(){
 		 TabbedFrame frame = new TabbedFrame();
 		 frame.setSize(300, 200);
-		 for(SAR sar : studyCollection ){
-			 JTabbedPane pane = new JTabbedPane();
+		 JTabbedPane pane = new JTabbedPane();
+		 frame.add(pane);
+		 for(PriceStudy sar : studyCollection ){
 			 pane.addTab(sar.getName(), sar.getPropertyPanel());
-			 frame.add(pane);
 		 }
 		 RefineryUtilities.centerFrameOnScreen(frame);
 		 frame.setVisible(true);
-	}
-	/**
-	 * Add all the possible price studies. One and only one instance per chart.  
-	 */
-	void initializeStudies(){
-		studyCollection.add(new SAR());
 	}
 	
 	protected JFreeChart createJFreeChartAndPlots(final OHLCDataset dataset, final TimeSeriesCollection volume) {

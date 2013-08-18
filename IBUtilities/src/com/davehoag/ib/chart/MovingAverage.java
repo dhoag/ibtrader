@@ -18,27 +18,28 @@ import com.davehoag.ib.dataTypes.BarCache;
  * @author David Hoag
  *
  */
-public class SAR implements PriceStudy {
+public class MovingAverage implements PriceStudy {
 	double [] sarCurve = new double [30];
 	XYDotRenderer dotRender = new XYDotRenderer();
-	JCheckBox check = new JCheckBox("Enabled", false);
-	JTextField accelField;
+	JCheckBox checkCB = new JCheckBox("Enabled", false);
+	JTextField periodsTF;
 	
 	{
-		accelField = new JTextField();
-		accelField.setText(".005");
+		periodsTF = new JTextField();
+		periodsTF.setText("12");
 	}
 	/* (non-Javadoc)
 	 * @see com.davehoag.ib.chart.PriceStudy#getPriceData(com.davehoag.ib.dataTypes.Bar, com.davehoag.ib.dataTypes.BarCache)
 	 */
 	@Override
 	public double getPriceData(final Bar currentBar, final BarCache cache ){
-		if(cache.size() < sarCurve.length) return 0.0;
-		double accel = .005;
+		int periods = 12;
 		try{
-			accel = Double.parseDouble(accelField.getText());
+			periods = Integer.parseInt(periodsTF.getText());
 		} catch(Exception e){ System.out.println(e); }
-		return cache.getParabolicSar(sarCurve, accel)[sarCurve.length - 1];
+
+		if(cache.size() < periods) return currentBar.wap;
+		return cache.getMA(periods, 'w');
 	}
 	/* (non-Javadoc)
 	 * @see com.davehoag.ib.chart.PriceStudy#getRenderer()
@@ -55,7 +56,7 @@ public class SAR implements PriceStudy {
 	 */
 	@Override
 	public String getName(){
-		return "SAR";
+		return "MA";
 	}
 	/* (non-Javadoc)
 	 * @see com.davehoag.ib.chart.PriceStudy#getPropertyPanel()
@@ -65,11 +66,11 @@ public class SAR implements PriceStudy {
 		JPanel panel = new JPanel(false);
 	    JPanel filler = new JPanel(false);
 	    filler.setLayout(new GridLayout(1,2));
-	    filler.add( new JLabel("Accel Fact:"));
-	    filler.add(accelField);
+	    filler.add( new JLabel("Periods:"));
+	    filler.add(periodsTF);
 	    panel.setLayout(new GridLayout(2, 1));
 	    panel.add(filler);
-	    panel.add(check);
+	    panel.add(checkCB);
 	    return panel;
 	}
 	/* (non-Javadoc)
@@ -77,7 +78,7 @@ public class SAR implements PriceStudy {
 	 */
 	@Override
 	public boolean isActive(){
-		return check.isSelected();
+		return checkCB.isSelected();
 	}
 	@Override
 	public String toString(){
