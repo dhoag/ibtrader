@@ -102,6 +102,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			final double low, final double close, final long volume, final double wap, final int count) {
 
 		final Bar bar = getBar(time, open, high, low, close, volume, wap, count);
+		bar.barSize = "bar5sec";
 		if(!requestedHistoricalData){
 			requestedHistoricalData = true;
 			requestHistorical1dayBars(time);

@@ -495,7 +495,7 @@ public class CassandraDao {
 				}
 			}
 			catch(Throwable t){
-				System.err.println(t);
+				System.err.println("CF:" + cf + " " + t);
 				System.err.println("Start " + start+ " Finish " + finish + " " + reverse);
 				t.printStackTrace(System.err);
 			}
