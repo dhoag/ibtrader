@@ -171,6 +171,15 @@ public class HistoricalDateManipulation {
 
 		return df.get().format(date);
 	}
+	public static String getTimeAsStr(final long seconds){
+		final Date d = new Date(seconds*1000);
+		return getTimeAsStr(d);
+	}
+	public static String getTimeAsStr(final Date date){
+		//not a frequently called method thus no caching
+		SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+		return sdf.format(date);
+	}
 	/**
 	 * From the starting date figure out how how many discrete entries are required to request
 	 * historical data from the given start date.

@@ -200,10 +200,10 @@ public class HistoricalDataChart extends ApplicationFrame {
 			long end = closingTrade.getPortfolioTime() * 1000;
 			double top = Math.max(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
 			double bottom = Math.min(closingTrade.getPrice(), closingTrade.getOnset().getPrice());
-			XYShapeAnnotation shape = new XYShapeAnnotation(new Rectangle2D.Double(start - 500, bottom - .02,
-					end - start + 500, top - bottom + .05));
+			XYShapeAnnotation shape = new XYShapeAnnotation(new Rectangle2D.Double(start, bottom ,
+					end - start , top - bottom ));
 
-			shape.setToolTipText("" + closingTrade.getOnset().getPrice() + "-" + closingTrade.getPrice());
+			shape.setToolTipText(HistoricalDateManipulation.getTimeAsStr(start/1000) + " " + closingTrade.getOnset().getPrice() + "-" + closingTrade.getPrice());
 			pricePlot.addAnnotation(shape);
 		}
 
