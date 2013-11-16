@@ -281,6 +281,30 @@ public class BarCache {
 		return sum / (bars.length - start);
 	}
 	/**
+	 * Calculate Accumulation/Distribution with the option to use Volume Weighted Average
+	 *  price for the period instead of close; 
+	 * 
+	 * @param start
+	 * @param periods
+	 * @return
+	 */
+	public double getADL(final int start, final int periods, final boolean vwap){
+		int oldestIdx = start+periods;
+		if (haslessThanNBars(oldestIdx)) {
+			return 0;
+		}
+		
+		double adl = 0;
+		for(int i = oldestIdx-1; i >= start ;i--){
+			final Bar nextBar = get(i);
+			double anchorPrice = vwap ? nextBar.wap : nextBar.close;
+			double moneyFlowMult = ((anchorPrice - nextBar.low) - (nextBar.high - anchorPrice))/(nextBar.high - nextBar.low);
+			double mfVol = moneyFlowMult * nextBar.volume;
+			adl += mfVol;
+		}
+		return adl;
+	}
+	/**
 	 * 
 	 * @param start 0 will be the most recent bar
 	 * @param periods
@@ -289,7 +313,9 @@ public class BarCache {
 	public int getRSI(final int start, final int periods){
 		
 		int oldestIdx = start+periods+periods-1;
-		validateIndex(oldestIdx);
+		if (haslessThanNBars(oldestIdx)) {
+			return 0;
+		}
 		double firstGainSum = 0;
 		double firstLossSum = 0;
 		Bar b = get(oldestIdx);
@@ -429,7 +455,8 @@ public class BarCache {
 	 */
 	protected void validateIndex(final int periods) {
 		if (haslessThanNBars(periods)) {
-			throw new IllegalStateException("Not enough data to fullfill request");
+			int size = wrapped ? localCache.length : lastIdx;
+			throw new IllegalStateException("Not enough data to fullfill request asking:"+ periods + " from " + size);
 		}
 	}
 

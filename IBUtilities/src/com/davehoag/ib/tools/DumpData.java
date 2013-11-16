@@ -4,7 +4,6 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
-import java.text.NumberFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.LinkedList;
@@ -39,7 +38,11 @@ public class DumpData {
 			long finish = df.parse(endTime).getTime()/1000;
 			
 			//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
-			out.println("Sym,date,yesterdayClose,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh,open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618,100sec");
+			out.print("Sym,date,yesterdayClose,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh");
+			out.print(",dailyAd,dailyAdvwap");
+			out.print(",open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
+			out.print(",ad,advwap");
+			out.println(",100sec");
 			final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
 			//go back one year
 			final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, 356, finish, "bar1day");
@@ -76,6 +79,8 @@ public class DumpData {
 				buffer.append(nf.format( dailyData.getMA(13, 'w')) + ",");
 				buffer.append(nf.format( dailyData.getParabolicSar(15, 0)[0]) + ",");
 				buffer.append(nf.format( dailyData.getParabolicSar(15, 0)[1] ));
+				buffer.append( "," + nf.format(dailyData.getADL(0, 10, false)));
+				buffer.append( "," + nf.format(dailyData.getADL(0, 10, true)));
 				buffer.append( "," + nf.format(aBar.open) );
 				buffer.append( "," + nf.format(aBar.high) );
 				buffer.append( "," + nf.format(aBar.low) );
@@ -87,6 +92,8 @@ public class DumpData {
 				buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, 0)) );
 				buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, .382)) );
 				buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, .618)) );
+				buffer.append( "," + nf.format(cache.getADL(0, 60, false)));
+				buffer.append( "," + nf.format(cache.getADL(0, 60, true)));
 				logMsgs.add(buffer);
 				bars.add(aBar);
 				if(logMsgs.size() > 20){

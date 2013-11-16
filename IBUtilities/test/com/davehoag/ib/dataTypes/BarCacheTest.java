@@ -7,10 +7,56 @@ import org.junit.Before;
 import org.junit.Test;
 
 public class BarCacheTest {
-
+	BarCache sampleSet;
 	@Before
 	public void setUp() {
+		int idx = 1;
+		BarCache qr = new BarCache();
+		Bar b = newBar(12, 15, 11.5, 15.8, 14.25);
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(15.4, 15.6, 15 ,17,15.7);
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(15, 17, 14.7,17.1,16.9 );
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(17, 19, 16.5,19.6,18.75);
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(19, 19.6, 18.5,20,18.9);
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(19.6, 18.6, 18.4,20,19.5 );
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		b = newBar(18.6, 22.2, 17,23,21 );
+		b.volume = 2012;
+		b.originalTime = idx++;
+		qr.push(b);
+		sampleSet = qr;
+	}
+	@Test 
+	public void testADL(){
+		Bar aBar = sampleSet.get(0);
+		double expectedAdl = (((aBar.close - aBar.low) - (aBar.high - aBar.close)) / (aBar.high - aBar.low))*aBar.volume;
+		double adl = sampleSet.getADL(0, 1, false);
+		assertEquals(expectedAdl, adl, .001);
+		aBar = sampleSet.get(1);
+		expectedAdl = (((aBar.wap - aBar.low) - (aBar.high - aBar.wap)) / (aBar.high - aBar.low))*aBar.volume;
+		adl = sampleSet.getADL(1, 1, true);
+		assertEquals(expectedAdl, adl, .001);
 
+		aBar = sampleSet.get(0);
+		expectedAdl += (((aBar.wap - aBar.low) - (aBar.high - aBar.wap)) / (aBar.high - aBar.low))*aBar.volume;
+		adl = sampleSet.getADL(0, 2, true);
+		assertEquals(expectedAdl, adl, .001);
 	}
 	@Test
 	public void testRSI(){
