@@ -82,6 +82,7 @@ public class BarCache {
 		boolean valid = false;
 		for(int i = 1; i < periods; i++){
 			final Bar aBar = get(i);
+			if(aBar == null) break;
 			if(high < aBar.high) { 
 				if(valid) { //had a good high low sequence but found older high
 					candidateHigh = aBar.high;
