@@ -1,5 +1,7 @@
 package com.davehoag.ib.dataTypes;
 
+import java.util.Iterator;
+
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 import flanagan.analysis.Stat;
@@ -22,9 +24,6 @@ public class BarCache {
 	public void dumpStats(){
 		System.out.println("Hit count " + hitCount);
 		System.out.println("Miss count " + missCount);
-	}
-	public void setStdDevFactor(final double d) {
-		stdDevFactor = d;
 	}
 	public int size(){
 		return wrapped ? localCache.length : lastIdx;
@@ -272,14 +271,18 @@ public class BarCache {
 	public double getMA(final int periods, final char field) {
 		return getMA(0, periods, field);
 	}
+	/**
+	 * @param start
+	 * @param periods
+	 * @param field
+	 * @return
+	 */
 	public double getMA(final int start, final int periods, final char field) {
-		final Bar[] bars = getBars(periods);
 		double sum = 0;
-		for (int i = start; i < bars.length; i++) {
-			final Bar aBar= bars[i];
+		for(Bar aBar : getIteratable(start, periods)){
 			sum += aBar.getField(field);
 		}
-		return sum / (bars.length - start);
+		return sum / periods;
 	}
 	/**
 	 * Calculate Accumulation/Distribution with the option to use Volume Weighted Average
@@ -308,11 +311,11 @@ public class BarCache {
 	/**
 	 * 
 	 * @param start 0 will be the most recent bar
-	 * @param periods
+	 * @param periods Needs 2x the # of periods in data set 
 	 * @return
 	 */
 	public int getRSI(final int start, final int periods){
-		
+		//go back 2x periods to calculate RSI
 		int oldestIdx = start+periods+periods-1;
 		if (haslessThanNBars(oldestIdx)) {
 			return 0;
@@ -372,6 +375,40 @@ public class BarCache {
 			wrapped = true;
 		}
 		localCache[lastIdx++] = aBar;
+	}
+	/**
+	 * Find the correlation of values between two streams of bars on the provided field.
+	 * 'w' Volume Weighted Price
+	 * 'v' Volume
+	 * 'c' Close
+	 * 'o' Open
+	 * 'h' High
+	 * 'l' Low
+	 * 't' Trade Count 
+	 *  
+	 * @param otherCache
+	 * @param index
+	 * @param periods
+	 * @return
+	 */
+	public double correlation(final BarCache otherCache, final int start, final int periods, final char field){
+		long selectedTime = get(start).originalTime;
+		int otherIndex = otherCache.indexOf(selectedTime);
+		double deltaA, deltaB, aXbSum = 0, aSquaredSum = 0, bSquaredSum = 0; 
+		double meanA, meanB;
+		meanA = getMA(start, periods,field);
+		meanB = otherCache.getMA(otherIndex, periods, field);
+		
+		Iterator<Bar> otherList = otherCache.getIteratable(otherIndex, periods).iterator();
+		for(Bar aBar: getIteratable(start, periods)){
+			deltaA = aBar.getField(field) - meanA;
+			Bar otherBar = otherList.next();
+			deltaB = otherBar.getField(field) - meanB;
+			aXbSum += (deltaA * deltaB);
+			aSquaredSum += (deltaA * deltaA);
+			bSquaredSum += (deltaB * deltaB);
+		}
+		return aXbSum / Math.sqrt(aSquaredSum*bSquaredSum);
 	}
 	/**
 	 * 
@@ -452,6 +489,44 @@ public class BarCache {
 	}
 
 	/**
+	 * Returns an in place Iteratable that doesn't create much garbage. 
+	 * WANRING - not thread safe. If the underlying data changes it will
+	 * be visible and potentially confusing.
+	 * 
+	 * Iterates by starting at the oldest value (start + periods) and
+	 * working towards newest value (start) 
+	 * @param start
+	 * @param periods
+	 * @return
+	 */
+	public Iterable<Bar> getIteratable(final int start, final int periods ){
+		validateIndex(start+periods);
+		
+		final int oldestIdx = start+periods-1;
+
+		return new Iterable<Bar>(){
+			@Override
+			public Iterator<Bar> iterator() {
+				return new Iterator<Bar>(){
+					int count = 0;
+					@Override
+					public boolean hasNext() {
+						return count < periods;
+					}
+					@Override
+					public Bar next() {
+						final Bar result = get(oldestIdx - count);
+						count++;
+						return result;
+					}
+					@Override
+					public void remove() {	} // not implemented
+					
+				};
+			}
+		};
+	}
+	/**
 	 * @param periods
 	 */
 	protected void validateIndex(final int periods) {
@@ -490,9 +565,28 @@ public class BarCache {
 		}
 		return Stat.volatilityPerCentChange(data) / 100;
 	}
+	/**
+	 * Set a default factor to multiply by standard deviation when
+	 * calculating bands. 
+	 * @param d
+	 */
+	public void setStdDevFactor(final double d) {
+		stdDevFactor = d;
+	}
+	/**
+	 * Get highs and low bands that surround vwap by stdDevFactor*stdDev
+	 * @param periods
+	 * @return
+	 */
 	public PriceBands getVwapBands(final int periods) {
 		return getVwapBands(periods, stdDevFactor);
 	}
+	/**
+	 * Get highs and low bands that surround vwap by stdDevAdj*stdDev
+	 * @param periods 
+	 * @param stdDevAdjustment
+	 * @return
+	 */
 	public PriceBands getVwapBands(final int periods, final double stdDevAdjustment) {
 		final double[] vwapList = getVwap(periods);
 		final Stat stat = new Stat(vwapList);

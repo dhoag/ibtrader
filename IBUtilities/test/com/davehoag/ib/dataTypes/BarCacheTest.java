@@ -269,6 +269,16 @@ public class BarCacheTest {
 		
 		double closeMa = qr.getMA(5, 'c');
 		assertEquals((10+20+30+40+50)/5, closeMa, .002);
+		
+		closeMa = qr.getMA(1,4, 'c');
+		assertEquals((10+20+30+40)/4, closeMa, .002);
+	}
+	@Test
+	public void testCorrelation(){
+		BarCache qr = new BarCache();
+		send5bars(qr);
+		double correlation = qr.correlation(qr, 0, 5, 'c');
+		assertEquals(1, correlation, .001);
 	}
 	@Test
 	public void testIndexOf(){
