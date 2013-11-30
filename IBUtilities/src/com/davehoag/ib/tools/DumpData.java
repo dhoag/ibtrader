@@ -40,35 +40,26 @@ public class DumpData {
 			long finish = df.parse(endTime).getTime()/1000;
 			
 			writeHeaderRecord(out, dailyDataOnly);
+			final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, start, finish, "bar1day");
 						
-			int count = 0;
-			Bar today = null; 
 			if(dailyDataOnly) {
-				final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, start, finish, "bar1day");
 				final BarCache dailyData = new BarCache(1500);
 				for(Bar dailyBar: dailyDataIterator ){
-					final StringBuffer buffer = new StringBuffer();
-					Bar yesterday = dailyData.get(0);
+					
 					dailyData.push(dailyBar);
-					count++;
 
-					if(yesterday != null){
-						buffer.append(symbol + ",");
-						buffer.append(HistoricalDateManipulation.getDateAsStr(dailyBar.originalTime) +",");
-						buffer.append(nf.format(yesterday.close)+ ",");
-						buffer.append(nf.format(dailyBar.open) + ",");
-						try { 
-							bufferDailyData(dailyData, buffer);
-							out.println(buffer.toString());
-						}catch(IllegalStateException ex){
-							//ignore this buffer
-							System.out.println("Ingoring " + dailyBar + " ex: " + ex);
-						}
+					try { 
+						final StringBuffer buffer = writeDailyData( dailyData);
+						logMsgs.add(buffer);
+						appendFuture(logMsgs, dailyData, 3,15,60);
+					}catch(IllegalStateException ex){
+						//ignore this buffer
+						System.out.println("Ingoring " + dailyBar + " ex: " + ex);
 					}
 				}
 			}
 			else{ 
-				final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, 356, finish, "bar1day");
+				Bar today = null; 
 				final BarCache dailyData = new BarCache(500);
 				final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
 				//go back one year
@@ -81,7 +72,7 @@ public class DumpData {
 					}
 					Bar yesterday = dailyData.get(0);
 					cache.push(aBar);
-					count++;
+					final int count = logMsgs.size();
 					int lookBack = count < periods ? count : periods;
 					
 					buffer.append(symbol + ",");
@@ -103,22 +94,11 @@ public class DumpData {
 					buffer.append( "," + nf.format(cache.getADL(0, 60, false)));
 					buffer.append( "," + nf.format(cache.getADL(0, 60, true)));
 					logMsgs.add(buffer);
-					bars.add(aBar);
-					if(logMsgs.size() > 20){
-						//look at the next 100 seconds
-						final StringBuffer msg = logMsgs.removeFirst();
-						final Bar olderBar = bars.removeFirst();
-						msg.append("," + cache.getFutureTrend(olderBar, 20));
-						
-						//look forward on the next 5 days - doesn't work as I don't add all days
-						/*final long daysBack = olderBar.originalTime;
-						final int tradingDayHistory = Math.min(dailyData.indexOf(daysBack), 5);
-						msg.append("," + dailyData.getFutureTrend(daysBack, tradingDayHistory));
-						*/
-						
-						out.println(msg.toString());
-					}
+					
 				}
+			}
+			for(StringBuffer result : logMsgs){
+				out.println(result);
 			}
 			if(out != System.out){
 				out.flush(); out.close();
@@ -130,13 +110,40 @@ public class DumpData {
 	}
 
 	/**
+	 * Add the future index of a prior bar that is stored in the logMsgs list
+	 * @param logMsgs
+	 * @param barCache
+	 */
+	protected static void appendFuture(LinkedList<StringBuffer> logMsgs, final BarCache barCache, final int... lookback) {
+		final int count = logMsgs.size() -1; //zero based counting
+		for(int daysBack: lookback){
+			if(count >= daysBack ){
+				final StringBuffer threeDaysBack = logMsgs.get(count-daysBack);
+				threeDaysBack.append("," + barCache.getFutureTrend(barCache.get(daysBack), daysBack));
+			}
+		}
+	}
+
+	/**
+	 * @param symbol
+	 * @param dailyData
+	 * @param dailyBar
+	 * @param buffer
+	 */
+	protected static StringBuffer writeDailyData(final BarCache dailyData) {
+		final StringBuffer buffer = new StringBuffer();
+		bufferDailyData(dailyData, buffer);
+		return buffer;
+	}
+
+	/**
 	 * @param out
 	 * @param dailyDataOnly
 	 */
 	protected static void writeHeaderRecord(PrintStream out, boolean dailyDataOnly) {
 		//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
 		out.print("Sym,date,yesterdayClose,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh");
-		out.print(",dailyAd,dailyAdvwap");
+		out.print(",dailyAd,dailyAdvwap,shortFut,mediumFut,longFut");
 
 		if(! dailyDataOnly ){ 
 			out.print(",open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
@@ -154,6 +161,20 @@ public class DumpData {
 	 * @param buffer
 	 */
 	protected static void bufferDailyData( final BarCache dailyData, final StringBuffer buffer) {
+		
+		final Bar yesterday = dailyData.get(1);
+		final Bar dailyBar = dailyData.get(0);
+		
+		buffer.append(dailyBar.symbol + ",");
+		buffer.append(HistoricalDateManipulation.getDateAsStr(dailyBar.originalTime) +",");
+		if(yesterday != null) { 
+			buffer.append(nf.format(yesterday.close)+ ",");
+		}
+		else {
+			 buffer.append(",");
+		}
+		buffer.append(nf.format(dailyBar.open) + ",");
+
 		double fibLow = dailyData.getFibonacciRetracement(30, 1);
 		int fibRange = 30;
 		while(fibLow == 0 && fibRange < 120){
