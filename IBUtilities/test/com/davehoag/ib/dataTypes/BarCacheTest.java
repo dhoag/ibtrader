@@ -81,11 +81,15 @@ public class BarCacheTest {
 		b = newBar(19.6, 18.6, 0,0,0 );
 		b.originalTime = idx++;
 		qr.push(b);
+		double rsi = qr.getRSI(0, 3);
 		b = newBar(18.6, 22.2, 0,0,0 );
 		b.originalTime = idx++;
 		qr.push(b);
 		System.out.println(qr.getRSI(0, 2));
 		System.out.println(qr.getRSI(0, 3));
+		
+		assertEquals(rsi, qr.getRSI(1, 3), .02);
+		//TODO validate RSI calculation
 	}
 	@Test
 	public void testFutureWeight(){
@@ -108,7 +112,6 @@ public class BarCacheTest {
 		b.originalTime = idx++;
 		qr.push(b);
 		int future = qr.getFutureTrend(orig, 4);
-		System.out.println(future);
 		assert(future > 0);
 	}
 	@Test
@@ -260,7 +263,11 @@ public class BarCacheTest {
 		BarCache qr = new BarCache();
 		send5bars(qr);
 		double [] pSar = qr.getParabolicSar(5, .02);
-		System.out.println(pSar);
+		double first = pSar[0];
+		qr.push(newBar(20,120));//ignore this bar in test
+		pSar = qr.getParabolicSar(1, 5, .02);
+		assertEquals(first, pSar[0], .02);
+		//TODO validate PSAR calculation
 	}
 	@Test
 	public void testMA(){

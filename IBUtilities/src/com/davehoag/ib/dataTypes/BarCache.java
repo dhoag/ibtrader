@@ -106,22 +106,25 @@ public class BarCache {
 		if(!valid) return 0;
 		return high - ( (high - low) * percent);
 	}
-	public double [] getParabolicSar(final double [] result, final double accelFact){
+	public double [] getParabolicSar(final int start, final double [] result, final double accelFact){
 		// Initialize trend to whatever
 		boolean upTrend = false;
 		final double accelFactIncrement = accelFact == 0 ? .02 : accelFact;
 		int periods = result.length;
-		Bar aBar = get(periods -1);
+		Bar aBar = get(periods -1 + start);
 		 
 		// Previous SAR: Use first data point's extreme value, depending on trend
 		double pSar = aBar.high;
 		double extremePoint = aBar.low;
 		result[0]= pSar;
 		result[1]= pSar;
-		return getParabolicSar(upTrend, accelFactIncrement, accelFactIncrement, periods -2, pSar, extremePoint, result);
+		return getParabolicSar(start, upTrend, accelFactIncrement, accelFactIncrement, periods -2 , pSar, extremePoint, result);
+	}
+	public double [] getParabolicSar(final int start, final int periods, final double accelFact){
+		return getParabolicSar(start,  new double [periods], accelFact);
 	}
 	public double [] getParabolicSar(final int periods, final double accelFact){
-		return getParabolicSar(new double [periods], accelFact);
+		return getParabolicSar(0, new double [periods], accelFact);
 	}
 	/**
 	 * Return "tomorrow's" sar value.
@@ -134,9 +137,9 @@ public class BarCache {
 	 * @param extremePoint
 	 * @return
 	 */
-	protected double [] getParabolicSar(boolean upTrend, double accelerationFactor, final double accelFactIncrement, final int barIdx, final double pSar, double extremePoint, double [] result){
+	protected double [] getParabolicSar(int start, boolean upTrend, double accelerationFactor, final double accelFactIncrement, final int barIdx, final double pSar, double extremePoint, double [] result){
 		double nSar = 0;
-		final Bar todaysBar = get(barIdx);
+		final Bar todaysBar = get(barIdx+start);
 		
 		if(upTrend){
 			// Making higher highs: accelerate
@@ -157,7 +160,7 @@ public class BarCache {
 				nSar = pSar + accelerationFactor * (extremePoint - pSar); 
 
 				//The nSar can not be higher than the current low (or the prior low)
-				final double maxSar = Math.min(todaysBar.low, get(barIdx + 1).low);
+				final double maxSar = Math.min(todaysBar.low, get(barIdx + 1+start).low);
 				nSar = Math.min(maxSar, nSar);
 			}
 		} 
@@ -180,13 +183,13 @@ public class BarCache {
 				nSar = pSar + accelerationFactor * (extremePoint - pSar); 
 
 				//The nSar can not be lower than the current high (or the prior high)
-				final double minSar = Math.max(todaysBar.high, get(barIdx + 1).high);
+				final double minSar = Math.max(todaysBar.high, get(barIdx + 1 + start).high);
 				nSar = Math.max(minSar, nSar);
 			}		
 		}
-		result[result.length - barIdx] = nSar;
-		if(barIdx == 1) return result;
-		return getParabolicSar(upTrend, accelerationFactor, accelFactIncrement, barIdx - 1, nSar, extremePoint, result);
+		result[result.length - barIdx-start] = nSar;
+		if(barIdx ==  1) return result;
+		return getParabolicSar(start, upTrend, accelerationFactor, accelFactIncrement, barIdx - 1 , nSar, extremePoint, result);
 	}
 	/**
 	 * A numeric value representing the future price action after this bar
@@ -210,6 +213,28 @@ public class BarCache {
 			squaredSum += Math.pow(aBar.getField(field) - ma, 2);
 		}
 		double devMean = squaredSum / periods;
+		return Math.sqrt(devMean);
+	}
+	/**
+	 * Close to standard deviation, but different in several ways
+	 * Use the VWAP for the mean calculation
+	 * And use four points for each bar (OHLC)
+	 * 
+	 * @param start
+	 * @param periods
+	 * @return
+	 */
+	public double getSwingDeviation(final int start, final int periods){
+		double ma = getMA(start, periods, 'w');
+		double squaredSum = 0;
+		int i = 0;
+		for( Bar aBar : getIteratable(start, periods)){
+			squaredSum += Math.pow(aBar.open - ma, 2);
+			squaredSum += Math.pow(aBar.high - ma, 2);
+			squaredSum += Math.pow(aBar.low - ma, 2);
+			squaredSum += Math.pow(aBar.close - ma, 2);
+		}
+		double devMean = squaredSum / (periods * 4);
 		return Math.sqrt(devMean);
 	}
 	public int getFutureTrend(final long origTime, final int periods){

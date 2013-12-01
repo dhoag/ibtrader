@@ -189,8 +189,8 @@ public class DumpData {
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .618)) + ",");
 		buffer.append(nf.format( dailyData.getMA(1,20, 'w')) + ",");
 		buffer.append(nf.format( dailyData.getMA(1,13, 'w')) + ",");
-		buffer.append(nf.format( dailyData.getParabolicSar(15, 0)[0]) + ",");
-		buffer.append(nf.format( dailyData.getParabolicSar(15, 0)[1] ));
+		buffer.append(nf.format( dailyData.getParabolicSar(1, 15, 0)[0]) + ",");
+		buffer.append(nf.format( dailyData.getParabolicSar(1, 15, 0)[1] ));
 		buffer.append( "," + nf.format(dailyData.getADL(1, 10, false)));
 		buffer.append( "," + nf.format(dailyData.getADL(1, 10, true)));
 

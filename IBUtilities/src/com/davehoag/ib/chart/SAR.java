@@ -38,7 +38,7 @@ public class SAR implements PriceStudy {
 		try{
 			accel = Double.parseDouble(accelField.getText());
 		} catch(Exception e){ System.out.println(e); }
-		return cache.getParabolicSar(sarCurve, accel)[sarCurve.length - 1];
+		return cache.getParabolicSar(0,sarCurve, accel)[sarCurve.length - 1];
 	}
 	/* (non-Javadoc)
 	 * @see com.davehoag.ib.chart.PriceStudy#getRenderer()
