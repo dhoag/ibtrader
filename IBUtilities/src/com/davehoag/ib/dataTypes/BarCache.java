@@ -75,11 +75,14 @@ public class BarCache {
 	 * @return price that represents the retracement point or zero if it can't be determined
 	 */
 	public double getFibonacciRetracement(final int periods, final double percent){
-		Bar b = get(0);
+		return getFibonacciRetracement(0, periods, percent);
+	}
+	public double getFibonacciRetracement(final int start, final int periods, final double percent){
+		Bar b = get(start);
 		double high = b.high; double low = b.low;
 		double candidateHigh = 0;
 		boolean valid = false;
-		for(int i = 1; i < periods; i++){
+		for(int i = start+1; i < start+periods; i++){
 			final Bar aBar = get(i);
 			if(aBar == null) break;
 			if(high < aBar.high) { 
@@ -212,30 +215,11 @@ public class BarCache {
 	public int getFutureTrend(final long origTime, final int periods){
 		final int idx = indexOf(origTime);
 		if(idx < periods) throw new IllegalArgumentException("Not enough future periods for " + periods + " but only have " + idx + " after this bar");
-		double resultTotal = 0;
-		Bar prior = get(idx);
-		final Bar original = prior;
-		for(int i = idx -1; i >= (idx - periods); i--){
-			final Bar next = get(i);
-			double result = 0;
-			if(next.close > prior.close) result +=2;
-			if(next.high > prior.close) result +=1;
-			if(next.wap > prior.close) result +=2;
-			if(next.low >= prior.close) result +=2;
-			if(next.low > prior.low) result +=1;
-			if(next.high >= prior.high) result +=2;
-			if(next.close < prior.close) result -=2;
-			if(next.high <= prior.close) result -=2;
-			if(next.high < prior.high) result -=1;
-			if(next.wap < prior.close) result -=2;
-			if(next.low < prior.close) result -=1;
-			if(next.low < prior.low) result -=2;
-			double wapChange = next.wap - original.wap;
-			double absoluteChange = wapChange == 0 ? 0.0 : 2000*wapChange/original.wap;
-			resultTotal += (result + absoluteChange);
-			prior = next;
-		}
-		return (int)resultTotal;
+		float resultTotal = 0;
+		//smaller index values are in the future. The 'get' counts backward
+		resultTotal = (float)((get(idx-periods).wap - get(idx).open ) / get(idx).open);
+		//resultTotal = resultTotal / (getStdDev(idx-periods, periods, 'c') );
+		return Math.round(resultTotal*100*10) ;
 	}
 	public double getSlope(final int periods, final char field ){
 		Bar old = get(periods);
@@ -304,7 +288,7 @@ public class BarCache {
 	 */
 	public double getADL(final int start, final int periods, final boolean vwap){
 		int oldestIdx = start+periods;
-		if (haslessThanNBars(oldestIdx)) {
+		if (oldestIdx >= size()) {
 			return 0;
 		}
 		
@@ -327,7 +311,7 @@ public class BarCache {
 	public int getRSI(final int start, final int periods){
 		//go back 2x periods to calculate RSI
 		int oldestIdx = start+periods+periods-1;
-		if (haslessThanNBars(oldestIdx)) {
+		if (oldestIdx >= size()) {
 			return 0;
 		}
 		double firstGainSum = 0;
@@ -361,15 +345,6 @@ public class BarCache {
 	 */
 	public boolean isInitialized(final int periods) {
 		return periods < lastIdx || (wrapped && periods <= localCache.length);
-	}
-
-
-	/**
-	 * @param periods
-	 * @return
-	 */
-	public boolean haslessThanNBars(final int periods) {
-		return (periods > localCache.length) || (periods > lastIdx && !wrapped);
 	}
 
 	/**
@@ -510,10 +485,9 @@ public class BarCache {
 	 * @return
 	 */
 	public Iterable<Bar> getIteratable(final int start, final int periods ){
-		validateIndex(start+periods);
 		
 		final int oldestIdx = start+periods-1;
-
+		validateIndex(oldestIdx);
 		return new Iterable<Bar>(){
 			@Override
 			public Iterator<Bar> iterator() {
@@ -539,15 +513,14 @@ public class BarCache {
 	/**
 	 * @param periods
 	 */
-	protected void validateIndex(final int periods) {
-		if (haslessThanNBars(periods)) {
-			int size = wrapped ? localCache.length : lastIdx;
-			throw new IllegalStateException("Not enough data to fullfill request asking:"+ periods + " from " + size);
+	protected void validateIndex(final int idx) {
+		if (idx >= size() ) {
+			throw new IllegalStateException("Not enough data to fullfill request asking:"+ idx + " from " + size());
 		}
 	}
 
 	public double[] getVwap(final int periods) {
-		validateIndex(periods);
+		validateIndex(periods-1);//zero based index
 		double[] result = new double[periods];
 		int count = 0;
 		final int lowerBounds = Math.max(lastIdx - periods, 0);

@@ -163,6 +163,8 @@ public class DumpData {
 	protected static void bufferDailyData( final BarCache dailyData, final StringBuffer buffer) {
 		
 		final Bar yesterday = dailyData.get(1);
+		//general output is to show the way info looked at the open of today
+		//so, any calculations can not include today's bar. Must offset to yesterday
 		final Bar dailyBar = dailyData.get(0);
 		
 		buffer.append(dailyBar.symbol + ",");
@@ -175,22 +177,22 @@ public class DumpData {
 		}
 		buffer.append(nf.format(dailyBar.open) + ",");
 
-		double fibLow = dailyData.getFibonacciRetracement(30, 1);
+		double fibLow = dailyData.getFibonacciRetracement(1, 30, 1);
 		int fibRange = 30;
 		while(fibLow == 0 && fibRange < 120){
 			fibRange++;
-			fibLow = dailyData.getFibonacciRetracement(fibRange, 1);
+			fibLow = dailyData.getFibonacciRetracement(1, fibRange, 1);
 		}
-		buffer.append(nf.format(dailyData.getFibonacciRetracement(fibRange, 1)) + ",");
-		buffer.append(nf.format(dailyData.getFibonacciRetracement(fibRange, 0)) + ",");
-		buffer.append(nf.format(dailyData.getFibonacciRetracement(fibRange, .382)) + ",");
-		buffer.append(nf.format(dailyData.getFibonacciRetracement(fibRange, .618)) + ",");
-		buffer.append(nf.format( dailyData.getMA(20, 'w')) + ",");
-		buffer.append(nf.format( dailyData.getMA(13, 'w')) + ",");
+		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, 1)) + ",");
+		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, 0)) + ",");
+		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .382)) + ",");
+		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .618)) + ",");
+		buffer.append(nf.format( dailyData.getMA(1,20, 'w')) + ",");
+		buffer.append(nf.format( dailyData.getMA(1,13, 'w')) + ",");
 		buffer.append(nf.format( dailyData.getParabolicSar(15, 0)[0]) + ",");
 		buffer.append(nf.format( dailyData.getParabolicSar(15, 0)[1] ));
-		buffer.append( "," + nf.format(dailyData.getADL(0, 10, false)));
-		buffer.append( "," + nf.format(dailyData.getADL(0, 10, true)));
+		buffer.append( "," + nf.format(dailyData.getADL(1, 10, false)));
+		buffer.append( "," + nf.format(dailyData.getADL(1, 10, true)));
 
 	}
 
