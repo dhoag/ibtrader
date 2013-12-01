@@ -142,7 +142,7 @@ public class DumpData {
 	 */
 	protected static void writeHeaderRecord(PrintStream out, boolean dailyDataOnly) {
 		//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
-		out.print("Sym,date,yesterdayClose,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh");
+		out.print("Sym,date,yesterdayClose,yH,yL,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh");
 		out.print(",dailyAd,dailyAdvwap,shortFut,mediumFut,longFut");
 
 		if(! dailyDataOnly ){ 
@@ -171,6 +171,8 @@ public class DumpData {
 		buffer.append(HistoricalDateManipulation.getDateAsStr(dailyBar.originalTime) +",");
 		if(yesterday != null) { 
 			buffer.append(nf.format(yesterday.close)+ ",");
+			buffer.append(nf.format(yesterday.high)+ ",");
+			buffer.append(nf.format(yesterday.low)+ ",");
 		}
 		else {
 			 buffer.append(",");
