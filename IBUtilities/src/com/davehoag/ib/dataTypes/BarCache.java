@@ -199,6 +199,16 @@ public class BarCache {
 	public int getFutureTrend(final long origTime){
 		return getFutureTrend(origTime, indexOf(origTime));
 	}
+	public double getStdDev(final int start, final int periods, final char field){
+		double ma = getMA(start, periods, field);
+		double squaredSum = 0;
+		int i = 0;
+		for( Bar aBar : getIteratable(start, periods)){
+			squaredSum += Math.pow(aBar.getField(field) - ma, 2);
+		}
+		double devMean = squaredSum / periods;
+		return Math.sqrt(devMean);
+	}
 	public int getFutureTrend(final long origTime, final int periods){
 		final int idx = indexOf(origTime);
 		if(idx < periods) throw new IllegalArgumentException("Not enough future periods for " + periods + " but only have " + idx + " after this bar");

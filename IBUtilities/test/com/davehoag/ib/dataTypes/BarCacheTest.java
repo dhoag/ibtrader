@@ -274,6 +274,17 @@ public class BarCacheTest {
 		assertEquals((10+20+30+40)/4, closeMa, .002);
 	}
 	@Test
+	public void testStdDev(){
+		BarCache qr = new BarCache();
+		send5bars(qr);
+		
+		double closeMa = qr.getStdDev(0, 5, 'c');
+		assertEquals(14.142, closeMa, .002);
+		
+		closeMa = qr.getStdDev(1,4, 'c');
+		assertEquals(11.18, closeMa, .002);
+	}
+	@Test
 	public void testCorrelation(){
 		BarCache qr = new BarCache();
 		send5bars(qr);
