@@ -2,6 +2,8 @@ package com.davehoag.ib.dataTypes;
 
 import java.util.Iterator;
 
+import com.davehoag.analytics.DoubleReader;
+import com.davehoag.analytics.Functions;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 import flanagan.analysis.Stat;
@@ -206,14 +208,9 @@ public class BarCache {
 		return getFutureTrend(origTime, indexOf(origTime));
 	}
 	public double getStdDev(final int start, final int periods, final char field){
-		double ma = getMA(start, periods, field);
-		double squaredSum = 0;
-		int i = 0;
-		for( Bar aBar : getIteratable(start, periods)){
-			squaredSum += Math.pow(aBar.getField(field) - ma, 2);
-		}
-		double devMean = squaredSum / periods;
-		return Math.sqrt(devMean);
+		Iterable<DoubleReader> rdr = getIteratable(start, periods, field);
+		return Functions.getStdDev(rdr);
+
 	}
 	/**
 	 * Close to standard deviation, but different in several ways
@@ -237,6 +234,14 @@ public class BarCache {
 		double devMean = squaredSum / (periods * 4);
 		return Math.sqrt(devMean);
 	}
+	/**
+	 * Look at the open print for the origTime and look forward N periods. Grab the 
+	 * WAP for that day as that is the most likely, high liquidity exit point 
+	 * 
+	 * @param origTime
+	 * @param periods
+	 * @return % change *100 * 10
+	 */
 	public int getFutureTrend(final long origTime, final int periods){
 		final int idx = indexOf(origTime);
 		if(idx < periods) throw new IllegalArgumentException("Not enough future periods for " + periods + " but only have " + idx + " after this bar");
@@ -297,11 +302,8 @@ public class BarCache {
 	 * @return
 	 */
 	public double getMA(final int start, final int periods, final char field) {
-		double sum = 0;
-		for(Bar aBar : getIteratable(start, periods)){
-			sum += aBar.getField(field);
-		}
-		return sum / periods;
+		Iterable<DoubleReader> rdr = getIteratable(start, periods, field);
+		return Functions.getMA(rdr);
 	}
 	/**
 	 * Calculate Accumulation/Distribution with the option to use Volume Weighted Average
@@ -536,6 +538,53 @@ public class BarCache {
 		};
 	}
 	/**
+	 * Returns an in place Iteratable that doesn't create much garbage. 
+	 * WANRING - not thread safe. If the underlying data changes it will
+	 * be visible and potentially confusing.
+	 * 
+	 * Iterates by starting at the oldest value (start + periods) and
+	 * working towards newest value (start) 
+	 * @param start
+	 * @param periods
+	 * @return
+	 */
+	public Iterable<DoubleReader> getIteratable(final int start, final int periods, final char field ){
+		
+		final int oldestIdx = start+periods-1;
+		validateIndex(oldestIdx);
+		return new Iterable<DoubleReader>() {
+			@Override
+			public Iterator<DoubleReader> iterator() {
+				return new Iterator<DoubleReader>(){
+					final DoubleReader rdr = new DoubleReader(){
+						@Override
+						public double readDouble(){ 
+							int idx = oldestIdx - count + 1;
+							if(get(idx) == null) {
+								System.out.println("null");
+							}
+							return get(idx ).getField(field);
+						}
+					};
+					int count = 0;
+					@Override
+					public boolean hasNext() {
+						return count < periods;
+					}
+					//returns the same reader over and over
+					@Override
+					public DoubleReader next() {
+						//count will always be 1 ahead
+						count++;
+						return rdr;
+					}
+					@Override
+					public void remove() {	} // not implemented
+					
+				};
+			}
+		};
+	}	/**
 	 * @param periods
 	 */
 	protected void validateIndex(final int idx) {

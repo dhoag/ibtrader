@@ -1,6 +1,7 @@
-package com.davehoag.ib.tools;
+package com.davehoag.analytics;
 
 import java.util.ArrayList;
+
 
 import flanagan.analysis.Regression;
 import flanagan.io.FileChooser;

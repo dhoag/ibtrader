@@ -51,7 +51,7 @@ public class DumpData {
 					try { 
 						final StringBuffer buffer = writeDailyData( dailyData);
 						logMsgs.add(buffer);
-						appendFuture(logMsgs, dailyData, 3,15,60);
+						appendFuture(logMsgs, dailyData,3);
 					}catch(IllegalStateException ex){
 						//ignore this buffer
 						System.out.println("Ingoring " + dailyBar + " ex: " + ex);
@@ -142,8 +142,8 @@ public class DumpData {
 	 */
 	protected static void writeHeaderRecord(PrintStream out, boolean dailyDataOnly) {
 		//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
-		out.print("Sym,date,yesterdayClose,yH,yL,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,ma13,psarLow,psarHigh");
-		out.print(",dailyAd,dailyAdvwap,shortFut,mediumFut,longFut");
+		out.print("Sym,date,yesterdayClose,yH,yL,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,");
+		out.print("ma13,psarLow,psarHigh,dailyAdvwap,shortFut");
 
 		if(! dailyDataOnly ){ 
 			out.print(",open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
