@@ -23,46 +23,38 @@ public class DumpData {
 		final String barSize = args[i++];
 		final String startTime = args[i++];
 		final String endTime = args[i++];
-		BarCache cache = new BarCache();
-		int periods = 500;
-		//PrintStream out = System.out;
 		PrintStream out = getOutputStream();
-		LinkedList<Bar> bars = new LinkedList<Bar>();
-		LinkedList<StringBuffer> logMsgs = new LinkedList<StringBuffer>();
 		
-		boolean dailyDataOnly = true; 
+		writeDailyDataHeader(out);
 		
+		boolean dailyDataOnly = "bar1day".equals(barSize); 		
+		if(dailyDataOnly) {
+			out.println("");
+		}
+		else {
+			out.print(",");
+			writeIntradayHeader(out);
+		}
+
 		for( ; i< args.length;)
 		try 
 		{
-			final String symbol = args[i++];
+			LinkedList<StringBuffer> logMsgs = new LinkedList<StringBuffer>();
 			long start = df.parse(startTime).getTime()/1000;
 			long finish = df.parse(endTime).getTime()/1000;
+			final String symbol = args[i++];
 			
-			writeHeaderRecord(out, dailyDataOnly);
-			final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, start, finish, "bar1day");
-						
 			if(dailyDataOnly) {
-				final BarCache dailyData = new BarCache(1500);
-				for(Bar dailyBar: dailyDataIterator ){
-					
-					dailyData.push(dailyBar);
-
-					try { 
-						final StringBuffer buffer = writeDailyData( dailyData);
-						logMsgs.add(buffer);
-						appendFuture(logMsgs, dailyData,3);
-					}catch(IllegalStateException ex){
-						//ignore this buffer
-						System.out.println("Ingoring " + dailyBar + " ex: " + ex);
-					}
-				}
+				final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, start, finish, "bar1day");
+				dailyDataOnly(logMsgs, dailyDataIterator);
 			}
 			else{ 
+				final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, 365, finish, "bar1day");
+				final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
+
 				Bar today = null; 
 				final BarCache dailyData = new BarCache(500);
-				final BarIterator data = CassandraDao.getInstance().getData(symbol, start, finish, barSize);
-				//go back one year
+				BarCache cache = new BarCache();
 	
 				for(Bar aBar: data){
 					final StringBuffer buffer = new StringBuffer();
@@ -70,16 +62,12 @@ public class DumpData {
 						if(today != null) dailyData.push(today); 
 						today = dailyDataIterator.next(); 
 					}
-					Bar yesterday = dailyData.get(0);
 					cache.push(aBar);
-					final int count = logMsgs.size();
-					int lookBack = count < periods ? count : periods;
 					
-					buffer.append(symbol + ",");
-					buffer.append(HistoricalDateManipulation.getDateAsStr(aBar.originalTime) +",");
-					buffer.append(nf.format(yesterday.close)+ ",");
-					buffer.append(nf.format(today.open) + ",");
 					bufferDailyData(dailyData, buffer);
+					final int count = logMsgs.size();
+					int periods = 500;
+					int lookBack = count < periods ? count : periods;
 					buffer.append( "," + nf.format(aBar.open) );
 					buffer.append( "," + nf.format(aBar.high) );
 					buffer.append( "," + nf.format(aBar.low) );
@@ -100,12 +88,33 @@ public class DumpData {
 			for(StringBuffer result : logMsgs){
 				out.println(result);
 			}
-			if(out != System.out){
-				out.flush(); out.close();
-			}
 		}//end try
 		catch (ParseException e) {
 			e.printStackTrace();
+		}
+		if(out != System.out){
+			out.flush(); out.close();
+		}
+	}
+
+	/**
+	 * @param logMsgs
+	 * @param dailyDataIterator
+	 */
+	protected static void dailyDataOnly(LinkedList<StringBuffer> logMsgs, final BarIterator dailyDataIterator) {
+		final BarCache dailyData = new BarCache(1500);
+		for(Bar dailyBar: dailyDataIterator ){
+			
+			dailyData.push(dailyBar);
+
+			try { 
+				final StringBuffer buffer = writeDailyData( dailyData);
+				logMsgs.add(buffer);
+				appendFuture(logMsgs, dailyData,3,15,60);
+			}catch(IllegalStateException ex){
+				//ignore this buffer
+				System.out.println("Ingoring " + dailyBar + " ex: " + ex);
+			}
 		}
 	}
 
@@ -138,21 +147,19 @@ public class DumpData {
 
 	/**
 	 * @param out
-	 * @param dailyDataOnly
 	 */
-	protected static void writeHeaderRecord(PrintStream out, boolean dailyDataOnly) {
-		//System.out.println("Start " + startTime + " " + start + " " + endTime + " " + finish);
-		out.print("Sym,date,yesterdayClose,yH,yL,todayOpen,fibLowD,fibHighD,fib382D,fib618D,ma20,");
-		out.print("ma13,psarLow,psarHigh,dailyAdvwap,shortFut");
+	protected static void writeIntradayHeader(PrintStream out) {
+		out.print("open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
+		out.print(",ad,advwap");
+		out.println(",100sec");
+	}
 
-		if(! dailyDataOnly ){ 
-			out.print(",open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
-			out.print(",ad,advwap");
-			out.println(",100sec");
-		}
-		else{
-			out.println("");
-		}
+	/**
+	 * @param out
+	 */
+	protected static void writeDailyDataHeader(PrintStream out) {
+		out.print("Sym,date,yesterdayClose,yH,yL,tOpen,fibLowD,tLow-fibLow,fibHighD,fib382D,fib618D,ma20,");
+		out.print("ma13,psarLow,psarHigh,dailyAd,dailyAdvwap,shortFut,medFut,longFut");
 	}
 
 	/**
@@ -179,13 +186,11 @@ public class DumpData {
 		}
 		buffer.append(nf.format(dailyBar.open) + ",");
 
-		double fibLow = dailyData.getFibonacciRetracement(1, 30, 1);
 		int fibRange = 30;
-		while(fibLow == 0 && fibRange < 120){
-			fibRange++;
-			fibLow = dailyData.getFibonacciRetracement(1, fibRange, 1);
-		}
-		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, 1)) + ",");
+		double fibLow = dailyData.getFibonacciRetracement(1, fibRange, 1);
+		buffer.append(nf.format( fibLow) + ",");
+		if(fibLow != 0) buffer.append(nf.format(dailyBar.low - fibLow));
+		buffer.append(",");
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, 0)) + ",");
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .382)) + ",");
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .618)) + ",");

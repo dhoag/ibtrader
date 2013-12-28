@@ -317,7 +317,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 		volumeData.addSeries(volumeSeries);
 
 		addAdditionalSeriesToPricePlot(strategy, strategyLines, priceStudySeries, pricePlot);
-		System.out.println("Displaying " + count + " records. " + last.getTime());
+		System.out.print("Displaying " + count + " records. ");
+		if(last == null) System.out.println(); else System.out.println(last.getTime());
 		if(scrollBar != null) scrollBar.updateScrollBarRanges();
 		repaint();
 	}

@@ -89,12 +89,14 @@ public class BarCache {
 			if(aBar == null) break;
 			if(high < aBar.high) { 
 				if(valid) { //had a good high low sequence but found older high
-					candidateHigh = aBar.high;
+					if(aBar.high > candidateHigh) candidateHigh = aBar.high;
 				}
 				else {
 					high = aBar.high;
 				}
 			}
+			//First - find a bar that is lower than my initial low
+			//If there are none we are sloping down and can't compute
 			if(low > aBar.low) {
 				low = aBar.low;
 				valid = true;
@@ -203,9 +205,6 @@ public class BarCache {
 		final int idx = indexOf(b.originalTime);
 		if(get(idx) != b) throw new IllegalArgumentException("Bar not found in cache" + b);
 		return getFutureTrend(b.originalTime, periods);
-	}
-	public int getFutureTrend(final long origTime){
-		return getFutureTrend(origTime, indexOf(origTime));
 	}
 	public double getStdDev(final int start, final int periods, final char field){
 		Iterable<DoubleReader> rdr = getIteratable(start, periods, field);
@@ -548,6 +547,57 @@ public class BarCache {
 	 * @param periods
 	 * @return
 	 */
+	public Iterable<DoubleReader> getIteratableAllFields(final int start, final int periods){
+		
+		final int oldestIdx = start+periods-1;
+		validateIndex(oldestIdx);
+		return new Iterable<DoubleReader>() {
+			@Override
+			public Iterator<DoubleReader> iterator() {
+				return new Iterator<DoubleReader>(){
+					final DoubleReader rdr = new DoubleReader(){
+						char [] fields = { 'o', 'h', 'l', 'c' };
+						@Override
+						public double readDouble(){ 
+							int idx = oldestIdx - count + 1;
+							if(get(idx) == null) {
+								System.out.println("null");
+							}
+							return get(idx ).getField(fields[field++]);
+						}
+					};
+					int count = 0;
+					int field = 0;
+					@Override
+					public boolean hasNext() {
+						return count < periods*4;
+					}
+					//returns the same reader over and over
+					@Override
+					public DoubleReader next() {
+						if(field == 4) field = 0;
+						//count will always be 1 ahead
+						if(field == 0) count++;
+						return rdr;
+					}
+					@Override
+					public void remove() {	} // not implemented
+					
+				};
+			}
+		};
+	}
+	/**
+	 * Returns an in place Iteratable that doesn't create much garbage. 
+	 * WANRING - not thread safe. If the underlying data changes it will
+	 * be visible and potentially confusing.
+	 * 
+	 * Iterates by starting at the oldest value (start + periods) and
+	 * working towards newest value (start) 
+	 * @param start
+	 * @param periods
+	 * @return
+	 */
 	public Iterable<DoubleReader> getIteratable(final int start, final int periods, final char field ){
 		
 		final int oldestIdx = start+periods-1;
@@ -584,7 +634,8 @@ public class BarCache {
 				};
 			}
 		};
-	}	/**
+	}
+	/**
 	 * @param periods
 	 */
 	protected void validateIndex(final int idx) {
