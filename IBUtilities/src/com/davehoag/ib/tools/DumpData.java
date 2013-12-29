@@ -158,8 +158,10 @@ public class DumpData {
 	 * @param out
 	 */
 	protected static void writeDailyDataHeader(PrintStream out) {
-		out.print("Sym,date,yesterdayClose,yH,yL,tOpen,fibLowD,tLow-fibLow,fibHighD,fib382D,fib618D,ma20,");
-		out.print("ma13,psarLow,psarHigh,dailyAd,dailyAdvwap,shortFut,medFut,longFut");
+		out.print("Sym,date,yesterdayClose,yH,yL," +
+				"tOpen,tHigh,tLow,tClose,tWap,tVol,tTrdCnt," +
+				"fibLowD,tLow-fibLow,fibHighD,fib382D,fib618D,");
+		out.print("psarLow,psarHigh,swingDev,dailyAd,dailyAdvwap,shortFut,medFut,longFut");
 	}
 
 	/**
@@ -185,6 +187,12 @@ public class DumpData {
 			 buffer.append(",");
 		}
 		buffer.append(nf.format(dailyBar.open) + ",");
+		buffer.append(nf.format(dailyBar.high) + ",");
+		buffer.append(nf.format(dailyBar.low) + ",");
+		buffer.append(nf.format(dailyBar.close) + ",");
+		buffer.append(nf.format(dailyBar.wap) + ",");
+		buffer.append(nf.format(dailyBar.volume) + ",");
+		buffer.append(nf.format(dailyBar.tradeCount) + ",");
 
 		int fibRange = 30;
 		double fibLow = dailyData.getFibonacciRetracement(1, fibRange, 1);
@@ -194,12 +202,11 @@ public class DumpData {
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, 0)) + ",");
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .382)) + ",");
 		buffer.append(nf.format(dailyData.getFibonacciRetracement(1, fibRange, .618)) + ",");
-		buffer.append(nf.format( dailyData.getMA(1,20, 'w')) + ",");
-		buffer.append(nf.format( dailyData.getMA(1,13, 'w')) + ",");
 		buffer.append(nf.format( dailyData.getParabolicSar(1, 15, 0)[0]) + ",");
-		buffer.append(nf.format( dailyData.getParabolicSar(1, 15, 0)[1] ));
-		buffer.append( "," + nf.format(dailyData.getADL(1, 10, false)));
-		buffer.append( "," + nf.format(dailyData.getADL(1, 10, true)));
+		buffer.append(nf.format( dailyData.getParabolicSar(1, 15, 0)[1] ) + ",");
+		buffer.append(nf.format(dailyData.getSwingDeviation(1, 15) ) + ",");
+		buffer.append(nf.format(dailyData.getADL(1, 10, false)) + ",");
+		buffer.append(nf.format(dailyData.getADL(1, 10, true)));
 
 	}
 
