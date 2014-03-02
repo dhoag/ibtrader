@@ -4,7 +4,9 @@ import java.text.ParseException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Queue;
+import java.util.Vector;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -18,6 +20,7 @@ import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.ImmediateExecutor;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
+import com.ib.client.TagValue;
 
 /**
  * Control all IB client requests
@@ -34,6 +37,7 @@ public class IBClientRequestExecutor {
 	final HashMap<Integer, ResponseHandlerDelegate> map = new HashMap<Integer, ResponseHandlerDelegate>();
 	final ResponseHandler responseHandler;
 	int orderIdCounter;
+	boolean connectionConfirmed = false;
 	/**
 	 * Helper method to bootstrap conenction to the client.
 	 * @return
@@ -45,7 +49,23 @@ public class IBClientRequestExecutor {
 		clientInterface.connect();
 		return clientInterface;
 	}
-
+	/**
+	 * Called when we get an "error" message from the client that we have market data
+	 */
+	public synchronized void confirmConnection(){ 
+		connectionConfirmed = true;
+		notify();
+	}
+	synchronized void waitOnConfirmation(){
+		while(!connectionConfirmed)
+			try {
+				System.out.println("Waiting until successfully connected!");
+				wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	}
 	/**
 	 * Create a simulated client.
 	 * @return
@@ -119,6 +139,7 @@ public class IBClientRequestExecutor {
 	 * actually validate the clientId until the first request is made
 	 */
 	public void connect() {
+		System.out.println(IBConstants.blah);
 		client.eConnect(IBConstants.host, IBConstants.port, IBConstants.clientId);
 		if (client.isConnected()) {
 			System.out.println("Connected to Tws server version " + client.serverVersion() + " at "
@@ -423,7 +444,7 @@ public class IBClientRequestExecutor {
 	 */
 	protected void requestHistoricalData(final ArrayList<String> dates, final StockContract stock,
 			final StoreHistoricalData rh) {
-		
+		waitOnConfirmation();;
 		final int markerRequestId = pushRequest();
 		LogManager.getLogger("RequestManager").info( "[" + markerRequestId + "] " + 
 				"Submitting HistoricalData marker" );
@@ -471,10 +492,13 @@ public class IBClientRequestExecutor {
 				final int reqId = pushRequest();
 				pushResponseHandler(reqId, rh);
 				rh.info(
-						"["+ reqId + "] Submitting request for historical data " + date + " " + stock.m_symbol);
+						"["+ reqId + "] Submitting request for historical data " + date);
 				rh.resetRecordCount();
+				List<TagValue> notUsed = new Vector<TagValue>();
+				System.out.println("" + reqId+ " "+ stock+ " "+ date+ " "+ rh.getDuration()+ " "+ rh.getBar()+ " "+
+						IBConstants.showTrades+ " "+ IBConstants.rthOnly+ " "+ IBConstants.datesAsNumbers);
 				client.reqHistoricalData(reqId, stock, date, rh.getDuration(), rh.getBar(),
-						IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers);
+						IBConstants.showTrades, IBConstants.rthOnly, IBConstants.datesAsNumbers, notUsed);
 			}
 		}
 	}
@@ -504,15 +528,16 @@ public class IBClientRequestExecutor {
 				pushResponseHandler(reqId, rh);
 				LogManager.getLogger("RequestManager").info(
 						"Submitting request for real time bars [" + reqId + "] " + stock.m_symbol);
+				Vector<TagValue> notUsed = null;
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
-				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true);
+				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true, notUsed);
 				final boolean snapshot = false;
 				final int tickReqId = pushRequest();
 				pushResponseHandler(tickReqId, rh);
 				LogManager.getLogger("RequestManager").info(
 						"Submitting request for tick data [" + tickReqId + "] " + stock.m_symbol);
-				client.reqMktData(tickReqId, stock, "", snapshot);
+				client.reqMktData(tickReqId, stock, "", snapshot, notUsed);
 
 			}
 		};

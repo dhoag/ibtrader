@@ -24,7 +24,7 @@ public class SimulateTrading {
 	private static final long serialVersionUID = 4997373692668656258L;
 
 	/**
-	 * Take args : Simple:IBM MACD:QQQ
+	 * Take args : Simple:IBM: MACD:QQQ:
 	 * @param args
 	 */
 	public static void main(String[] args) {

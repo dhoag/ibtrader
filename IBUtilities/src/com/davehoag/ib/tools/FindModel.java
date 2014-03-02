@@ -157,7 +157,7 @@ public class FindModel {
 		//There are 12 5 second bars in a minute and look at the prior 10 minutes
 		final int minutesBack = 20;
 		final long startTime = Math.max( aBar.originalTime - 5*12*minutesBack, openTime);
-		indies[4] = cache.getFutureTrend(startTime);
+		indies[4] = cache.getFutureTrend(startTime, 5);
 		return indies;
 	}
 	static double [] depdentVars(final LinkedList<Double> depList){

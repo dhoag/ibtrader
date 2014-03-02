@@ -4,6 +4,8 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -19,6 +21,7 @@ import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
 import com.ib.client.Execution;
 import com.ib.client.Order;
+import com.ib.client.TagValue;
 
 /**
  * A client that connects to our persistent store and simulates IB. There is one
@@ -33,6 +36,9 @@ public class HistoricalDataClient extends EClientSocket {
 
 	public ExecutorService service = Executors.newFixedThreadPool(10);
 	HashMap<String, BarIterator> pastOneDayBars = new HashMap<String, BarIterator>();
+	
+	//Update to new API
+	List<TagValue> notUsed = null;
 
 	@Override
 	public void cancelOrder(final int id) {
@@ -74,7 +80,7 @@ public class HistoricalDataClient extends EClientSocket {
 	 * 5 second bars as that is RealTimeBar interval supported by IB
 	 */
 	@Override
-	public void reqRealTimeBars(final int reqId, final Contract stock, final int barSize, final String barType, final boolean rthOnly){
+	public void reqRealTimeBars(final int reqId, final Contract stock, final int barSize, final String barType, final boolean rthOnly, Vector<TagValue> xyz){
 		if(barSize != 5 ) throw new IllegalArgumentException("Only 5 second bars are supproted");
 
 		HistoricalDataSender result;
@@ -181,7 +187,7 @@ public class HistoricalDataClient extends EClientSocket {
     public void reqHistoricalData( final int tickerId, final Contract contract,
             final String endDateTime, final String durationStr,
             final String barSizeSetting, final String whatToShow,
-            final int useRTH, final int formatDate) {
+            final int useRTH, final int formatDate, final List<TagValue> xyz) {
 		
 		Runnable r = new Runnable() { @Override
 		public void run() {
@@ -271,7 +277,7 @@ public class HistoricalDataClient extends EClientSocket {
 	 * Noop for now, send realtime data later
 	 */
 	@Override
-	public void reqMktData(int tickReqId, Contract stock, String genericTypes, boolean snapshot){
+	public void reqMktData(int tickReqId, Contract stock, String genericTypes, boolean snapshot, List<TagValue> xyz){
 		//immediately terminate it - realtime bar request will actually send it
 		rh.endRequest(tickReqId);
 	}

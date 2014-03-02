@@ -12,11 +12,58 @@ import com.ib.client.OrderState;
 import com.ib.client.UnderComp;
 
 abstract class ResponseHandlerDelegate implements EWrapper {
+
 	IBClientRequestExecutor requester;
 	int reqId;
 	long startTime;	
 	int countOfRecords;
 	
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#position(java.lang.String, com.ib.client.Contract, int, double)
+	 */
+	@Override
+	public void position(String account, Contract contract, int pos,
+			double avgCost) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#verifyMessageAPI(java.lang.String)
+	 */
+	@Override
+	public void verifyMessageAPI(String apiData) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#verifyCompleted(boolean, java.lang.String)
+	 */
+	@Override
+	public void verifyCompleted(boolean isSuccessful, String errorText) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#displayGroupList(int, java.lang.String)
+	 */
+	@Override
+	public void displayGroupList(int reqId, String groups) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#displayGroupUpdated(int, java.lang.String)
+	 */
+	@Override
+	public void displayGroupUpdated(int reqId, String contractInfo) {
+		// TODO Auto-generated method stub
+		
+	}
+
 	public void resetRecordCount(){ countOfRecords = 0; }
 
 	/**
@@ -135,11 +182,6 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	public void openOrderEnd() {
 		// TODO Auto-generated method stub
 
-	}
-	@Override
-	public void position(String account, Contract contract, int pos) {
-		// TODO Auto-generated method stub
-		
 	}
 	@Override
 	public void positionEnd() {

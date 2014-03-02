@@ -27,6 +27,47 @@ import com.ib.client.UnderComp;
  */
 public class ResponseHandler implements EWrapper {
 
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#position(java.lang.String, com.ib.client.Contract, int, double)
+	 */
+	@Override
+	public void position(String account, Contract contract, int pos,
+			double avgCost) {
+		// TODO Auto-generated method stub
+		
+	}
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#verifyMessageAPI(java.lang.String)
+	 */
+	@Override
+	public void verifyMessageAPI(String apiData) {
+		// TODO Auto-generated method stub
+		
+	}
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#verifyCompleted(boolean, java.lang.String)
+	 */
+	@Override
+	public void verifyCompleted(boolean isSuccessful, String errorText) {
+		// TODO Auto-generated method stub
+		
+	}
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#displayGroupList(int, java.lang.String)
+	 */
+	@Override
+	public void displayGroupList(int reqId, String groups) {
+		// TODO Auto-generated method stub
+		
+	}
+	/* (non-Javadoc)
+	 * @see com.ib.client.EWrapper#displayGroupUpdated(int, java.lang.String)
+	 */
+	@Override
+	public void displayGroupUpdated(int reqId, String contractInfo) {
+		// TODO Auto-generated method stub
+		
+	}
 	IBClientRequestExecutor requester;
 	Executor executorService = Executors.newFixedThreadPool(10);
 	//There is only one per account
@@ -59,11 +100,12 @@ public class ResponseHandler implements EWrapper {
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {
 		
-		int [] informationalCodes = { 2104 ,2106 };
+		int [] informationalCodes = { 2104 ,2106 }; //Tell us about data post connect
 		boolean inf = false;
 		for(int code: informationalCodes){
 			if(code == errorCode){
 				inf = true;
+				requester.confirmConnection();
 				break;
 			}
 		}
@@ -91,6 +133,7 @@ public class ResponseHandler implements EWrapper {
 	 */
 	@Override
 	public void connectionClosed() {
+		LogManager.getLogger("ResponseHandler").error("Connection Closed!!!");
 		portfolio.displayValue();
 		requester.forcedClose();
 	}
@@ -182,11 +225,6 @@ public class ResponseHandler implements EWrapper {
 		getPortfolio().orderStatus(orderId, status, filled, remaining, avgFillPrice, permId, parentId,
 				lastFillPrice, clientId, whyHeld);
 
-	}
-	@Override
-	public void position(String account, Contract contract, int pos) {
-		// TODO Auto-generated method stub
-		
 	}
 	@Override
 	public void positionEnd() {

@@ -3,7 +3,8 @@ package com.davehoag.ib;
 public interface IBConstants {
 	final int port = 7496;
 	//Not sure what clientId means, but zero seems to support repeat connections
-	final int clientId = (int) System.currentTimeMillis();
+	final int clientId = 1991; //(int) System.currentTimeMillis();
+	final int blah = (int) System.currentTimeMillis();
 	final String host = "";
 	
 	//http://www.interactivebrokers.com/php/apiUsersGuide/apiguide/excel/historical_data_page_query_specification_fields.htm
