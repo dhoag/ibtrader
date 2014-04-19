@@ -85,6 +85,7 @@ public class DumpData {
 					
 				}
 			}
+			System.out.println("Writing data to output stream - # rows:" + logMsgs.size());
 			for(StringBuffer result : logMsgs){
 				out.println(result);
 			}

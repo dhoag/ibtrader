@@ -11,6 +11,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 
 import javax.swing.JButton;
@@ -133,7 +134,24 @@ public class HistoricalDataChart extends ApplicationFrame {
 		JButton run = new JButton("Run");
 		run.addActionListener(getRunDelegate());
 		top.add(run);
+		JButton clear = new JButton("Clear");
+		clear.addActionListener(getClearDelegate());
+		top.add(clear);
 		return top;
+	}
+	/**
+	 * Create action list to get the historical data
+	 * 
+	 * @return
+	 */
+	protected ActionListener getClearDelegate() {
+		return new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				flashDailyCharts();
+
+			}
+		};
 	}
 
 	/**
@@ -313,6 +331,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 		}
 		updateAxis(first, last, highestHigh, lowestLow);
 
+		prune(count, candlestickSeries, volumeSeries);
+		
 		priceData.addSeries(candlestickSeries);
 		volumeData.addSeries(volumeSeries);
 
@@ -321,6 +341,24 @@ public class HistoricalDataChart extends ApplicationFrame {
 		if(last == null) System.out.println(); else System.out.println(last.getTime());
 		if(scrollBar != null) scrollBar.updateScrollBarRanges();
 		repaint();
+	}
+
+	/**
+	 * Eventually support very large datasets, not yet working
+	 * @param count
+	 * @param candlestickSeries2
+	 * @param volumeSeries2
+	 */
+	private void prune(final int count, final OHLCSeries candlestickSeries2, final TimeSeries volumeSeries2) {
+		if(true)return;
+		int skipCount = count / 1000;
+		if(skipCount > 0) { 
+			for(int i = count-2; i >0; i-= skipCount){
+				for(int j = 0; j < skipCount-1; j++ ) {
+					candlestickSeries2.remove(i-j);
+				}
+			}
+		}
 	}
 
 	/**
@@ -697,6 +735,47 @@ public class HistoricalDataChart extends ApplicationFrame {
 		volumeSeries = new TimeSeries(di);
 		volumeData.addSeries(volumeSeries);
 	}
+	/**
+	 * Cycle through daily charts painting them over and over
+	 */
+	private void flashDailyCharts() {
+		final String startStr = startTF.getText();
+		final String endStr = endTF.getText();
+		final String aSymbol = StringUtils.upperCase(symbolTF.getText());
+		
+		Runnable r = getFlashRunnable(startStr, endStr, aSymbol);
+		new Thread(r).start();
+
+	}
+
+	private Runnable getFlashRunnable(final String startStr, final String endStr,
+			final String aSymbol) {
+		return new Runnable() { 
+			public void run() {
+				try{
+					long startTime = HistoricalDateManipulation.getTime(startStr + " 08:30:00");
+					final long endTime = HistoricalDateManipulation.getTime(endStr + " 15:10:00");
+					while(startTime + 24000 <= endTime){
+						final Calendar cal = Calendar.getInstance(); 
+						cal.setTimeInMillis(startTime*1000);
+						final int dayOfWeek = cal.get(cal.DAY_OF_WEEK);
+						if( dayOfWeek != cal.SUNDAY && dayOfWeek != cal.SATURDAY) { 
+							System.out.println(HistoricalDateManipulation.getDateAsStr(startTime + 24000));
+					    	getPaintDelegate(aSymbol, startTime - 60*60*24, startTime + 2000).run();
+					    	Thread.sleep(2000);
+					    	getPaintDelegate(aSymbol, startTime, startTime + 24000).run();
+					    	Thread.sleep(2000);
+					    }
+					    startTime += 60*60*24;
+					}				
+				} catch (ParseException | InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+			}
+		};
+	}
+
 	public static void displayNewWindow(){
 		HistoricalDataChart demo = new HistoricalDataChart("Stock Chart");
 		demo.pack();
