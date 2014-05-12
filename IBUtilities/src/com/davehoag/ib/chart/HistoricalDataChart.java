@@ -349,6 +349,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 * @param candlestickSeries2
 	 * @param volumeSeries2
 	 */
+	@SuppressWarnings("unused")
 	private void prune(final int count, final OHLCSeries candlestickSeries2, final TimeSeries volumeSeries2) {
 		if(true)return;
 		int skipCount = count / 1000;
@@ -447,7 +448,7 @@ public class HistoricalDataChart extends ApplicationFrame {
 	 */
 	protected int addStrategySeriesToPlot(final ArrayList<TimeSeries> strategySeries, final XYPlot plot) {
 		TimeSeriesCollection maCollection = new TimeSeriesCollection();
-		int i = 0;
+
 		SamplingXYLineRenderer lineRender = new SamplingXYLineRenderer();
 		for (TimeSeries t : strategySeries) {
 			maCollection.addSeries(t);
@@ -758,8 +759,8 @@ public class HistoricalDataChart extends ApplicationFrame {
 					while(startTime + 24000 <= endTime){
 						final Calendar cal = Calendar.getInstance(); 
 						cal.setTimeInMillis(startTime*1000);
-						final int dayOfWeek = cal.get(cal.DAY_OF_WEEK);
-						if( dayOfWeek != cal.SUNDAY && dayOfWeek != cal.SATURDAY) { 
+						final int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+						if( dayOfWeek != Calendar.SUNDAY && dayOfWeek != Calendar.SATURDAY) { 
 							System.out.println(HistoricalDateManipulation.getDateAsStr(startTime + 24000));
 					    	getPaintDelegate(aSymbol, startTime - 60*60*24, startTime + 2000).run();
 					    	Thread.sleep(2000);
