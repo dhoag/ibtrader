@@ -34,6 +34,7 @@ public class DumpData {
 		else {
 			out.print(",");
 			writeIntradayHeader(out);
+			out.println("");
 		}
 
 		for( ; i< args.length;)
@@ -59,15 +60,13 @@ public class DumpData {
 				for(Bar aBar: data){
 					final StringBuffer buffer = new StringBuffer();
 					while(dailyDataIterator.hasNext() && (today == null || (aBar.originalTime - today.originalTime > 60*60*10))){
-						if(today != null) dailyData.push(today); 
 						today = dailyDataIterator.next(); 
+						dailyData.push(today); 
 					}
 					cache.push(aBar);
 					
 					bufferDailyData(dailyData, buffer);
-					final int count = logMsgs.size();
-					int periods = 500;
-					int lookBack = count < periods ? count : periods;
+					buffer.append( "," + HistoricalDateManipulation.getDateAsStr(aBar.originalTime) );
 					buffer.append( "," + nf.format(aBar.open) );
 					buffer.append( "," + nf.format(aBar.high) );
 					buffer.append( "," + nf.format(aBar.low) );
@@ -75,12 +74,16 @@ public class DumpData {
 					buffer.append( "," + nf.format(aBar.volume) );
 					buffer.append( "," + nf.format(aBar.wap) );
 					buffer.append( "," + nf.format(aBar.tradeCount) );
+	/*				final int count = logMsgs.size();
+					int periods = 500;
+					int lookBack = count < periods ? count : periods;
 					buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, 1)) );
 					buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, 0)) );
 					buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, .382)) );
 					buffer.append( "," + nf.format(cache.getFibonacciRetracement(lookBack, .618)) );
 					buffer.append( "," + nf.format(cache.getADL(0, 60, false)));
 					buffer.append( "," + nf.format(cache.getADL(0, 60, true)));
+					*/
 					logMsgs.add(buffer);
 					
 				}
@@ -150,9 +153,11 @@ public class DumpData {
 	 * @param out
 	 */
 	protected static void writeIntradayHeader(PrintStream out) {
-		out.print("open,high,low,close,vol,vwap,count,fibLow,fibHigh,fib382,fib618");
+		out.print("barTime,open,high,low,close,vol,vwap,count");
+	/*	out.print(",fibLow,fibHigh,fib382,fib618");
 		out.print(",ad,advwap");
 		out.println(",100sec");
+		*/
 	}
 
 	/**
@@ -160,9 +165,9 @@ public class DumpData {
 	 */
 	protected static void writeDailyDataHeader(PrintStream out) {
 		out.print("Sym,date,yesterdayClose,yH,yL," +
-				"tOpen,tHigh,tLow,tClose,tWap,tVol,tTrdCnt," +
-				"fibLowD,tLow-fibLow,fibHighD,fib382D,fib618D,");
-		out.print("psarLow,psarHigh,swingDev,dailyAd,dailyAdvwap,shortFut,medFut,longFut");
+				"tOpen,tHigh,tLow,tClose,tWap,tVol,tTrdCnt");
+	//	out.print(",fibLowD,tLow-fibLow,fibHighD,fib382D,fib618D");
+	//	out.print(",psarLow,psarHigh,swingDev,dailyAd,dailyAdvwap,shortFut,medFut,longFut");
 	}
 
 	/**
@@ -193,10 +198,12 @@ public class DumpData {
 		buffer.append(nf.format(dailyBar.close) + ",");
 		buffer.append(nf.format(dailyBar.wap) + ",");
 		buffer.append(nf.format(dailyBar.volume) + ",");
-		buffer.append(nf.format(dailyBar.tradeCount) + ",");
-
+		buffer.append(nf.format(dailyBar.tradeCount) );
+		
+/*
 		int fibRange = 30;
 		double fibLow = dailyData.getFibonacciRetracement(1, fibRange, 1);
+		buffer.append(",");
 		buffer.append(nf.format( fibLow) + ",");
 		if(fibLow != 0) buffer.append(nf.format(dailyBar.low - fibLow));
 		buffer.append(",");
@@ -208,6 +215,7 @@ public class DumpData {
 		buffer.append(nf.format(dailyData.getSwingDeviation(1, 15) ) + ",");
 		buffer.append(nf.format(dailyData.getADL(1, 10, false)) + ",");
 		buffer.append(nf.format(dailyData.getADL(1, 10, true)));
+		*/
 
 	}
 
