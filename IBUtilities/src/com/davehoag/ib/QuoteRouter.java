@@ -37,6 +37,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
 	/**
+	 * Don't go out and get historical data when the first realtime bar arrives
+	 */
+	public void dontGetHistoricalData(){
+		requestedHistoricalData = true;
+	}
+	/**
 	 * Reset some data
 	 */
 	public void initialize(final Portfolio port) {

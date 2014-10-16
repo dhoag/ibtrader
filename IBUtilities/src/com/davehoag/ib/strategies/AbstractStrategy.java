@@ -10,12 +10,27 @@ import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.ib.client.TickType;
 
 public abstract class AbstractStrategy implements Strategy {
 	boolean maxQty;
 	int qty = 100;
 	Portfolio port;
 
+	String convertTickType(int field){
+		String priceType;
+		switch(field){
+		case TickType.ASK: priceType = "Ask"; break;
+		case TickType.BID: priceType = "Bid"; break;
+		case TickType.LAST: priceType = "Last"; break;
+		case TickType.OPEN: priceType = "Open"; break;
+		case TickType.HIGH: priceType = "High"; break;
+		case TickType.LOW: priceType = "Low"; break;
+		case TickType.CLOSE: priceType = "Close"; break;
+		default: priceType = "Other?";
+		}
+		return priceType;
+	}
 	@Override
 	public Portfolio getPortfolio() {
 		return port;

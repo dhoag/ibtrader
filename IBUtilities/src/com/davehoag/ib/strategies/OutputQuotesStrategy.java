@@ -10,14 +10,13 @@ public class OutputQuotesStrategy extends AbstractStrategy {
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	@Override
 	public void newBar(Bar bar, Portfolio holdings, QuoteRouter executionEngine) {
-		// TODO Auto-generated method stub
-
+		System.out.println(bar);
 	}
 
 	@Override
 	public void tickPrice(String symbol, int field, double price,
 			Portfolio holdings, QuoteRouter executionEngine) {
-		System.out.println("Sym:" + symbol + " " + field + " " + nf.format(price));
+		System.out.println("Sym:" + symbol + " " + convertTickType(field) + " " + nf.format(price));
 
 	}
 
