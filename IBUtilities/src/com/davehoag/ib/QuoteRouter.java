@@ -7,8 +7,10 @@ import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.FutureContract;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
@@ -31,6 +33,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	boolean positionOnTheBooks = false;
 	ArrayList<Strategy> strategies = new ArrayList<Strategy>();
 	final String symbol;
+	String date;
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
 	/**
@@ -54,6 +57,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		super(exec);
 		symbol = sym;
 		initialize(port);
+	}
+	public QuoteRouter(String symbol2, String dt,
+			IBClientRequestExecutor ibClientRequestExecutor,
+			Portfolio portfolio2) {
+		this(symbol2, ibClientRequestExecutor, portfolio2);
+		date = dt;
 	}
 	/**
 	 * Get 1 day bars for the past year - we only keep the last N based on the size of the 
@@ -244,5 +253,10 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			clientInterface.close();
 		}
         System.exit(0);
+	}
+	public Contract getContract() {
+		if(date == null)
+			return new StockContract(symbol);
+		return new FutureContract(symbol, date);
 	}
 }

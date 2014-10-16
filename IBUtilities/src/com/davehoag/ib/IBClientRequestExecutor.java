@@ -18,6 +18,7 @@ import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDataClient;
 import com.davehoag.ib.util.ImmediateExecutor;
+import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
 import com.ib.client.TagValue;
@@ -518,11 +519,10 @@ public class IBClientRequestExecutor {
 	 * @param symbol
 	 * @param rh
 	 */
-	public void reqRealTimeBars(final String symbol, final ResponseHandlerDelegate rh){
+	public void reqRealTimeBars(final Contract stock, final ResponseHandlerDelegate rh){
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
-				StockContract stock = new StockContract(symbol);
 				final int reqId = pushRequest();
 				rh.setReqId(reqId);
 				pushResponseHandler(reqId, rh);
@@ -604,7 +604,7 @@ public class IBClientRequestExecutor {
 	public void requestQuotes() {
 
 		for (QuoteRouter strat : quoteRouters.values()) {
-			reqRealTimeBars(strat.symbol, strat);
+			reqRealTimeBars(strat.getContract(), strat);
 		}
 		if (client instanceof HistoricalDataClient) {
 			((HistoricalDataClient) client).sendData();
@@ -620,5 +620,24 @@ public class IBClientRequestExecutor {
 		for (QuoteRouter strat : quoteRouters.values()) {
 			strat.initialize(getPortfolio());
 		}
+	}
+	/**
+	 * Similar to the other getQuoteRouter but needs an expiration date to select a specific futures contract
+	 * 
+	 * @param symbol
+	 * @param date
+	 * @return
+	 */
+	public QuoteRouter getQuoteRouter(String symbol, String date) {
+		String idx = symbol + date;
+		QuoteRouter strat = quoteRouters.get(idx);
+		if (strat == null) {
+			strat = new QuoteRouter(symbol, date, this, responseHandler.getPortfolio());
+			quoteRouters.put(idx, strat);
+		}
+		else {
+			strat.setPortfolio(responseHandler.getPortfolio());
+		}
+		return strat;
 	}
 }
