@@ -265,15 +265,18 @@ public class IBClientRequestExecutor {
 		client.reqAccountUpdates(true, testAccountName);
 		System.err.println("In client initializePortfolio - hard coded account name " + testAccountName);
 	}
+	private int requestId = 100;
 	/**
-	 * Find a unique request id. They are reused and I can only have 31
-	 * concurrent. I reuse the IDs in this strategy, but I'm unsure if this
-	 * works for executions. TODO test it with test connection
+	 * Find a unique request id.
 	 * 
 	 * @return int An id that should be used to mark a request has been
 	 *         fulfilled
 	 */
 	final synchronized int pushRequest() {
+		return requestId++;
+	}
+	//Keeping dead code for the moment
+	synchronized int originalPushRequest(){
 		int shifts = 0;
 
 		int val = 1;
