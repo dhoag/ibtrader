@@ -259,4 +259,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			return new StockContract(symbol);
 		return new FutureContract(symbol, date);
 	}
+	/**
+	 * For QuoteRouters this is the reqid
+	 * @return
+	 */
+	public int getBarRequestId() {
+		
+		return reqId;
+	}
 }

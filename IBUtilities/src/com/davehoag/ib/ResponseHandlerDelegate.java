@@ -15,6 +15,7 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 
 	IBClientRequestExecutor requester;
 	int reqId;
+	private int tickerRequestId;
 	long startTime;	
 	int countOfRecords;
 	
@@ -356,6 +357,14 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	public void commissionReport(CommissionReport commissionReport) {
 		// TODO Auto-generated method stub
 
+	}
+
+	int getTickerRequestId() {
+		return tickerRequestId;
+	}
+
+	void setTickerRequestId(int tickerRequestId) {
+		this.tickerRequestId = tickerRequestId;
 	}
 
 }

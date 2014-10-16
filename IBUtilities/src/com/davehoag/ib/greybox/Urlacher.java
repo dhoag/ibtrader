@@ -76,6 +76,9 @@ public class Urlacher {
 		clientInterface.requestQuotes();
 		tpStatus.setText("Requested Quotes");
 	}
+	public void cancelQuotes(){
+		clientInterface.cancelMktData();
+	}
 	/**
 	 * Initialize the contents of the frame.
 	 */
@@ -98,6 +101,11 @@ public class Urlacher {
 		});
 		
 		JButton btnOff = new JButton("Off");
+		btnOff.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				cancelQuotes();
+			}
+		});
 		
 		JButton btnOn = new JButton("On");
 		btnOn.addActionListener(new ActionListener() {

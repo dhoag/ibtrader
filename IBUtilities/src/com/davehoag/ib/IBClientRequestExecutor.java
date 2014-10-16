@@ -534,6 +534,7 @@ public class IBClientRequestExecutor {
 				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true, notUsed);
 				final boolean snapshot = false;
 				final int tickReqId = pushRequest();
+				rh.setTickerRequestId(tickReqId);
 				pushResponseHandler(tickReqId, rh);
 				LogManager.getLogger("RequestManager").info(
 						"Submitting request for tick data [" + tickReqId + "] " + stock.m_symbol);
@@ -597,6 +598,14 @@ public class IBClientRequestExecutor {
 			strat.setPortfolio(responseHandler.getPortfolio());
 		}
 		return strat;
+	}
+	public void cancelMktData(){
+		for (QuoteRouter strat : quoteRouters.values()) {
+			client.cancelMktData(strat.getTickerRequestId());
+
+			client.cancelMktData(strat.getBarRequestId());
+		}
+		
 	}
 	/**
 	 * For every quote router I have get the quotes
