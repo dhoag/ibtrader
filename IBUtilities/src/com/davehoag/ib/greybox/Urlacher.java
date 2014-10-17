@@ -15,6 +15,7 @@ import javax.swing.GroupLayout.Alignment;
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.strategies.DefenseStrategy;
 import com.davehoag.ib.strategies.OutputQuotesStrategy;
 import com.ib.client.EClientSocket;
 
@@ -32,7 +33,7 @@ public class Urlacher {
 	IBClientRequestExecutor clientInterface;
 	private JTextField tfContractExpiration;
 	private JTextPane tpStatus;
-	
+	private DefenseStrategy defense;
 	/**
 	 * Launch the application.
 	 */
@@ -60,24 +61,48 @@ public class Urlacher {
 		ResponseHandler rh = new ResponseHandler();
 		
 		EClientSocket m_client = new EClientSocket(rh);
-		
 		clientInterface = new IBClientRequestExecutor(m_client, rh);
-
 		clientInterface.connect();
 		clientInterface.initializePortfolio( );
 		tpStatus.setText("Connected!");
+
 	}
+	/**
+	 * Get the market data for the given contract.
+	 */
 	public void requestQuotes(){
+		QuoteRouter router = clientInterface.getQuoteRouter("ES", tfContractExpiration.getText());
+		
+		//OutputQuotesStrategy dis = new OutputQuotesStrategy();
+		//router.addStrategy(dis);
 
-		QuoteRouter strat = clientInterface.getQuoteRouter("ES", tfContractExpiration.getText());
-		OutputQuotesStrategy dis = new OutputQuotesStrategy();
-		strat.addStrategy(dis);
-
+		defense = new DefenseStrategy();
+		router.addStrategy(defense);
+		//Need to request quotes after the router is created and strategies set
 		clientInterface.requestQuotes();
 		tpStatus.setText("Requested Quotes");
 	}
 	public void cancelQuotes(){
 		clientInterface.cancelMktData();
+	}
+	public void goLong(){
+		if(defense == null) return;
+
+		tpStatus.setText("Submitting order to go long");
+		defense.goLong();
+	}
+	public void goShort(){
+		if(defense == null) return;
+		tpStatus.setText("Submitting order to go short");
+		defense.goShort();
+	}
+	public void playDefense(){
+		if(defense == null) return;
+		defense.playDefense();
+	}
+	public void halt(){
+		if(defense == null) return;
+		defense.haltTrading();
 	}
 	/**
 	 * Initialize the contents of the frame.
@@ -86,9 +111,6 @@ public class Urlacher {
 		frame = new JFrame();
 		frame.setBounds(100, 100, 450, 300);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		
-		tpStatus = new JTextPane();
-		frame.getContentPane().add(tpStatus, BorderLayout.SOUTH);
 		
 		JPanel panel = new JPanel();
 		frame.getContentPane().add(panel, BorderLayout.WEST);
@@ -113,10 +135,26 @@ public class Urlacher {
 				requestQuotes();
 			}
 		});
-		panel.setLayout(new GridLayout(3, 1, 0, 0));
+		panel.setLayout(new GridLayout(5, 1, 0, 0));
 		panel.add(btnConnect);
 		panel.add(btnOff);
+		
+		JButton btnGoLong = new JButton("Go Long");
+		btnGoLong.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				goLong();
+			}
+		});
+		panel.add(btnGoLong);
 		panel.add(btnOn);
+		
+		JButton btnGoShort = new JButton("Go Short");
+		btnGoShort.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				goShort();
+			}
+		});
+		panel.add(btnGoShort);
 		
 		JPanel panel_1 = new JPanel();
 		frame.getContentPane().add(panel_1, BorderLayout.NORTH);
@@ -127,6 +165,37 @@ public class Urlacher {
 		tfContractExpiration = new JTextField();
 		panel_1.add(tfContractExpiration);
 		tfContractExpiration.setColumns(10);
+		
+		JPanel panel_2 = new JPanel();
+		frame.getContentPane().add(panel_2, BorderLayout.SOUTH);
+		panel_2.setLayout(new BorderLayout(0, 0));
+		
+		JLabel lblStatus = new JLabel("Status;");
+		panel_2.add(lblStatus, BorderLayout.WEST);
+		
+		tpStatus = new JTextPane();
+		panel_2.add(tpStatus, BorderLayout.CENTER);
+		tpStatus.setText("Status Pane");
+		
+		JButton btnCancelAll = new JButton("Cancel All");
+		btnCancelAll.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				halt();
+			}
+		});
+		frame.getContentPane().add(btnCancelAll, BorderLayout.EAST);
+		
+		JPanel panel_3 = new JPanel();
+		frame.getContentPane().add(panel_3, BorderLayout.CENTER);
+		panel_3.setLayout(new GridLayout(1, 0, 0, 0));
+		
+		JButton btnPlayDefense = new JButton("Play Defense");
+		btnPlayDefense.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				playDefense();
+			}
+		});
+		panel_3.add(btnPlayDefense);
 	}
 
 }

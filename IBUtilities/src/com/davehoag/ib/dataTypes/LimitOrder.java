@@ -1,5 +1,6 @@
 package com.davehoag.ib.dataTypes;
 
+import com.ib.client.Contract;
 import com.ib.client.Order;
 
 /**
@@ -9,6 +10,7 @@ import com.ib.client.Order;
  */
 public class LimitOrder implements Cloneable {
 	String sym;
+	Contract contract;
 	int shares = 0;
 	double fillPrice = 0;
 	double orderPrice = 0;
@@ -172,5 +174,13 @@ public class LimitOrder implements Cloneable {
 	 */
 	public long getPortfolioTime() {
 		return portfolioTime;
+	}
+
+	public void setContract(Contract aContract) {
+		contract = aContract;
+	}
+
+	public Contract getContract() {
+		return contract;
 	}
 }

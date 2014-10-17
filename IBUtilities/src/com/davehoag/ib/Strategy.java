@@ -1,6 +1,7 @@
 package com.davehoag.ib;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.ib.client.Execution;
 
 
 public interface Strategy {
@@ -34,5 +35,8 @@ public interface Strategy {
 	 * @return
 	 */
 	public double[] getStrategyData(Bar aBar);
+
+	public void execDetails(Execution execution, Portfolio portfolio,
+			QuoteRouter quoteRouter);
 
 }

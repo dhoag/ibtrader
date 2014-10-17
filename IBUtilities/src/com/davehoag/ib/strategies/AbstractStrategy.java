@@ -10,6 +10,7 @@ import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.ib.client.Execution;
 import com.ib.client.TickType;
 
 public abstract class AbstractStrategy implements Strategy {
@@ -160,5 +161,8 @@ public abstract class AbstractStrategy implements Strategy {
 		}
 		return original;
 	}
-
+	public void execDetails(Execution execution, Portfolio portfolio,
+			QuoteRouter quoteRouter) {
+		// do nothing
+	}
 }

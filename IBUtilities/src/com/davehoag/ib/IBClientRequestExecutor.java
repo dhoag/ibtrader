@@ -177,7 +177,7 @@ public class IBClientRequestExecutor {
 			@Override
 			public void run() {
 				final Order order = createPrimaryOrder(buy, symbol, qty, price, rh);
-				final StockContract contract = new StockContract(symbol);
+				final Contract contract = lmtOrder.getContract();
 				lmtOrder.setId(order.m_orderId);
 				//Log to portfolio because we are assuming a fill		
 				responseHandler.getPortfolio().placedOrder( lmtOrder );
@@ -220,7 +220,7 @@ public class IBClientRequestExecutor {
 		order.m_totalQuantity = qty;
 
 		order.m_clientId = IBConstants.clientId;
-		order.m_allOrNone = true;
+		order.m_allOrNone = false;
 		order.m_transmit = false;
 		return order;
 	}
@@ -263,7 +263,7 @@ public class IBClientRequestExecutor {
 		//@TODO hard coded account name
 		String testAccountName = "DU132661";
 		client.reqAccountUpdates(true, testAccountName);
-		System.err.println("In client initializePortfolio - hard coded account name " + testAccountName);
+		System.err.println("In client initializePortfolio - hard coded to the test account name " + testAccountName + "\nthis will need to change when going live");
 	}
 	private int requestId = 100;
 	/**

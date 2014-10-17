@@ -36,6 +36,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	String date;
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
+
 	/**
 	 * Don't go out and get historical data when the first realtime bar arrives
 	 */
@@ -98,6 +99,10 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		if(contract.m_symbol.equals(symbol)){
 			portfolio.confirm(execution.m_orderId, contract.m_symbol ,execution.m_price, execution.m_shares);
 			LogManager.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
+
+			for (Strategy strat : strategies) {
+				strat.execDetails(execution, portfolio, this);
+			}
 		}
 		else{
 			LogManager.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
@@ -158,7 +163,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 						+ symbol + ']');
 			}
 		}
-		if(order.getStopLoss() != null) order.getStopLoss().setSymbol(symbol);
+		order.setContract( getContract());
+		if(order.getStopLoss() != null){
+			order.getStopLoss().setSymbol(symbol);
+			order.getStopLoss().setContract(getContract());
+		}
 		requester.executeOrder(order, this);
 	}
 	/**
