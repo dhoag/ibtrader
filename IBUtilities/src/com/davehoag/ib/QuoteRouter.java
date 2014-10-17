@@ -145,10 +145,13 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * of this particular trading strategy
 	 */
 	public void cancelOpenOrders(){
-		ArrayList<Integer> orderIds = portfolio.getOpenOrderIds(symbol);
+		LogManager.getLogger("Trading").warn("Cancelling all orders ");
+		ArrayList<Integer> orderIds = portfolio.getOpenOrderIds(getContract().toString());
 		for(int i : orderIds){
 			requester.cancelOrder(i);
+			LogManager.getLogger("Trading").warn("Cancelling order id" + i);
 		}
+		LogManager.getLogger("Trading").warn("Completed cancelling all orders ");
 	}
 	/**
 	 * Place an order, buy/sell ...whatever
@@ -158,7 +161,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		if (order.getSymbol() == null) {
 			order.setSymbol(symbol);
 		} else {
-			if (!order.getSymbol().equals(symbol)) {
+			if (!order.getSymbol().equals(getContract().toString())) {
 				throw new IllegalStateException("Limit order " + order + " send through wrong router ["
 						+ symbol + ']');
 			}

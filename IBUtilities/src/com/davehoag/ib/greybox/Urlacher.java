@@ -55,6 +55,8 @@ public class Urlacher {
 	 */
 	public Urlacher() {
 		initialize();
+		connect();
+		tfContractExpiration.setText("201412");
 	}
 
 	public void connect(){
@@ -102,6 +104,8 @@ public class Urlacher {
 	}
 	public void halt(){
 		if(defense == null) return;
+
+		tpStatus.setText("Halting all trading!");
 		defense.haltTrading();
 	}
 	/**

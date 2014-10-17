@@ -51,6 +51,8 @@ public class DefenseStrategy extends AbstractStrategy {
 	public void haltTrading(){
 		playDefense = false;
 		cancelAll = true;
+		sellSide = null;
+		buySide = null;
 	}
 	@Override
 	public void newBar(Bar bar, Portfolio holdings, QuoteRouter executionEngine) {
@@ -60,10 +62,12 @@ public class DefenseStrategy extends AbstractStrategy {
 	@Override
 	public void tickPrice(String symbol, int field, double price,
 			Portfolio holdings, QuoteRouter executionEngine) {
-		boolean bidOrAsk = ( TickType.ASK == field || TickType.BID == field);
+		boolean bidOrAsk = ( TickType.ASK == field || TickType.BID == field || TickType.LAST == field);
 		if(cancelAll){
+			System.err.println("Cancelling all open orders");
 			cancelAll= false;
 			executionEngine.cancelOpenOrders();
+			System.err.println("asdfa");
 			return;
 		}
 		synchronized(this) {
@@ -87,12 +91,11 @@ public class DefenseStrategy extends AbstractStrategy {
 	protected void createPosition(int field, double price,
 			QuoteRouter executionEngine) {
 		//got a decent price
-		if(TickType.BID == field && upBias) {				
+		if(/* TickType.ASK == field && */ upBias) {				
 			LimitOrder buyOrder = createBuyOrder(price);
 			buyOrder.setProfitTaker(null);
 			if(closePosition){
 				buyOrder.setStopLoss(null);
-				buyOrder.setPrice(price + .25);
 				closePosition = false;
 			}
 			positionTrade = buyOrder;
@@ -101,13 +104,12 @@ public class DefenseStrategy extends AbstractStrategy {
 			on= false;
 		}
 		else
-			if(TickType.ASK == field & !upBias){
+			if(/*TickType.BID == field & */ !upBias){
 				
 				LimitOrder sellOrder = createSellOrder(price);
 				sellOrder.setProfitTaker(null);
 				if(closePosition){
 					sellOrder.setStopLoss(null);
-					sellOrder.setPrice(price - .25);
 					executionEngine.cancelOrder(positionTrade.getStopLoss());
 					sellOrder.setOnset(positionTrade);
 					closePosition = false;

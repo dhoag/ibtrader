@@ -196,7 +196,7 @@ public class IBClientRequestExecutor {
 				}
 				if(openProfitTaker){
 					final Order profit = createProfitTaker( lmtOrder.getProfitTaker(), order.m_orderId, rh);
-					lmtOrder.getStopLoss().setId(profit.m_orderId);
+					lmtOrder.getProfitTaker().setId(profit.m_orderId);
 					client.placeOrder(profit.m_orderId, contract, profit);
 
 					LogManager.getLogger("RequestManager").warn("Placing profit taker order " + lmtOrder.getProfitTaker() );

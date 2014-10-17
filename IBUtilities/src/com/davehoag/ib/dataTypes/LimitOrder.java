@@ -131,6 +131,7 @@ public class LimitOrder implements Cloneable {
 	}
 
 	public String getSymbol() {
+		if(getContract() != null ) return getContract().toString();
 		return sym;
 	}
 
