@@ -338,7 +338,7 @@ public class CassandraDao {
 
 	/**
 	 * 
-	 * @param symbol
+	 * @param m_contract
 	 * @param start
 	 *            < 1000 and finish is zero, go back that many days
 	 * @param finish

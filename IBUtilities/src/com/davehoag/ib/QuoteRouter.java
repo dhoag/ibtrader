@@ -32,7 +32,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	
 	boolean positionOnTheBooks = false;
 	ArrayList<Strategy> strategies = new ArrayList<Strategy>();
-	final Contract symbol;
+	final Contract m_contract;
 	String date;
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
@@ -62,7 +62,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 */
 	public QuoteRouter(final Contract sym, final IBClientRequestExecutor exec, final Portfolio port) {
 		super(exec);
-		symbol = sym;
+		m_contract = sym;
 		initialize(port);
 	}
 	public QuoteRouter(Contract symbol2, String dt,
@@ -77,11 +77,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 */
 	public void requestHistorical1dayBars(final long seconds) {
 		final String date = HistoricalDateManipulation.getDateAsStr(new Date(seconds * 1000));
-		final StoreHistoricalData histStore = new StoreHistoricalData(symbol, getRequester());
+		final StoreHistoricalData histStore = new StoreHistoricalData(m_contract, getRequester());
 		histStore.setBarSize("bar1day");
 		histStore.setCacheOnly(200);
-		getRequester().requestHistDataEnding(symbol, date, histStore);
-		portfolio.getQuoteData().putDayBarCache(symbol, histStore.getCache());
+		getRequester().requestHistDataEnding(m_contract, date, histStore);
+		portfolio.getQuoteData().putDayBarCache(m_contract, histStore.getCache());
 	}
 	/**
 	 * 
@@ -90,22 +90,22 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	public void addStrategy(final Strategy strat) {
 		strategies.add(strat);
 	}
-	public void displayTradeStats(){ portfolio.displayTradeStats(strategies.getClass().getSimpleName() + ":" + symbol); }
+	public void displayTradeStats(){ portfolio.displayTradeStats(strategies.getClass().getSimpleName() + ":" + m_contract); }
 	public void setPortfolio(Portfolio p){
 		portfolio = p;
 	}
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
-		if(contract.m_symbol.equals(symbol)){
-			portfolio.confirm(execution.m_orderId, contract ,execution.m_price, execution.m_shares);
-			LogManager.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
+		if(m_contract.equals(contract)){
+			portfolio.confirm(execution.m_orderId, m_contract ,execution.m_price, execution.m_shares);
+			LogManager.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + m_contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
 
 			for (Strategy strat : strategies) {
 				strat.execDetails(execution, portfolio, this);
 			}
 		}
 		else{
-			LogManager.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract.m_symbol + " expecting: " + symbol);
+			LogManager.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract + " expecting: " + m_contract);
 		}		
 	}
 	/**
@@ -127,12 +127,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			requestedHistoricalData = true;
 			requestHistorical1dayBars(time);
 		}
-		portfolio.getQuoteData().push5SecBar(symbol, bar);
-		portfolio.updatePrice(symbol, close);
+		portfolio.getQuoteData().push5SecBar(m_contract, bar);
+		portfolio.updatePrice(m_contract, close);
 		updatePortfolioTime(time);
 		if( time % (60*30) == 0) { 
 			LogManager.getLogger("MarketData").info( "Realtime bar : " + reqId + " " + bar);
-			portfolio.displayValue(symbol);
+			portfolio.displayValue(m_contract);
 		}
 		for (Strategy strat : strategies) {
 			strat.newBar(bar, portfolio, this);
@@ -162,7 +162,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		else
 			if (!order.getContract().equals(getContract())) {
 				throw new IllegalStateException("Limit order " + order + " send through wrong router ["
-						+ symbol + ']');
+						+ m_contract + ']');
 			}
 		
 		if(order.getStopLoss() != null){
@@ -196,11 +196,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		switch(field){
 		case TickType.ASK: priceType = "Ask"; break;
 		case TickType.BID: priceType = "Bid"; break;
-		case TickType.LAST: priceType = "Last"; portfolio.updatePrice(symbol, price ); break;
+		case TickType.LAST: priceType = "Last"; portfolio.updatePrice(m_contract, price ); break;
 		default: priceType = "High,Low,Close";
 		}
 		for (Strategy strat : strategies) {
-			strat.tickPrice(symbol.m_symbol, field, price, portfolio, this);
+			strat.tickPrice(m_contract.m_symbol, field, price, portfolio, this);
 		}
 		
 	}
@@ -239,7 +239,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			final double wap, final int count) {
 		final Bar bar = new Bar(); 
 		bar.originalTime = time;
-		bar.symbol = symbol.m_symbol;
+		bar.symbol = m_contract.m_symbol;
 		bar.close = close;
 		bar.open = open;
 		bar.high = high;
@@ -276,7 +276,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
         System.exit(0);
 	}
 	public Contract getContract() {
-		return symbol;
+		return m_contract;
 	}
 	/**
 	 * For QuoteRouters this is the reqid

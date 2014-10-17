@@ -219,7 +219,7 @@ public class IBClientRequestExecutor {
 	}
 	/**
 	 * @param buy
-	 * @param symbol
+	 * @param m_contract
 	 * @param qty
 	 * @param price
 	 * @param rh
@@ -480,7 +480,7 @@ public class IBClientRequestExecutor {
 	/**
 	 * Enable an ending date request
 	 * @param date
-	 * @param symbol
+	 * @param m_contract
 	 * @param rh
 	 */
 	public void requestHistDataEnding(final Contract stock,final String date,  final StoreHistoricalData rh){
@@ -568,7 +568,7 @@ public class IBClientRequestExecutor {
 	 * 381(IB Rate),384(RfqTickRespTag),384(RfqTickRespTag),387(DMM),
 	 * 388(Issuer Fundamentals),391(IBWarrantImpVolCompeteTick),
 	 * 407(FuturesMargins),411(Real-Time Historical Volatility),428(Monetary Close Price)
-	 * @param symbol
+	 * @param m_contract
 	 * @param rh
 	 */
 	public void reqRealTimeBars(final Contract stock, final ResponseHandlerDelegate rh){

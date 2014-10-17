@@ -24,7 +24,14 @@ public class StockContract extends Contract {
 	    */
 	   @Override
 	   public boolean equals(Object obj){
-		   return m_symbol.equals(obj);
+			if(obj != this) {
+				if(obj.getClass() == Contract.class){
+					final Contract aContract = (Contract)obj;
+					return aContract.m_symbol.equals(m_symbol) & aContract.m_secType == TYPE;
+				}
+				return obj.toString().equals(toString());
+			}
+			return true;
 	   }
 	   public String getIdentifier(){
 		   return m_secType + '.' + m_symbol;
@@ -32,6 +39,6 @@ public class StockContract extends Contract {
 
 	@Override
 	public String toString() {
-		return TYPE + ":" + m_symbol;
+		return m_symbol;
 	}
 }

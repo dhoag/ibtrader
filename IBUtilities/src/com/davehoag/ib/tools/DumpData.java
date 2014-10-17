@@ -138,7 +138,7 @@ public class DumpData {
 	}
 
 	/**
-	 * @param symbol
+	 * @param m_contract
 	 * @param dailyData
 	 * @param dailyBar
 	 * @param buffer

@@ -30,7 +30,14 @@ public class FutureContract extends Contract {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		return ("" + obj).equals(getIdentifier());
+		if(obj != this) {
+			if(obj.getClass() == Contract.class){
+				final Contract aContract = (Contract)obj;
+				return aContract.m_symbol.equals(m_symbol) & aContract.m_expiry.equals(m_expiry);
+			}
+			return obj.toString().equals(toString());
+		}
+		return true;
 	}
 
 	public String getIdentifier() {

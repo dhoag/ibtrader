@@ -180,7 +180,7 @@ public class Portfolio {
 	}
 	/**
 	 * Look for open orders
-	 * @param symbol Open orders for the given symbol
+	 * @param m_contract Open orders for the given symbol
 	 * @return
 	 */
 	public ArrayList<Integer> getOpenOrderIds(Contract aContract){
