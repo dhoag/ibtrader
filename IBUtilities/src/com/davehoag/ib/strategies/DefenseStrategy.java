@@ -68,24 +68,32 @@ public class DefenseStrategy extends AbstractStrategy {
 			executionEngine.cancelOpenOrders();
 			return;
 		}
-		synchronized(this) {
-			if( on & bidOrAsk ) { 
-				createPosition(field, price, executionEngine);
+		if( on & bidOrAsk ) { 
+			createPosition(field, price, executionEngine);
+		}
+		if(playDefense) 
+		synchronized(this){
+			if(buySide == null){
+				buySide = createBuyOrder(price - .75);
+				System.err.println(buySide);
+				executionEngine.executeOrder(buySide);
 			}
-			if(playDefense) {
-				if(buySide == null){
-					buySide = createBuyOrder(price - .75);
-					System.err.println(buySide);
-					executionEngine.executeOrder(buySide);
-				}
-				if(sellSide == null){
-					sellSide = createSellOrder(price + .75);
-					System.err.println(sellSide);
-					executionEngine.executeOrder(sellSide);			
-				}
+			if(sellSide == null){
+				sellSide = createSellOrder(price + .75);
+				System.err.println(sellSide);
+				executionEngine.executeOrder(sellSide);			
 			}
 		}
+		
 	}
+	/**
+	 * Creates a limit order with an associated stop. No profit taker order as this is intended
+	 * for directional trades.
+	 * 
+	 * @param field
+	 * @param price
+	 * @param executionEngine
+	 */
 	protected void createPosition(int field, double price,	QuoteRouter executionEngine) {
 		//got a decent price
 		if( TickType.LAST == field){ 
@@ -96,6 +104,7 @@ public class DefenseStrategy extends AbstractStrategy {
 			else{
 				order = createSellOrder(price);
 			}
+			order.setProfitTaker(null);
 			executeOrder(executionEngine, order);
 		}
 	}
@@ -103,11 +112,11 @@ public class DefenseStrategy extends AbstractStrategy {
 	 * @param executionEngine
 	 * @param limitOrder
 	 */
-	private void executeOrder(QuoteRouter executionEngine, LimitOrder limitOrder) {
-		limitOrder.setProfitTaker(null);
+	private synchronized void executeOrder(QuoteRouter executionEngine, LimitOrder limitOrder) {
+		if(on == false) return;
 		//special type of order - closing a previously opened directional trade
 		//and thus need to remove the lingering stop order
-		if(closePosition & positionTrade != null){
+		if(closePosition & positionTrade != null && positionTrade.getStopLoss() != null){
 			cancelStop(executionEngine, limitOrder);
 		}
 		positionTrade = limitOrder;
@@ -116,6 +125,10 @@ public class DefenseStrategy extends AbstractStrategy {
 		on= false;
 	}
 	/**
+	 * Cancel the stop on the original position order. On the new closingOrder set the onset to 
+	 * be the original position order and be sure to clear out any stop that might be on the closing
+	 * order (since we don't want a stop, this is the profit taker). 
+	 * 
 	 * @param executionEngine
 	 * @param closingOrder
 	 */
@@ -146,22 +159,28 @@ public class DefenseStrategy extends AbstractStrategy {
 		
 		return buyOrder;
 	}
-
+	synchronized void sleep(int time){
+		 try {
+			Thread.currentThread().sleep(time);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 	public void execDetails(Execution execution, Portfolio portfolio,
 			QuoteRouter quoteRouter) {
-		System.out.println("Executed " + execution.m_orderId);
-		
-		//Update the limit price to a scratch value
-		if(buySide != null && buySide.getId() == execution.m_orderId){
-			LimitOrder stopOrder = buySide.getStopLoss(); 
-			stopOrder.setPrice(buySide.getPrice());
+		System.out.println("Executed " + execution.m_orderId + " " + execution.m_price);
+	}
+	/**
+	 * @param execution
+	 * @param quoteRouter
+	 */
+	private void updateStopOrderPrice(QuoteRouter quoteRouter, LimitOrder order) {
+		LimitOrder stopOrder = order.getStopLoss(); 
+		stopOrder.setOrderPrice(order.getPrice());
+		sleep(550);
+		if(! stopOrder.isConfirmed())
 			quoteRouter.executeOrder(stopOrder);
-		}
-		if(sellSide != null && sellSide.getId() == execution.m_orderId){
-			LimitOrder stopOrder = sellSide.getStopLoss(); 
-			stopOrder.setPrice(sellSide.getPrice());
-			quoteRouter.executeOrder(stopOrder);
-		}
 	}
 
 }

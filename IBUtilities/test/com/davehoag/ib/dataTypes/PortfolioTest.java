@@ -43,7 +43,7 @@ public class PortfolioTest {
 		LimitOrder order = new LimitOrder("IBM", 100, 12.2, false);
 		p.placedOrder(order);
 		assertEquals(1220.0, p.cash, .001);
-		order.setPrice(10.0);
+		order.setFillPrice(10.0);
 		p.placedOrder(order);
 		assertEquals(2220.0, p.cash, .001);
 	}

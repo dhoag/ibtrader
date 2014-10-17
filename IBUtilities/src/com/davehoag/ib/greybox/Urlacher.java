@@ -203,14 +203,16 @@ public class Urlacher {
 		JButton btnSellClose = new JButton("Sell Close");
 		btnSellClose.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				defense.sellClose();
+				if(defense != null)
+					defense.sellClose();
 			}
 		});
 		panel_3.add(btnSellClose );
 		JButton btnBuyClose = new JButton("Buy Close");
 		btnBuyClose.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				defense.buyClose();
+				if(defense != null)
+					defense.buyClose();
 			}
 		});
 		panel_3.add(btnBuyClose);

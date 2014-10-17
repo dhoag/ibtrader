@@ -29,9 +29,14 @@ public class LimitOrder implements Cloneable {
 
 	@Override
 	public String toString() {
-		return "LMT " + (buyOrder ? "BUY" : "SELL") + " " + getContract() + " " + shares + "@" + orderPrice;
+		return "[" + id + "] " + getOrderType() + " " + (buyOrder ? "BUY" : "SELL") + " " + getContract() + " " + shares + "@" + getPrice();
 	}
 
+	public String getOrderType(){
+		if(isTrail()) return "TRAIL";
+		if(isStop()) return "STPLMT";
+		return "LMT";
+	}
 	/**
 	 * When the order is actually submitted set the id for reference
 	 * 
@@ -121,8 +126,8 @@ public class LimitOrder implements Cloneable {
 		orderPrice = price;
 		buyOrder = buy;
 	}
-
-	public void setPrice(final double d) {
+	
+	public void setFillPrice(final double d) {
 		fillPrice = d;
 	}
 
@@ -197,5 +202,8 @@ public class LimitOrder implements Cloneable {
 
 	public Contract getContract() {
 		return contract;
+	}
+	public void setOrderPrice(double price){
+		orderPrice = price;
 	}
 }

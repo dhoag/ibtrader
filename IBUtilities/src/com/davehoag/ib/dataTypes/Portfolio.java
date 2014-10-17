@@ -158,9 +158,24 @@ public class Portfolio {
 	 * @param symbol
 	 * @param qty
 	 */
-	public void update(final Contract symbol, final int qty){
-		LogManager.getLogger("AccountManagement").info( "Updating account " + symbol + " " + qty);
-		portfolio.put(symbol, qty);
+	public void update(final Contract aContract, final int qty){
+		Contract key = null;
+		for(Contract aKey : portfolio.keySet()){
+			if(aKey.equals(aContract)){
+				key = aKey;
+				break;
+			}
+		}
+		if(key == null){
+			if(aContract.m_expiry != null && aContract.m_expiry.length() > 0){
+				key = new FutureContract(aContract.m_symbol, aContract.m_expiry.substring(0, 6));
+			}
+			else {
+				key= new StockContract(aContract.m_symbol);
+			}
+		}
+		LogManager.getLogger("AccountManagement").info( "Updating account " + key + " " + qty);
+		portfolio.put(key, qty);
 	}
 	public void updatePrice(final Contract symbol, final double price){
 		lastPrice.put(symbol, price);
@@ -208,7 +223,7 @@ public class Portfolio {
 		if(order != null){
 			order.confirm();
 			//set to the actual fill price, may be different than order price
-			order.setPrice(price);
+			order.setFillPrice(price);
 			order.setPortfolioTime(currentTime);
 			//did this bypass the placedOrder method and thus the portfolio accounting?
 			if(order.isStop()){
@@ -267,7 +282,12 @@ public class Portfolio {
 			int sellQty= lmtOrder.getShares();
 			LimitOrder closingOrder = lmtOrder;
 			while(closedQty < sellQty){
-				final LimitOrder unwound = positionToUnwind.get(lmtOrder.getContract()).pop();
+				Stack<LimitOrder> orderTrail = positionToUnwind.get(lmtOrder.getContract());
+				if(orderTrail.size() < 1) {
+					LogManager.getLogger("TradingHistory").warn( "#### Trading History is inconsistent and can't be trusted ####");
+					return;
+				}
+				final LimitOrder unwound = orderTrail.pop();
 				if(unwound.getShares() != sellQty && ! risk.allowRebuys) throw new IllegalStateException("Should only be selling the qty we bought");
 				openCloseLog.add(closingOrder);
 				closedQty += unwound.getShares();

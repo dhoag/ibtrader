@@ -105,7 +105,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			}
 		}
 		else{
-			LogManager.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract + " expecting: " + m_contract);
+			LogManager.getLogger("Trading").error( "Execution report for an unexpected symbol : " + contract.m_symbol + " " + contract.m_expiry + " expecting: " + m_contract);
 		}		
 	}
 	/**
@@ -250,8 +250,8 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		return bar;
 	}
 
-	public void cancelOrder(final LimitOrder stopLoss) {
-		requester.cancelOrder(stopLoss.getId());
+	public void cancelOrder(final LimitOrder limitOrder) {
+		requester.cancelOrder(limitOrder.getId());
 	}
 	/**
 	 * @param args
