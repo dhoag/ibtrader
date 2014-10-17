@@ -72,7 +72,7 @@ public class Urlacher {
 	 */
 	public void requestQuotes(){
 		QuoteRouter router = clientInterface.getQuoteRouter("ES", tfContractExpiration.getText());
-		
+		router.dontGetHistoricalData();
 		//OutputQuotesStrategy dis = new OutputQuotesStrategy();
 		//router.addStrategy(dis);
 
@@ -187,7 +187,7 @@ public class Urlacher {
 		
 		JPanel panel_3 = new JPanel();
 		frame.getContentPane().add(panel_3, BorderLayout.CENTER);
-		panel_3.setLayout(new GridLayout(1, 0, 0, 0));
+		panel_3.setLayout(new GridLayout(3, 0, 0, 0));
 		
 		JButton btnPlayDefense = new JButton("Play Defense");
 		btnPlayDefense.addActionListener(new ActionListener() {
@@ -196,6 +196,20 @@ public class Urlacher {
 			}
 		});
 		panel_3.add(btnPlayDefense);
+		JButton btnSellClose = new JButton("Sell Close");
+		btnSellClose.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				defense.sellClose();
+			}
+		});
+		panel_3.add(btnSellClose );
+		JButton btnBuyClose = new JButton("Buy Close");
+		btnBuyClose.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				defense.buyClose();
+			}
+		});
+		panel_3.add(btnBuyClose);
 	}
 
 }

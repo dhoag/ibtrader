@@ -16,6 +16,7 @@ public class LimitOrder implements Cloneable {
 	double orderPrice = 0;
 	boolean buyOrder;
 	LimitOrder stopLoss;
+	LimitOrder profitTaker;
 	int id;
 	boolean trail = false;
 	boolean stop = false;
@@ -28,7 +29,7 @@ public class LimitOrder implements Cloneable {
 
 	@Override
 	public String toString() {
-		return "LMT " + (buyOrder ? "BUY" : "SELL") + " " + sym + " " + shares + "@" + orderPrice;
+		return "LMT " + (buyOrder ? "BUY" : "SELL") + " " + getContract() + " " + shares + "@" + orderPrice;
 	}
 
 	/**
@@ -147,7 +148,18 @@ public class LimitOrder implements Cloneable {
 
 	public void setStopLoss(final LimitOrder order) {
 		stopLoss = order;
+		if(order == null) return;
+		order.setOnset(this);
 		order.markAsStop();
+	}
+	public LimitOrder getProfitTaker() {
+		return profitTaker;
+	}
+
+	public void setProfitTaker(final LimitOrder order) {
+		profitTaker = order;
+		if(order == null) return;
+		profitTaker.setOnset(this);
 	}
 
 	public boolean isStop() {

@@ -351,4 +351,7 @@ public class Portfolio {
 
 		return openCloseLog;
 	}
+	public void profitTakerOrder(LimitOrder profitTaker) {
+		orders.put(profitTaker.getId(), profitTaker);
+	}
 }

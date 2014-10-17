@@ -284,7 +284,7 @@ public class ResponseHandler implements EWrapper {
 	 */
 	@Override
 	public void updateAccountTime(String timeStamp) {
-		LogManager.getLogger("Misc").info( "Update time to " + timeStamp);
+		//LogManager.getLogger("Misc").info( "Update time to " + timeStamp);
 		portfolio.setTime( System.currentTimeMillis() );
 	}
 

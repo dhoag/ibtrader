@@ -169,25 +169,38 @@ public class IBClientRequestExecutor {
 	 */
 	public void executeOrder(final LimitOrder lmtOrder, final ResponseHandlerDelegate rh){
 		final boolean buy = lmtOrder.isBuy();
-		final String symbol = lmtOrder.getSymbol();
+		
 		final int qty = lmtOrder.getShares();
 		final double price = lmtOrder.getPrice();
 		final boolean openStopLoss = lmtOrder.getStopLoss() != null;
+		final boolean openProfitTaker = lmtOrder.getProfitTaker() != null;
 		final Runnable r = new Runnable() {
 			@Override
 			public void run() {
-				final Order order = createPrimaryOrder(buy, symbol, qty, price, rh);
+				final Order order = createPrimaryOrder(buy, qty, price, rh);
 				final Contract contract = lmtOrder.getContract();
 				lmtOrder.setId(order.m_orderId);
 				//Log to portfolio because we are assuming a fill		
 				responseHandler.getPortfolio().placedOrder( lmtOrder );
 				order.m_transmit = ! openStopLoss;
+				LogManager.getLogger("RequestManager").warn("Placing order " + lmtOrder );
 				client.placeOrder(order.m_orderId, contract, order);
 				if( openStopLoss ) {
 					final Order stop = createStopOrder( lmtOrder.getStopLoss(), order.m_orderId, rh);
 					lmtOrder.getStopLoss().setId(stop.m_orderId);
+					stop.m_transmit = ! openProfitTaker;
 					client.placeOrder(stop.m_orderId, contract, stop);
+
+					LogManager.getLogger("RequestManager").warn("Placing stop order " + lmtOrder.getStopLoss() );
 					responseHandler.getPortfolio().stopOrder(lmtOrder.getStopLoss());
+				}
+				if(openProfitTaker){
+					final Order profit = createProfitTaker( lmtOrder.getProfitTaker(), order.m_orderId, rh);
+					lmtOrder.getStopLoss().setId(profit.m_orderId);
+					client.placeOrder(profit.m_orderId, contract, profit);
+
+					LogManager.getLogger("RequestManager").warn("Placing profit taker order " + lmtOrder.getProfitTaker() );
+					responseHandler.getPortfolio().profitTakerOrder(lmtOrder.getProfitTaker());
 				}
 			}
 		};
@@ -205,7 +218,7 @@ public class IBClientRequestExecutor {
 	 * @param rh
 	 * @return
 	 */
-	protected Order createPrimaryOrder(final boolean buy, final String symbol, final int qty,
+	protected Order createPrimaryOrder(final boolean buy, final int qty,
 			final double price, final ResponseHandlerDelegate rh) {
 		Order order = new Order();
 		order.m_permId = (((int) (System.currentTimeMillis() / 1000)) << 4);
@@ -249,6 +262,37 @@ public class IBClientRequestExecutor {
 			order.m_lmtPrice = order.m_auxPrice;
 		}
 		order.m_totalQuantity = stopOrder.getShares();
+
+		order.m_clientId = IBConstants.clientId;
+		order.m_transmit = true;
+		return order;
+		
+	}
+	/**
+	 * A limit order that will secure the profit!
+	 * @param profitTaker
+	 * @param primaryOrderId
+	 * @param rh
+	 * @return
+	 */
+	protected Order createProfitTaker(final LimitOrder profitTaker, final int primaryOrderId, final ResponseHandlerDelegate rh){
+		Order order = new Order();
+		order.m_permId = primaryOrderId + (orderIdCounter++ % 16);
+		order.m_orderId = order.m_permId;
+		pushResponseHandler(order.m_orderId, rh);
+
+		order.m_parentId = primaryOrderId;
+		order.m_action = profitTaker.isBuy() ? "BUY" : "SELL";
+		if( profitTaker.isTrail() ){
+			order.m_orderType = "TRAIL";
+			order.m_trailingPercent = profitTaker.getPrice();
+		}
+		else{
+			order.m_orderType = "LMT";
+			order.m_lmtPrice = profitTaker.getPrice();
+			
+		}
+		order.m_totalQuantity = profitTaker.getShares();
 
 		order.m_clientId = IBConstants.clientId;
 		order.m_transmit = true;

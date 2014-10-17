@@ -165,9 +165,9 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		}
 		order.setContract( getContract());
 		if(order.getStopLoss() != null){
-			order.getStopLoss().setSymbol(symbol);
 			order.getStopLoss().setContract(getContract());
 		}
+		if(order.getProfitTaker() != null) order.getProfitTaker().setContract(getContract());
 		requester.executeOrder(order, this);
 	}
 	/**
@@ -217,6 +217,10 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		}
 		else{
 			LogManager.getLogger("Trading").error( "Order failed failed: " + id+ " " + errorCode + " "+ errorMsg);
+
+			for (Strategy strat : strategies) {
+				strat.cancelOrder(id, errorCode, portfolio, this);
+			}
 			portfolio.canceledOrder( id );
 		}
 	}

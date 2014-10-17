@@ -165,4 +165,7 @@ public abstract class AbstractStrategy implements Strategy {
 			QuoteRouter quoteRouter) {
 		// do nothing
 	}
+	public void cancelOrder(int id, int errorCode, Portfolio portfolio, QuoteRouter quoteRouter){
+		//do nothing
+	}
 }

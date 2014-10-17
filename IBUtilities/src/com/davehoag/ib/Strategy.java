@@ -39,4 +39,6 @@ public interface Strategy {
 	public void execDetails(Execution execution, Portfolio portfolio,
 			QuoteRouter quoteRouter);
 
+	public void cancelOrder(int id, int errorCode, Portfolio portfolio, QuoteRouter quoteRouter);
+
 }
