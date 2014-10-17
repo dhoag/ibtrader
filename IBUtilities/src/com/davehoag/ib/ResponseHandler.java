@@ -275,8 +275,8 @@ public class ResponseHandler implements EWrapper {
 	public void updatePortfolio(Contract contract, int position,
 			double marketPrice, double marketValue, double averageCost,
 			double unrealizedPNL, double realizedPNL, String accountName) {
-		if(contract.m_secType.equals(StockContract.TYPE) )
-			portfolio.update(contract.m_symbol, position);
+		
+		portfolio.update(contract, position);
 	}
 
 	/**

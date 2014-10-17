@@ -9,6 +9,7 @@ import java.util.Date;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.IBClientRequestExecutor;
+import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class VerifyData {
@@ -39,7 +40,7 @@ public class VerifyData {
 		for(String symbol: symbols )
 		try{
 				ArrayList<String> missingData = getDatesMissingData(startingDateStr, symbol);
-				clientInterface.reqHistoricalData(missingData, symbol);
+				clientInterface.reqHistoricalData(missingData, new StockContract(symbol));
 				clientInterface.waitForCompletion();
 		}
 		catch(Exception ex){

@@ -55,7 +55,7 @@ public class MACDStrategy extends AbstractStrategy {
 		smaTrades.newTick(bar.tradeCount);
 
 		final boolean crossOverEvent = sma.newTick(bar.wap);
-		final int holdings = port.getShares(bar.symbol);
+		final int holdings = port.getShares(executionEngine.getContract());
 
 		if( inTradeWindow(bar.originalTime) ) {
 			//only trade if the # of trades is rising with the cross over

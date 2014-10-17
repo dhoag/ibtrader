@@ -9,7 +9,7 @@ import com.ib.client.Order;
  * 
  */
 public class LimitOrder implements Cloneable {
-	String sym;
+	
 	Contract contract;
 	int shares = 0;
 	double fillPrice = 0;
@@ -17,7 +17,7 @@ public class LimitOrder implements Cloneable {
 	boolean buyOrder;
 	LimitOrder stopLoss;
 	LimitOrder profitTaker;
-	int id;
+	int id = 0;
 	boolean trail = false;
 	boolean stop = false;
 	boolean confirmed = false;
@@ -98,13 +98,25 @@ public class LimitOrder implements Cloneable {
 	public void setIbOrder(final Order or) {
 		ibOrder = or;
 	}
-
+	public LimitOrder(){}
+	public LimitOrder(final String symbol, final int qty, final double price, final boolean buy) {
+		this(new StockContract(symbol), qty, price, buy);
+	}
+	/**
+	 * Useful to enable Orders to be created without having the contract yet. 
+	 * @param qty
+	 * @param price
+	 * @param buy
+	 */
 	public LimitOrder(final int qty, final double price, final boolean buy) {
-		this(null, qty, price, buy);
+		this();
+		shares = qty;
+		orderPrice = price;
+		buyOrder = buy;
 	}
 
-	public LimitOrder(final String symbol, final int qty, final double price, final boolean buy) {
-		sym = symbol;
+	public LimitOrder(final Contract aContract, final int qty, final double price, final boolean buy) {
+		contract = aContract;
 		shares = qty;
 		orderPrice = price;
 		buyOrder = buy;
@@ -112,10 +124,6 @@ public class LimitOrder implements Cloneable {
 
 	public void setPrice(final double d) {
 		fillPrice = d;
-	}
-
-	public void setSymbol(final String symbol) {
-		sym = symbol;
 	}
 
 	public double getPrice() {
@@ -129,12 +137,6 @@ public class LimitOrder implements Cloneable {
 		result = result / 100;
 		return result;
 	}
-
-	public String getSymbol() {
-		if(getContract() != null ) return getContract().toString();
-		return sym;
-	}
-
 	public boolean isBuy() {
 		return buyOrder;
 	}

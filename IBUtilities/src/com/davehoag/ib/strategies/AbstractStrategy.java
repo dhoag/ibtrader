@@ -10,6 +10,7 @@ import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.ib.client.Contract;
 import com.ib.client.Execution;
 import com.ib.client.TickType;
 
@@ -82,7 +83,7 @@ public abstract class AbstractStrategy implements Strategy {
 	 * @param port
 	 * @param best
 	 */
-	protected void openNewLongPosition(final String symbol, final double price, final Portfolio port,
+	protected void openNewLongPosition(final Contract symbol, final double price, final Portfolio port,
 			final QuoteRouter executionEngine) {
 		int priorQty = port.getShares(symbol);
 
@@ -100,7 +101,7 @@ public abstract class AbstractStrategy implements Strategy {
 	 * @param port
 	 * @return
 	 */
-	protected LimitOrder getBuyLimitOrder(final String symbol, final double price, final Portfolio port) {
+	protected LimitOrder getBuyLimitOrder(final Contract symbol, final double price, final Portfolio port) {
 		int buyQty = qty;
 		if (maxQty) {
 			final double money = port.getCash();
@@ -118,7 +119,7 @@ public abstract class AbstractStrategy implements Strategy {
 	 * @param port
 	 * @param worse
 	 */
-	protected void sellExistingPosition(final String symbol, final double price, final Portfolio port,
+	protected void sellExistingPosition(final Contract symbol, final double price, final Portfolio port,
 			final QuoteRouter executionEngine) {
 		int priorQty = port.getShares(symbol);
 
@@ -146,7 +147,7 @@ public abstract class AbstractStrategy implements Strategy {
 	 * @param symbol
 	 * @param port
 	 */
-	protected LimitOrder getOnsetTrade(final String symbol, final Portfolio port) {
+	protected LimitOrder getOnsetTrade(final Contract symbol, final Portfolio port) {
 		LimitOrder original = null;
 		Iterator<LimitOrder> onePosition = port.getPositionsToUnwind(symbol);
 		if (onePosition.hasNext()) {

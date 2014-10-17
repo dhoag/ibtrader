@@ -21,7 +21,7 @@ public class FutureContract extends Contract {
 
 	@Override
 	public int hashCode() {
-		return m_symbol.hashCode();
+		return getIdentifier().hashCode();
 	}
 
 	/**
@@ -30,7 +30,7 @@ public class FutureContract extends Contract {
 	 */
 	@Override
 	public boolean equals(Object obj) {
-		return m_symbol.equals(obj);
+		return ("" + obj).equals(getIdentifier());
 	}
 
 	public String getIdentifier() {

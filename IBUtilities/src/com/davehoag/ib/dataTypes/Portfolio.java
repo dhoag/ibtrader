@@ -13,13 +13,14 @@ import java.util.Stack;
 import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.util.HistoricalDateManipulation;
+import com.ib.client.Contract;
 
 import flanagan.analysis.Stat;
 import flanagan.math.Fmath;
 
 public class Portfolio {
-	HashMap<String, Integer> portfolio = new HashMap<String, Integer>();
-	HashMap<String, Double> lastPrice = new HashMap<String, Double>();
+	HashMap<Contract, Integer> portfolio = new HashMap<Contract, Integer>();
+	HashMap<Contract, Double> lastPrice = new HashMap<Contract, Double>();
 	HashMap<Integer, LimitOrder> orders = new HashMap<Integer, LimitOrder>();
 	ArrayList<String> history = new ArrayList<String>();
 	ArrayList<LimitOrder> openCloseLog = new ArrayList<LimitOrder>();
@@ -28,7 +29,7 @@ public class Portfolio {
 	long currentTime;
 	NumberFormat nf = NumberFormat.getCurrencyInstance();
 	SimpleRiskLimits risk = new SimpleRiskLimits();
-	HashMap<String, Stack<LimitOrder>> positionToUnwind = new HashMap<String, Stack<LimitOrder>>();
+	HashMap<Contract, Stack<LimitOrder>> positionToUnwind = new HashMap<Contract, Stack<LimitOrder>>();
 	TradingDay quoteData = new TradingDay();
 	
 	public TradingDay getQuoteData(){
@@ -39,14 +40,14 @@ public class Portfolio {
 	 * @param symbol
 	 * @return
 	 */
-	public Iterator<LimitOrder> getPositionsToUnwind(String symbol){
+	public Iterator<LimitOrder> getPositionsToUnwind(Contract symbol){
 		return positionToUnwind.get(symbol).iterator();
 	}
 	/**
 	 * 
 	 */
 	public void displayValue(){
-		for(String symbol: portfolio.keySet()){
+		for(Contract symbol: portfolio.keySet()){
 			displayValue(symbol);
 		}
 		LogManager.getLogger("Portfolio").info("Overall value: " + getNetValue());
@@ -61,7 +62,7 @@ public class Portfolio {
 			BufferedWriter bw = new BufferedWriter(fw);
 			for (LimitOrder closingOrder : openCloseLog) {
 				final double tradeProfit = closingOrder.getProfit();
-				bw.write(closingOrder.getSymbol());
+				bw.write(closingOrder.getContract().toString());
 				bw.write(",");
 				bw.write(String.valueOf(closingOrder.getOnset().getShares()));
 				bw.write(",");
@@ -142,14 +143,14 @@ public class Portfolio {
 	 */
 	public double getNetValue(){
 		double value = 0;
-		for(String symbol: lastPrice.keySet()){
+		for(Contract symbol: lastPrice.keySet()){
 			final double positionValue = getValue(symbol, lastPrice.get(symbol));
 			value+=positionValue;
 		}
 		final double cashFromTrading = getCash();
 		return value + cashFromTrading;
 	}
-	public void displayValue(final String symbol ){
+	public void displayValue(final Contract symbol ){
 		LogManager.getLogger("Portfolio").info( symbol + " Time: " + HistoricalDateManipulation.getDateAsStr(currentTime) + " C: " + nf.format( getCash())+ " " + lastPrice.get(symbol) + " * " + getShares(symbol) + " value " + nf.format( getValue(symbol, lastPrice.get(symbol))));
 	}
 	/**
@@ -157,11 +158,11 @@ public class Portfolio {
 	 * @param symbol
 	 * @param qty
 	 */
-	public void update(final String symbol, final int qty){
+	public void update(final Contract symbol, final int qty){
 		LogManager.getLogger("AccountManagement").info( "Updating account " + symbol + " " + qty);
 		portfolio.put(symbol, qty);
 	}
-	public void updatePrice(final String symbol, final double price){
+	public void updatePrice(final Contract symbol, final double price){
 		lastPrice.put(symbol, price);
 	}
 	/**
@@ -182,10 +183,10 @@ public class Portfolio {
 	 * @param symbol Open orders for the given symbol
 	 * @return
 	 */
-	public ArrayList<Integer> getOpenOrderIds(String symbol){
+	public ArrayList<Integer> getOpenOrderIds(Contract aContract){
 		ArrayList<Integer> result = new ArrayList<Integer>();
 		for(LimitOrder order: orders.values() ){
-			if(order.getSymbol().equals(symbol) && ! order.isConfirmed()){
+			if(order.getContract().equals(aContract) && ! order.isConfirmed()){
 				result.add(order.getId());
 			}
 		}
@@ -202,7 +203,7 @@ public class Portfolio {
 	 * @param price
 	 * @param qty
 	 */
-	public synchronized void confirm(final int orderId, final String symbol, final double price, final int qty){
+	public synchronized void confirm(final int orderId, final Contract symbol, final double price, final int qty){
 		final LimitOrder order = orders.get(orderId);
 		if(order != null){
 			order.confirm();
@@ -231,19 +232,18 @@ public class Portfolio {
 	}
 	private synchronized void bought(final LimitOrder lmtOrder){
 		final int orderId = lmtOrder.getId();
-		final String symbol = lmtOrder.getSymbol();
 		final int qty = lmtOrder.getShares();
 		final double price = lmtOrder.getPrice();
 		
 		if( ! risk.acceptTrade(true, qty, this, price)){
 			throw new IllegalStateException("Not willing to make  trade - too risky");
 		}
-		final Integer originalQty = portfolio.get(symbol);
+		final Integer originalQty = portfolio.get(lmtOrder.getContract());
 		final int origQtyInt = originalQty != null ? (originalQty.intValue()) : 0;
 		final int newQty = origQtyInt + qty;
 		openCloseAccounting(newQty, origQtyInt, lmtOrder);
-		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime) + " Buy " + qty + " of " + symbol + " @ " + nf.format(price));
+		portfolio.put(lmtOrder.getContract(), newQty);
+		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime) + " Buy " + qty + " of " + lmtOrder.getContract() + " @ " + nf.format(price));
 		cash -= qty * price;
 		if(cash < maxDrawdown){
 			maxDrawdown = cash;
@@ -256,18 +256,18 @@ public class Portfolio {
 	 * @param lmtOrder
 	 */
 	protected void openCloseAccounting(final int newQty, final int originalQty, final LimitOrder lmtOrder){
-		if(positionToUnwind.get(lmtOrder.getSymbol()) == null) positionToUnwind.put(lmtOrder.getSymbol(), new Stack<LimitOrder>());
+		if(positionToUnwind.get(lmtOrder.getContract()) == null) positionToUnwind.put(lmtOrder.getContract(), new Stack<LimitOrder>());
 		if(Math.abs(newQty) > Math.abs(originalQty)){
 			if(originalQty != 0 && ! risk.allowRebuys ) throw new IllegalStateException("Risk! Not allowing increases in existing positions");
 			//Opening a long or short position
-			positionToUnwind.get(lmtOrder.getSymbol()).push(lmtOrder);
+			positionToUnwind.get(lmtOrder.getContract()).push(lmtOrder);
 		}
 		else {
 			int closedQty = 0;
 			int sellQty= lmtOrder.getShares();
 			LimitOrder closingOrder = lmtOrder;
 			while(closedQty < sellQty){
-				final LimitOrder unwound = positionToUnwind.get(lmtOrder.getSymbol()).pop();
+				final LimitOrder unwound = positionToUnwind.get(lmtOrder.getContract()).pop();
 				if(unwound.getShares() != sellQty && ! risk.allowRebuys) throw new IllegalStateException("Should only be selling the qty we bought");
 				openCloseLog.add(closingOrder);
 				closedQty += unwound.getShares();
@@ -296,22 +296,21 @@ public class Portfolio {
 	}
 	private synchronized void sold(final LimitOrder lmtOrder){
 		final int orderId = lmtOrder.getId();
-		final String symbol = lmtOrder.getSymbol();
 		final int qty = lmtOrder.getShares();
 		final double price = lmtOrder.getPrice();
 
 		if( ! risk.acceptTrade(false, qty, this, price)){
 			throw new IllegalStateException("Not willing to make  trade - too risky");
 		}
-		final Integer originalQty = portfolio.get(symbol);
+		final Integer originalQty = portfolio.get(lmtOrder.getContract());
 		final int origQtyInt = originalQty != null ? (originalQty.intValue()) : 0;
 		final int newQty =  origQtyInt - qty;
 		openCloseAccounting(newQty, origQtyInt, lmtOrder);
-		portfolio.put(symbol, newQty);
-		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Sell " + qty + " of " + symbol + " @ " + nf.format(price));
+		portfolio.put(lmtOrder.getContract(), newQty);
+		history.add("[" + orderId + "]" + HistoricalDateManipulation.getDateAsStr(currentTime ) + " Sell " + qty + " of " + lmtOrder.getContract() + " @ " + nf.format(price));
 		cash += qty * price;
 	}
-	public int getShares(final String symbol){
+	public int getShares(final Contract symbol){
 		final Integer originalQty = portfolio.get(symbol);
 		return originalQty != null ? originalQty.intValue() : 0;
 	}
@@ -321,7 +320,7 @@ public class Portfolio {
 	public void setCash(double d){
 		cash = d;
 	}
-	public double getValue(String symbol, final double price){
+	public double getValue(Contract symbol, final double price){
 		final Integer currentQty = portfolio.get(symbol);
 		if(currentQty == null) return 0;
 		return currentQty.intValue() * price;

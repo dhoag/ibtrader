@@ -44,7 +44,7 @@ public class HistoricalDataClient extends EClientSocket {
 	public void cancelOrder(final int id) {
 		LimitOrder lmtOrder = rh.getPortfolio().getOrder(id);
 		if (lmtOrder == null) throw new IllegalStateException("[" + id + "] Canceling order we don't have:");
-		final HistoricalDataSender sender = mktDataFeed.get(lmtOrder.getSymbol());
+		final HistoricalDataSender sender = mktDataFeed.get(lmtOrder.getContract().m_symbol);
 
 		sender.cancelOrder(lmtOrder);
 		String status = "Cancelled";

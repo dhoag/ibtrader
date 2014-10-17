@@ -23,7 +23,7 @@ public class PortfolioTest {
 		order.id = 1000;
 		p.stopOrder(order);
 		order.markAsTrailingOrder();
-		p.confirm(order.id, order.sym, order.orderPrice, order.shares);
+		p.confirm(order.id, order.getContract(), order.orderPrice, order.shares);
 		
 		assertEquals(-1220.0, p.cash, .001);
 	}
@@ -53,7 +53,7 @@ public class PortfolioTest {
 	public void testValue() {
 		LimitOrder order = new LimitOrder("IBM", 100, 12.2, true);
 		p.placedOrder(order);
-		assertEquals(1000.0, p.getValue("IBM", 10), .0001);
+		assertEquals(1000.0, p.getValue(order.getContract(), 10), .0001);
 	}
 	
 	@Test

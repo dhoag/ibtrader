@@ -32,7 +32,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	
 	boolean positionOnTheBooks = false;
 	ArrayList<Strategy> strategies = new ArrayList<Strategy>();
-	final String symbol;
+	final Contract symbol;
 	String date;
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
@@ -60,12 +60,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * @param exec
 	 * @param port
 	 */
-	public QuoteRouter(final String sym, final IBClientRequestExecutor exec, final Portfolio port) {
+	public QuoteRouter(final Contract sym, final IBClientRequestExecutor exec, final Portfolio port) {
 		super(exec);
 		symbol = sym;
 		initialize(port);
 	}
-	public QuoteRouter(String symbol2, String dt,
+	public QuoteRouter(Contract symbol2, String dt,
 			IBClientRequestExecutor ibClientRequestExecutor,
 			Portfolio portfolio2) {
 		this(symbol2, ibClientRequestExecutor, portfolio2);
@@ -97,7 +97,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	@Override
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		if(contract.m_symbol.equals(symbol)){
-			portfolio.confirm(execution.m_orderId, contract.m_symbol ,execution.m_price, execution.m_shares);
+			portfolio.confirm(execution.m_orderId, contract ,execution.m_price, execution.m_shares);
 			LogManager.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
 
 			for (Strategy strat : strategies) {
@@ -146,7 +146,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 */
 	public void cancelOpenOrders(){
 		LogManager.getLogger("Trading").warn("Cancelling all orders ");
-		ArrayList<Integer> orderIds = portfolio.getOpenOrderIds(getContract().toString());
+		ArrayList<Integer> orderIds = portfolio.getOpenOrderIds(getContract());
 		for(int i : orderIds){
 			requester.cancelOrder(i);
 			LogManager.getLogger("Trading").warn("Cancelling order id" + i);
@@ -158,15 +158,13 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	 * @param order
 	 */
 	public void executeOrder(final LimitOrder order){
-		if (order.getSymbol() == null) {
-			order.setSymbol(symbol);
-		} else {
-			if (!order.getSymbol().equals(getContract().toString())) {
+		if (order.getContract() == null) order.setContract(getContract());
+		else
+			if (!order.getContract().equals(getContract())) {
 				throw new IllegalStateException("Limit order " + order + " send through wrong router ["
 						+ symbol + ']');
 			}
-		}
-		order.setContract( getContract());
+		
 		if(order.getStopLoss() != null){
 			order.getStopLoss().setContract(getContract());
 		}
@@ -202,7 +200,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		default: priceType = "High,Low,Close";
 		}
 		for (Strategy strat : strategies) {
-			strat.tickPrice(symbol, field, price, portfolio, this);
+			strat.tickPrice(symbol.m_symbol, field, price, portfolio, this);
 		}
 		
 	}
@@ -241,7 +239,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 			final double wap, final int count) {
 		final Bar bar = new Bar(); 
 		bar.originalTime = time;
-		bar.symbol = symbol;
+		bar.symbol = symbol.m_symbol;
 		bar.close = close;
 		bar.open = open;
 		bar.high = high;
@@ -263,11 +261,12 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		IBClientRequestExecutor clientInterface = IBClientRequestExecutor.initSimulatedClient();
 		
 		try {
-			QuoteRouter qr = new QuoteRouter("QQQ", clientInterface, clientInterface.getPortfolio());
+			StockContract ct = new StockContract("QQQ");
+			QuoteRouter qr = new QuoteRouter(ct, clientInterface, clientInterface.getPortfolio());
 			long time = HistoricalDateManipulation.getTime("20130214 07:44:30");
 			qr.requestHistorical1dayBars(time );
 			clientInterface.waitForCompletion();
-			System.out.println(qr.portfolio.getQuoteData().getDayBarCache("QQQ").get(0));
+			System.out.println(qr.portfolio.getQuoteData().getDayBarCache(ct).get(0));
 		} catch (Exception e) {
 			LogManager.getLogger("QuoteRouter").error( "Exception!! " , e);
 		}
@@ -277,9 +276,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
         System.exit(0);
 	}
 	public Contract getContract() {
-		if(date == null)
-			return new StockContract(symbol);
-		return new FutureContract(symbol, date);
+		return symbol;
 	}
 	/**
 	 * For QuoteRouters this is the reqid

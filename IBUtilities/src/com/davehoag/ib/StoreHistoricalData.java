@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.BarCache;
 import com.davehoag.ib.util.HistoricalDateManipulation;
+import com.ib.client.Contract;
 
 /**
  * Write the historical data to Cassandra
@@ -16,13 +17,13 @@ import com.davehoag.ib.util.HistoricalDateManipulation;
  *
  */
 public class StoreHistoricalData extends ResponseHandlerDelegate {
-	final String sym; 
+	final Contract sym; 
 	String barSize =  "bar5sec";
 	long currentOpen = 0;
 	boolean skip = false;
 	BarCache barCache = null;
 
-	public StoreHistoricalData(final String symbol, IBClientRequestExecutor ibInterface){
+	public StoreHistoricalData(final Contract symbol, IBClientRequestExecutor ibInterface){
 		super(ibInterface);
 		sym = symbol;
 	}
@@ -74,7 +75,7 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 		for(String dateStr: dates)
 		try{
 			long today = HistoricalDateManipulation.getTime(dateStr);
-			Bar openBar = CassandraDao.getInstance().getOpen(sym, today);
+			Bar openBar = CassandraDao.getInstance().getOpen(sym.m_symbol, today);
 			if(openBar != null){
 				purgeList.add(dateStr);
 			}
@@ -115,11 +116,11 @@ public class StoreHistoricalData extends ResponseHandlerDelegate {
 
 		final String actualDateStr = getModifiedDateString(dateStr);
 		if(barCache == null){
-			CassandraDao.getInstance().insertHistoricalData(barSize, sym, actualDateStr, open, high, low, close, volume, count, WAP, hasGaps);
+			CassandraDao.getInstance().insertHistoricalData(barSize, sym.m_symbol, actualDateStr, open, high, low, close, volume, count, WAP, hasGaps);
 		}
 		else {
 			Bar aBar = new Bar();
-			aBar.symbol = sym; aBar.close = close; aBar.hasGaps = hasGaps; aBar.high = high;
+			aBar.symbol = sym.m_symbol; aBar.close = close; aBar.hasGaps = hasGaps; aBar.high = high;
 			aBar.low = low; aBar.close =close;
 			aBar.volume = volume; aBar.tradeCount = count; aBar.wap = WAP;
 			

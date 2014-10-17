@@ -13,6 +13,7 @@ import java.util.concurrent.Executors;
 
 import org.apache.logging.log4j.LogManager;
 
+import com.davehoag.ib.dataTypes.FutureContract;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
@@ -22,6 +23,7 @@ import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
 import com.ib.client.Order;
 import com.ib.client.TagValue;
+import com.ib.contracts.FutContract;
 
 /**
  * Control all IB client requests
@@ -179,7 +181,12 @@ public class IBClientRequestExecutor {
 			public void run() {
 				final Order order = createPrimaryOrder(buy, qty, price, rh);
 				final Contract contract = lmtOrder.getContract();
-				lmtOrder.setId(order.m_orderId);
+				//If the id already exists then we need to actually modify the order, not create a new one
+				if(lmtOrder.getId() == 0)
+					lmtOrder.setId(order.m_orderId);
+				else
+					order.m_orderId = lmtOrder.getId();
+				
 				//Log to portfolio because we are assuming a fill		
 				responseHandler.getPortfolio().placedOrder( lmtOrder );
 				order.m_transmit = ! openStopLoss;
@@ -465,11 +472,10 @@ public class IBClientRequestExecutor {
 	 * @param missingData
 	 * @param symbol
 	 */
-	public void reqHistoricalData(final ArrayList<String> missingData, final String symbol) {
+	public void reqHistoricalData(final ArrayList<String> missingData, final Contract symbol) {
 		final StoreHistoricalData sh = new StoreHistoricalData(symbol, this);
 		sh.setBarSize("bar5sec");
-		final StockContract stock = new StockContract(symbol);
-		requestHistoricalData(missingData, stock, sh);
+		requestHistoricalData(missingData, symbol, sh);
 	}
 	/**
 	 * Enable an ending date request
@@ -477,8 +483,7 @@ public class IBClientRequestExecutor {
 	 * @param symbol
 	 * @param rh
 	 */
-	public void requestHistDataEnding(final String symbol,final String date,  final StoreHistoricalData rh){
-		final StockContract stock = new StockContract(symbol);
+	public void requestHistDataEnding(final Contract stock,final String date,  final StoreHistoricalData rh){
 		final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
 		execute(r, 11, rh);
 	}
@@ -487,10 +492,10 @@ public class IBClientRequestExecutor {
 	 * historical data request limits imposed by IB API.
 	 * 
 	 * @param dates
-	 * @param stock
+	 * @param symbol
 	 * @param rh
 	 */
-	protected void requestHistoricalData(final ArrayList<String> dates, final StockContract stock,
+	protected void requestHistoricalData(final ArrayList<String> dates, final Contract symbol,
 			final StoreHistoricalData rh) {
 		waitOnConfirmation();;
 		final int markerRequestId = pushRequest();
@@ -498,7 +503,7 @@ public class IBClientRequestExecutor {
 				"Submitting HistoricalData marker" );
 		boolean first = true;
 		for (final String date : dates) {
-			final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, stock);
+			final HistoricalDataRequest r = new HistoricalDataRequest(date, rh, symbol);
 			if (first) {
 				execute(r, 0);
 				first = false;
@@ -527,8 +532,8 @@ public class IBClientRequestExecutor {
 		requestHistoricalData(dates, stock, rh);
 	}
 	class HistoricalDataRequest implements Runnable{
-		String date; StoreHistoricalData rh; StockContract stock;
-		HistoricalDataRequest(String dateStr, StoreHistoricalData store, StockContract st){
+		String date; StoreHistoricalData rh; Contract stock;
+		HistoricalDataRequest(String dateStr, StoreHistoricalData store, Contract st){
 			date = dateStr; rh = store; stock = st;
 		}
 		boolean skip(){
@@ -574,7 +579,7 @@ public class IBClientRequestExecutor {
 				rh.setReqId(reqId);
 				pushResponseHandler(reqId, rh);
 				LogManager.getLogger("RequestManager").info(
-						"Submitting request for real time bars [" + reqId + "] " + stock.m_symbol);
+						"Submitting request for real time bars [" + reqId + "] " + stock);
 				Vector<TagValue> notUsed = null;
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
@@ -584,7 +589,7 @@ public class IBClientRequestExecutor {
 				rh.setTickerRequestId(tickReqId);
 				pushResponseHandler(tickReqId, rh);
 				LogManager.getLogger("RequestManager").info(
-						"Submitting request for tick data [" + tickReqId + "] " + stock.m_symbol);
+						"Submitting request for tick data [" + tickReqId + "] " + stock);
 				client.reqMktData(tickReqId, stock, "", snapshot, notUsed);
 
 			}
@@ -627,7 +632,7 @@ public class IBClientRequestExecutor {
 		return map.get(Integer.valueOf(reqId));
 	}
 
-	HashMap<String, QuoteRouter> quoteRouters = new HashMap<String, QuoteRouter>();
+	HashMap<Contract, QuoteRouter> quoteRouters = new HashMap<Contract, QuoteRouter>();
 
 	/**
 	 * Get (and maybe create) a quote router for the provided symbol.
@@ -636,15 +641,8 @@ public class IBClientRequestExecutor {
 	 * @return
 	 */
 	public synchronized QuoteRouter getQuoteRouter(final String symbol) {
-		QuoteRouter strat = quoteRouters.get(symbol);
-		if (strat == null) {
-			strat = new QuoteRouter(symbol, this, responseHandler.getPortfolio());
-			quoteRouters.put(symbol, strat);
-		}
-		else {
-			strat.setPortfolio(responseHandler.getPortfolio());
-		}
-		return strat;
+		StockContract contract = new StockContract(symbol);
+		return getQuoteRouter(contract);
 	}
 	public void cancelMktData(){
 		for (QuoteRouter strat : quoteRouters.values()) {
@@ -684,12 +682,19 @@ public class IBClientRequestExecutor {
 	 * @param date
 	 * @return
 	 */
-	public QuoteRouter getQuoteRouter(String symbol, String date) {
-		String idx = symbol + date;
-		QuoteRouter strat = quoteRouters.get(idx);
+	public QuoteRouter getQuoteRouter(String symbol, String expiry) {
+		FutureContract contract = new FutureContract(symbol, expiry);
+		return getQuoteRouter(contract);
+	}
+	/**
+	 * @param contract
+	 * @return
+	 */
+	public QuoteRouter getQuoteRouter(Contract contract) {
+		QuoteRouter strat = quoteRouters.get(contract);
 		if (strat == null) {
-			strat = new QuoteRouter(symbol, date, this, responseHandler.getPortfolio());
-			quoteRouters.put(idx, strat);
+			strat = new QuoteRouter(contract, this, responseHandler.getPortfolio());
+			quoteRouters.put(contract, strat);
 		}
 		else {
 			strat.setPortfolio(responseHandler.getPortfolio());
