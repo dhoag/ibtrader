@@ -249,9 +249,15 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		bar.tradeCount = count;
 		return bar;
 	}
-
+	/**
+	 * Doesn't really try to figure out what is or isn't canceled so just brute force cancel everything
+	 * associated with the original order.
+	 * @param limitOrder
+	 */
 	public void cancelOrder(final LimitOrder limitOrder) {
 		requester.cancelOrder(limitOrder.getId());
+		if(limitOrder.getStopLoss() != null) cancelOrder(limitOrder.getStopLoss());
+		if(limitOrder.getProfitTaker() != null) cancelOrder(limitOrder.getProfitTaker());
 	}
 	/**
 	 * @param args

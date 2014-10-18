@@ -1,7 +1,10 @@
 package com.davehoag.ib.strategies;
 
+import java.util.Stack;
+
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.DoubleCache;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.ib.client.Execution;
@@ -9,7 +12,6 @@ import com.ib.client.TickType;
 
 public class DefenseStrategy extends AbstractStrategy {
 
-	boolean on = false;
 	boolean upBias = true;
 	final boolean buy = true;
 	final boolean sell = false;
@@ -21,36 +23,53 @@ public class DefenseStrategy extends AbstractStrategy {
 	LimitOrder buySide;
 	LimitOrder sellSide;
 	LimitOrder positionTrade;
+	QuoteRouter esRouter;
+	double lastPrice;
+	DoubleCache dc = new DoubleCache();
 	/**
 	 * Enter a long position with a stop 1 tick below entry price
 	 */
 	public void goLong(){
 		upBias = true;
-		on = true;
+		createPosition();
 	}
 	/**
 	 * Enter a short position with a stop 1 tick above entry price
 	 */
 	public void goShort(){
 		upBias = false;
-		on = true;
+		createPosition();
 	}
 	public void sellClose(){
 		upBias = false;
-		on = true;
 		closePosition = true;
+		//if closePosition is true then it will seek to cancel
+		//resting stop orders
+		createPosition();
 	}
 	public void buyClose(){
 		upBias = true;
-		on = true;
 		closePosition = true;
+		createPosition();
 	}
-	public void playDefense(){
-		playDefense = true;
+	public void playDefense(boolean toggle){
+		playDefense = toggle;
+		if(! playDefense){
+			buySide = cancelOrder(buySide);
+			sellSide = cancelOrder(sellSide);
+		}
 	}
+	public LimitOrder cancelOrder(LimitOrder order){
+		if(order == null) return null;
+		//should be impossible if order isn't null
+		if(esRouter == null) throw new IllegalStateException("Can't cancel as no quote router is established!");
+		esRouter.cancelOrder(order);
+		return null;
+	}
+	
 	public void haltTrading(){
-		playDefense = false;
 		cancelAll = true;
+		playDefense = false;
 		sellSide = null;
 		buySide = null;
 	}
@@ -62,26 +81,39 @@ public class DefenseStrategy extends AbstractStrategy {
 	@Override
 	public void tickPrice(String symbol, int field, double price,
 			Portfolio holdings, QuoteRouter executionEngine) {
-		boolean bidOrAsk = ( TickType.ASK == field || TickType.BID == field || TickType.LAST == field);
+		if(esRouter == null) esRouter = executionEngine;
+		
 		if(cancelAll){
 			cancelAll= false;
 			executionEngine.cancelOpenOrders();
 			return;
 		}
-		if( on & bidOrAsk ) { 
-			createPosition(field, price, executionEngine);
+		if(TickType.LAST == field) {
+			lastPrice = price;
+			dc.pushPrice(price);
 		}
-		if(playDefense) 
-		synchronized(this){
-			if(buySide == null){
-				buySide = createBuyOrder(price - .75);
-				System.err.println(buySide);
-				executionEngine.executeOrder(buySide);
-			}
-			if(sellSide == null){
-				sellSide = createSellOrder(price + .75);
-				System.err.println(sellSide);
-				executionEngine.executeOrder(sellSide);			
+
+		//TODO figure out better pricing for buy or sell
+		if(playDefense){
+			synchronized(this){
+				if(buySide == null){
+					buySide = createBuyOrder(price - .75);
+					System.err.println(buySide);
+					executionEngine.executeOrder(buySide);
+				} else {
+					if(dc.getAge() > 5 && buySide.isConfirmed()){
+						updateStopOrderPrice(esRouter, buySide);
+					}
+				}
+				if(sellSide == null){
+					sellSide = createSellOrder(price + .75);
+					System.err.println(sellSide);
+					executionEngine.executeOrder(sellSide);			
+				} else {
+					if(dc.getAge() > 5 && sellSide.isConfirmed()){
+						updateStopOrderPrice(esRouter, sellSide);
+					}
+				}
 			}
 		}
 		
@@ -94,26 +126,23 @@ public class DefenseStrategy extends AbstractStrategy {
 	 * @param price
 	 * @param executionEngine
 	 */
-	protected void createPosition(int field, double price,	QuoteRouter executionEngine) {
+	protected void createPosition() {
 		//got a decent price
-		if( TickType.LAST == field){ 
-			LimitOrder order;
-			if(upBias) {				
-				order = createBuyOrder(price);
-			}
-			else{
-				order = createSellOrder(price);
-			}
-			order.setProfitTaker(null);
-			executeOrder(executionEngine, order);
+		LimitOrder order;
+		if(upBias) {				
+			order = createBuyOrder(lastPrice);
 		}
+		else{
+			order = createSellOrder(lastPrice);
+		}
+		order.setProfitTaker(null);
+		executeOrder(esRouter, order);
 	}
 	/**
 	 * @param executionEngine
 	 * @param limitOrder
 	 */
 	private synchronized void executeOrder(QuoteRouter executionEngine, LimitOrder limitOrder) {
-		if(on == false) return;
 		//special type of order - closing a previously opened directional trade
 		//and thus need to remove the lingering stop order
 		if(closePosition & positionTrade != null && positionTrade.getStopLoss() != null){
@@ -121,8 +150,6 @@ public class DefenseStrategy extends AbstractStrategy {
 		}
 		positionTrade = limitOrder;
 		executionEngine.executeOrder(limitOrder);
-		//for now turn off after one order
-		on= false;
 	}
 	/**
 	 * Cancel the stop on the original position order. On the new closingOrder set the onset to 
@@ -167,9 +194,33 @@ public class DefenseStrategy extends AbstractStrategy {
 			e.printStackTrace();
 		}
 	}
+	/**
+	 * Did the contingent orders execute
+	 * @param order
+	 * @param id
+	 * @return
+	 */
+	final boolean theEnd(final LimitOrder order, final int id){
+		if(order != null) {
+			if(order.getStopLoss() != null && order.getStopLoss().getId() == id) return true;
+			if(order.getProfitTaker() != null && order.getProfitTaker().getId() == id) return true;
+		}
+		return false;
+	}
+	/**
+	 * if playing defense and the contingent orders are complete empty out the order
+	 */
 	public void execDetails(Execution execution, Portfolio portfolio,
 			QuoteRouter quoteRouter) {
 		System.out.println("Executed " + execution.m_orderId + " " + execution.m_price);
+		if(playDefense) {
+			if(theEnd(buySide, execution.m_orderId)){
+				buySide = null;
+			}
+			if(theEnd(sellSide, execution.m_orderId)){
+				sellSide = null;
+			}	
+		}
 	}
 	/**
 	 * @param execution
