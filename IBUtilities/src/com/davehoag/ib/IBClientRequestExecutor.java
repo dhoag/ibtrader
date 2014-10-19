@@ -180,6 +180,7 @@ public class IBClientRequestExecutor {
 			@Override
 			public void run() {
 				final Order order = createPrimaryOrder(buy, qty, price, rh);
+				order.m_orderType =  lmtOrder.getOrderType();
 				final Contract contract = lmtOrder.getContract();
 				//If the id already exists then we need to actually modify the order, not create a new one
 				if(lmtOrder.getId() == 0)
@@ -189,7 +190,7 @@ public class IBClientRequestExecutor {
 				
 				//Log to portfolio because we are assuming a fill		
 				responseHandler.getPortfolio().placedOrder( lmtOrder );
-				order.m_transmit = ! openStopLoss;
+				order.m_transmit = ! openStopLoss && ! openProfitTaker;
 				LogManager.getLogger("RequestManager").warn("Placing order " + lmtOrder );
 				client.placeOrder(order.m_orderId, contract, order);
 				if( openStopLoss ) {
@@ -235,7 +236,6 @@ public class IBClientRequestExecutor {
 		pushResponseHandler(order.m_orderId, rh);
 
 		order.m_action = buy ? "BUY" : "SELL";
-		order.m_orderType = "LMT";
 		order.m_lmtPrice = price;
 		order.m_totalQuantity = qty;
 

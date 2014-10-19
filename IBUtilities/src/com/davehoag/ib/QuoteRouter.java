@@ -7,7 +7,6 @@ import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Bar;
-import com.davehoag.ib.dataTypes.FutureContract;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
@@ -36,7 +35,9 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	String date;
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
-
+	public Portfolio getPortfolio(){
+		return portfolio;
+	}
 	/**
 	 * Don't go out and get historical data when the first realtime bar arrives
 	 */

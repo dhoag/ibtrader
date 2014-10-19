@@ -1,5 +1,6 @@
 package com.davehoag.ib.strategies;
 
+import java.util.ArrayList;
 import java.util.Stack;
 
 import com.davehoag.ib.QuoteRouter;
@@ -18,11 +19,14 @@ public class DefenseStrategy extends AbstractStrategy {
 	boolean closePosition = false;
 	boolean playDefense = false;
 	boolean cancelAll = false;
+	boolean mkt = false;
 	int contractQty = 1;
 	//Simple quote ladder with only two on each side
 	LimitOrder buySide;
 	LimitOrder sellSide;
-	LimitOrder positionTrade;
+	Stack<LimitOrder> positionTrade = new Stack<LimitOrder>();
+	ArrayList<LimitOrder> defenseClosed = new ArrayList<LimitOrder>();
+	ArrayList<LimitOrder> trendClosed = new ArrayList<LimitOrder>();
 	QuoteRouter esRouter;
 	double lastPrice;
 	DoubleCache dc = new DoubleCache();
@@ -31,26 +35,26 @@ public class DefenseStrategy extends AbstractStrategy {
 	 */
 	public void goLong(){
 		upBias = true;
-		createPosition();
+		createAndExecuteOrder();
 	}
 	/**
 	 * Enter a short position with a stop 1 tick above entry price
 	 */
 	public void goShort(){
 		upBias = false;
-		createPosition();
+		createAndExecuteOrder();
 	}
 	public void sellClose(){
 		upBias = false;
 		closePosition = true;
 		//if closePosition is true then it will seek to cancel
 		//resting stop orders
-		createPosition();
+		createAndExecuteOrder();
 	}
 	public void buyClose(){
 		upBias = true;
 		closePosition = true;
-		createPosition();
+		createAndExecuteOrder();
 	}
 	public void playDefense(boolean toggle){
 		playDefense = toggle;
@@ -77,7 +81,11 @@ public class DefenseStrategy extends AbstractStrategy {
 	public void newBar(Bar bar, Portfolio holdings, QuoteRouter executionEngine) {
 		// TODO Auto-generated method stub
 	}
-
+	/**
+	 * Defensive tick driving trading. 
+	 * 1. enter distant limit
+	 * ... limit hit, place stop up and down 1 tick from limit price (bracket)
+	 */
 	@Override
 	public void tickPrice(String symbol, int field, double price,
 			Portfolio holdings, QuoteRouter executionEngine) {
@@ -126,7 +134,7 @@ public class DefenseStrategy extends AbstractStrategy {
 	 * @param price
 	 * @param executionEngine
 	 */
-	protected void createPosition() {
+	protected void createAndExecuteOrder() {
 		//got a decent price
 		LimitOrder order;
 		if(upBias) {				
@@ -136,19 +144,28 @@ public class DefenseStrategy extends AbstractStrategy {
 			order = createSellOrder(lastPrice);
 		}
 		order.setProfitTaker(null);
+		order.setMkt(mkt);
 		executeOrder(esRouter, order);
 	}
 	/**
+	 * Keep a stack of orders and try to correlate opens with closes. 
+	 * Can be helpful with displaying stats.
 	 * @param executionEngine
 	 * @param limitOrder
 	 */
 	private synchronized void executeOrder(QuoteRouter executionEngine, LimitOrder limitOrder) {
 		//special type of order - closing a previously opened directional trade
 		//and thus need to remove the lingering stop order
-		if(closePosition & positionTrade != null && positionTrade.getStopLoss() != null){
-			cancelStop(executionEngine, limitOrder);
+		if(closePosition && !positionTrade.isEmpty()) {
+			LimitOrder lastOpenPosition = positionTrade.pop();
+			cancelStop(executionEngine, lastOpenPosition);
+			limitOrder.setOnset(lastOpenPosition);
+			trendClosed.add(lastOpenPosition);
 		}
-		positionTrade = limitOrder;
+		else {
+			positionTrade.push(limitOrder);
+		}
+		closePosition = false;
 		executionEngine.executeOrder(limitOrder);
 	}
 	/**
@@ -159,11 +176,11 @@ public class DefenseStrategy extends AbstractStrategy {
 	 * @param executionEngine
 	 * @param closingOrder
 	 */
-	private void cancelStop(QuoteRouter executionEngine, LimitOrder closingOrder) {
-		executionEngine.cancelOrder(positionTrade.getStopLoss());
-		closingOrder.setStopLoss(null);
-		closingOrder.setOnset(positionTrade);
-		closePosition = false;
+	private void cancelStop(QuoteRouter executionEngine, LimitOrder lastOpenPosition) {
+		if(lastOpenPosition.getStopLoss() != null){
+			executionEngine.cancelOrder(lastOpenPosition.getStopLoss());
+			lastOpenPosition.setStopLoss(null);
+		}
 	}
 	protected LimitOrder createSellOrder(double price) {
 		LimitOrder sellOrder = new LimitOrder(contractQty, price , sell);
@@ -202,8 +219,18 @@ public class DefenseStrategy extends AbstractStrategy {
 	 */
 	final boolean theEnd(final LimitOrder order, final int id){
 		if(order != null) {
-			if(order.getStopLoss() != null && order.getStopLoss().getId() == id) return true;
-			if(order.getProfitTaker() != null && order.getProfitTaker().getId() == id) return true;
+			final LimitOrder stop = order.getStopLoss();
+			final LimitOrder profit = order.getProfitTaker();
+			if(stop != null && stop.getId() == id) {
+				stop.setOnset(order);
+				defenseClosed.add(stop);
+				return true;
+			}
+			if(profit != null && profit.getId() == id) {
+				profit.setOnset(order);
+				defenseClosed.add(profit);
+				return true;
+			}
 		}
 		return false;
 	}
@@ -228,10 +255,24 @@ public class DefenseStrategy extends AbstractStrategy {
 	 */
 	private void updateStopOrderPrice(QuoteRouter quoteRouter, LimitOrder order) {
 		LimitOrder stopOrder = order.getStopLoss(); 
+		stopOrder.setMkt(mkt);
 		stopOrder.setOrderPrice(order.getPrice());
 		sleep(550);
 		if(! stopOrder.isConfirmed())
 			quoteRouter.executeOrder(stopOrder);
+	}
+	/**
+	 * When submitting an order instead of using LMT use a mkt order
+	 * @param selected
+	 */
+	public void setMkt(boolean selected) {
+		mkt = selected;
+		
+	}
+	public String getStats() {
+		esRouter.getPortfolio().displayTradeStats("Defense", defenseClosed);
+		esRouter.getPortfolio().displayTradeStats("Trend", trendClosed);
+		return null;
 	}
 
 }

@@ -25,6 +25,8 @@ import java.util.Stack;
 import javax.swing.JTextField;
 import javax.swing.JLabel;
 import javax.swing.JTextArea;
+import javax.swing.JCheckBox;
+import java.awt.FlowLayout;
 
 public class Urlacher {
 
@@ -36,6 +38,8 @@ public class Urlacher {
 	private JToggleButton btnPlayDefense;
 	private JTextArea textArea;
 	Stack<String> status = new Stack<String>();
+	private JCheckBox chckbxMkt;
+	private final JButton btnNewButton = new JButton("Stats");
 	/**
 	 * Launch the application.
 	 */
@@ -62,6 +66,29 @@ public class Urlacher {
 		
 		textArea = new JTextArea();
 		frame.getContentPane().add(textArea, BorderLayout.CENTER);
+		
+		JPanel panel_5 = new JPanel();
+		frame.getContentPane().add(panel_5, BorderLayout.EAST);
+		panel_5.setLayout(new GridLayout(3, 1, 0, 0));
+		
+		JButton btnCancelAll = new JButton("Cancel All");
+		panel_5.add(btnCancelAll);
+		btnNewButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				displayStats();
+			}
+		});
+		panel_5.add(btnNewButton);
+		btnCancelAll.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				halt();
+			}
+		});
+	}
+
+	protected void displayStats() {
+		if(defense == null) return;
+		defense.getStats();
 	}
 
 	public void connect(){
@@ -175,27 +202,44 @@ public class Urlacher {
 		
 		JPanel panel_1 = new JPanel();
 		frame.getContentPane().add(panel_1, BorderLayout.NORTH);
+		panel_1.setLayout(new BorderLayout(0, 0));
+		
+		JPanel panel_3 = new JPanel();
+		panel_1.add(panel_3);
 		
 		JLabel lblExpirationDateYyyymm = new JLabel("Expiration Date: YYYYMM");
-		panel_1.add(lblExpirationDateYyyymm);
+		panel_3.add(lblExpirationDateYyyymm);
 		
 		tfContractExpiration = new JTextField();
-		panel_1.add(tfContractExpiration);
+		panel_3.add(tfContractExpiration);
 		tfContractExpiration.setColumns(10);
 		
-		JButton btnOn = new JButton("On");
-		panel_1.add(btnOn);
-		
 		JButton btnOff = new JButton("Off");
-		panel_1.add(btnOff);
-		btnOff.addActionListener(new ActionListener() {
+		panel_3.add(btnOff);
+		
+		JButton btnOn = new JButton("On");
+		panel_3.add(btnOn);
+		
+		JPanel panel_4 = new JPanel();
+		panel_1.add(panel_4, BorderLayout.NORTH);
+		
+		chckbxMkt = new JCheckBox("mkt");
+		chckbxMkt.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				cancelQuotes();
+				if(defense != null){
+					defense.setMkt(chckbxMkt.isSelected());
+				}
 			}
 		});
+		panel_4.add(chckbxMkt);
 		btnOn.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				requestQuotes();
+			}
+		});
+		btnOff.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				cancelQuotes();
 			}
 		});
 		
@@ -209,14 +253,6 @@ public class Urlacher {
 		tpStatus = new JTextPane();
 		panel_2.add(tpStatus, BorderLayout.CENTER);
 		tpStatus.setText("Status Pane");
-		
-		JButton btnCancelAll = new JButton("Cancel All");
-		btnCancelAll.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				halt();
-			}
-		});
-		frame.getContentPane().add(btnCancelAll, BorderLayout.EAST);
 	}
 
 }

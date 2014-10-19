@@ -20,6 +20,7 @@ public class LimitOrder implements Cloneable {
 	int id = 0;
 	boolean trail = false;
 	boolean stop = false;
+	boolean mkt = false;
 	boolean confirmed = false;
 	long timeConfirmed;
 	Order ibOrder;
@@ -35,8 +36,13 @@ public class LimitOrder implements Cloneable {
 	public String getOrderType(){
 		if(isTrail()) return "TRAIL";
 		if(isStop()) return "STPLMT";
+		if(isMkt()) return "MKT";
 		return "LMT";
 	}
+	public boolean isMkt() {
+		return mkt;
+	}
+
 	/**
 	 * When the order is actually submitted set the id for reference
 	 * 
@@ -205,5 +211,9 @@ public class LimitOrder implements Cloneable {
 	}
 	public void setOrderPrice(double price){
 		orderPrice = price;
+	}
+
+	public void setMkt(boolean mkt2) {
+		mkt = mkt2;
 	}
 }

@@ -96,13 +96,16 @@ public class Portfolio {
 	/**
 	 */
 	public void displayTradeStats(final String strategyName) {
+		displayTradeStats(strategyName, openCloseLog);
+	}
+	public void displayTradeStats(final String strategyName, ArrayList<LimitOrder> tradeLog) {
 		NumberFormat nf = NumberFormat.getCurrencyInstance();
 		double profit = 0;
 		int winningTrades = 0;
-		double [] results = new double [openCloseLog.size()];
+		double [] results = new double [tradeLog.size()];
 		int i = 0;
 
-		for(LimitOrder closingOrder : openCloseLog){
+		for(LimitOrder closingOrder : tradeLog){
 			final double tradeProfit =closingOrder.getProfit();
 			results[i++] = tradeProfit;
 			profit += tradeProfit;
@@ -110,7 +113,7 @@ public class Portfolio {
 		}
 
 		LogManager.getLogger(strategyName).info(
-				"Trades " + openCloseLog.size() + " Winning trades: " + winningTrades + " Profit: "
+				"Trades " + tradeLog.size() + " Winning trades: " + winningTrades + " Profit: "
 						+ nf.format(profit));
 		if (results.length > 0) {
 			double dmin = Fmath.minimum(results);
