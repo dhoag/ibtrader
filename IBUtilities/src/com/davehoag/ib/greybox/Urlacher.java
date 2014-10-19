@@ -40,6 +40,8 @@ public class Urlacher {
 	Stack<String> status = new Stack<String>();
 	private JCheckBox chckbxMkt;
 	private final JButton btnNewButton = new JButton("Stats");
+	private JButton btnOff;
+	private JButton btnOn;
 	/**
 	 * Launch the application.
 	 */
@@ -98,8 +100,9 @@ public class Urlacher {
 		clientInterface = new IBClientRequestExecutor(m_client, rh);
 		clientInterface.connect();
 		clientInterface.initializePortfolio( );
+		
 		tpStatus.setText("Connected!");
-
+		btnOn.setEnabled(true);
 	}
 	/**
 	 * Get the market data for the given contract.
@@ -115,6 +118,8 @@ public class Urlacher {
 		//Need to request quotes after the router is created and strategies set
 		clientInterface.requestQuotes();
 		tpStatus.setText("Requested Quotes");
+		btnOff.setEnabled(true);
+		chckbxMkt.setEnabled(true);
 	}
 	public void cancelQuotes(){
 		clientInterface.cancelMktData();
@@ -178,14 +183,6 @@ public class Urlacher {
 		JButton btnBuyClose = new JButton("Buy Close");
 		panel.add(btnBuyClose);
 		
-		JButton btnConnect = new JButton("Connect");
-		btnConnect.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				connect();
-			}
-		});
-		panel.add(btnConnect);
-		
 		btnPlayDefense = new JToggleButton("Play Defense");
 		panel.add(btnPlayDefense);
 		btnPlayDefense.addActionListener(new ActionListener() {
@@ -214,21 +211,32 @@ public class Urlacher {
 		panel_3.add(tfContractExpiration);
 		tfContractExpiration.setColumns(10);
 		
-		JButton btnOff = new JButton("Off");
+		btnOff = new JButton("Off");
+		btnOff.setEnabled(false);
 		panel_3.add(btnOff);
 		
-		JButton btnOn = new JButton("On");
+		btnOn = new JButton("On");
+		btnOn.setEnabled(false);
 		panel_3.add(btnOn);
 		
 		JPanel panel_4 = new JPanel();
 		panel_1.add(panel_4, BorderLayout.NORTH);
 		
 		chckbxMkt = new JCheckBox("mkt");
+		chckbxMkt.setEnabled(false);
 		chckbxMkt.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				if(defense != null){
 					defense.setMkt(chckbxMkt.isSelected());
 				}
+			}
+		});
+		
+		JButton btnConnect = new JButton("Connect");
+		panel_4.add(btnConnect);
+		btnConnect.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				connect();
 			}
 		});
 		panel_4.add(chckbxMkt);
