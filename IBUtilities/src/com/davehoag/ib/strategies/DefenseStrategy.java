@@ -109,7 +109,7 @@ public class DefenseStrategy extends AbstractStrategy {
 					System.err.println(buySide);
 					executionEngine.executeOrder(buySide);
 				} else {
-					if(dc.getAge() > 5 && buySide.isConfirmed()){
+					if(defenseScratch(field, price, buySide)){
 						updateStopOrderPrice(esRouter, buySide);
 					}
 				}
@@ -118,13 +118,26 @@ public class DefenseStrategy extends AbstractStrategy {
 					System.err.println(sellSide);
 					executionEngine.executeOrder(sellSide);			
 				} else {
-					if(dc.getAge() > 5 && sellSide.isConfirmed()){
+					if(defenseScratch(field, price, sellSide)){
 						updateStopOrderPrice(esRouter, sellSide);
 					}
 				}
 			}
 		}
 		
+	}
+	/**
+	 * A place to try different scratch approaches.
+	 * @param field
+	 * @param price
+	 * @param order
+	 * @return
+	 */
+	private boolean defenseScratch(int field, double price,
+			LimitOrder order) {
+		//nothing to scratch
+		if(! order.isConfirmed()) return false;
+		return true;
 	}
 	/**
 	 * Creates a limit order with an associated stop. No profit taker order as this is intended
@@ -250,14 +263,14 @@ public class DefenseStrategy extends AbstractStrategy {
 		}
 	}
 	/**
-	 * @param execution
+	 * @param order A filled order
 	 * @param quoteRouter
 	 */
 	private void updateStopOrderPrice(QuoteRouter quoteRouter, LimitOrder order) {
 		LimitOrder stopOrder = order.getStopLoss(); 
 		stopOrder.setMkt(mkt);
 		stopOrder.setOrderPrice(order.getPrice());
-		sleep(550);
+		//sleep(550);
 		if(! stopOrder.isConfirmed())
 			quoteRouter.executeOrder(stopOrder);
 	}
