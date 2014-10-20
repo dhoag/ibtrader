@@ -99,12 +99,19 @@ public class ResponseHandler implements EWrapper {
 	public void error(final int id, final int errorCode, final String errorMsg) {
 		
 		int [] informationalCodes = { 2104 ,2106 }; //Tell us about data post connect
+		int [] warnCodes = { 399 };
 		boolean inf = false;
 		for(int code: informationalCodes){
 			if(code == errorCode){
 				inf = true;
 				requester.confirmConnection();
 				break;
+			}
+		}
+		for(int code: warnCodes){
+			if(code == errorCode){
+				LogManager.getLogger("ResponseHandler").warn( "[" + id + "]  "+ errorCode + " '" + errorMsg + "'");
+				return;
 			}
 		}
 		if(inf)
@@ -124,6 +131,7 @@ public class ResponseHandler implements EWrapper {
 			final ResponseHandlerDelegate ew = requester.getResponseHandler(id);
 			if(ew != null) ew.error(id, errorCode, errorMsg);
 			requester.endRequest(id);
+			LogManager.getLogger("ResponseHandler").info("[" + id + "] " + errorCode + " purging ID from ResponseHandler map");
 		}
 	}
 	/**
@@ -249,7 +257,9 @@ public class ResponseHandler implements EWrapper {
 				//TODO figure out the response handler based on orderid
 				final ResponseHandlerDelegate ew = requester.getResponseHandler(orderId);
 				if(ew != null) ew.openOrder(orderId, contract, order, orderState);
-				else LogManager.getLogger("RealTimeBar").warn( "[" + orderId + "] Reveived openOrder but no delegate registered " );
+				else {
+					LogManager.getLogger("ResponseHandler").warn( "[" + orderId + "] Reveived openOrder but no delegate registered. Resting orders likely exist " );
+				}
 			};
 		};
 		executorService.execute(r);

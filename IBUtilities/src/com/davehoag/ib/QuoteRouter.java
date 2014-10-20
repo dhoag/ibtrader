@@ -99,6 +99,7 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	public void execDetails(final int reqId, final Contract contract, final Execution execution) {
 		if(m_contract.equals(contract)){
 			portfolio.confirm(execution.m_orderId, m_contract ,execution.m_price, execution.m_shares);
+
 			LogManager.getLogger("Trading").info( "[" + reqId + "] " + execution.m_side +  " execution report. Filled " + m_contract.m_symbol + " " + execution.m_shares + " @ " + nf.format(execution.m_price ));
 
 			for (Strategy strat : strategies) {
@@ -173,7 +174,8 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 		requester.executeOrder(order, this);
 	}
 	/**
-	 * Called only when a request for all open orders is made??
+	 * Called only when a request for all open orders is made or if there are resting orders
+	 * known to IB
 	 */
 	@Override
 	public void openOrder(int orderId, Contract contract, Order order, OrderState orderState) {
@@ -193,17 +195,13 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	}
 	@Override
 	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {
-		String priceType;
-		switch(field){
-		case TickType.ASK: priceType = "Ask"; break;
-		case TickType.BID: priceType = "Bid"; break;
-		case TickType.LAST: priceType = "Last"; portfolio.updatePrice(m_contract, price ); break;
-		default: priceType = "High,Low,Close";
-		}
 		for (Strategy strat : strategies) {
 			strat.tickPrice(m_contract.m_symbol, field, price, portfolio, this);
 		}
 		
+		if(field == TickType.LAST){
+			portfolio.updatePrice(m_contract, price );
+		}
 	}
 	@Override
 	public void tickSize(int tickerId, int field, int size) {

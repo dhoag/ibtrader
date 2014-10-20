@@ -187,6 +187,7 @@ public class IBClientRequestExecutor {
 					lmtOrder.setId(order.m_orderId);
 				else
 					order.m_orderId = lmtOrder.getId();
+				//TODO cleanup the response handler delegate stuff if I override the newly generated ID
 				
 				//Log to portfolio because we are assuming a fill		
 				responseHandler.getPortfolio().placedOrder( lmtOrder );
