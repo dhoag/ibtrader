@@ -99,6 +99,9 @@ public class DefenseStrategy extends AbstractStrategy {
 		if(TickType.LAST == field) {
 			lastPrice = price;
 			dc.pushPrice(price);
+			double r2 = dc.getRSquared();
+			if(r2 > .5)
+			System.out.println("Price " + price + "R^2 " + r2 + " Slope: " + dc.getSlope());
 		}
 
 		//TODO figure out better pricing for buy or sell
@@ -173,7 +176,8 @@ public class DefenseStrategy extends AbstractStrategy {
 			LimitOrder lastOpenPosition = positionTrade.pop();
 			cancelStop(executionEngine, lastOpenPosition);
 			limitOrder.setOnset(lastOpenPosition);
-			trendClosed.add(lastOpenPosition);
+			trendClosed.add(limitOrder);
+			limitOrder.setStopLoss(null);
 		}
 		else {
 			positionTrade.push(limitOrder);
