@@ -6,7 +6,19 @@
     </Console>
   </appenders>
   <loggers>
-    <logger name="com.foo.Bar" level="trace" additivity="false">
+    <logger name="Trading" level="warn" additivity="false">
+      <appender-ref ref="Console"/>
+    </logger>
+    <logger name="Portfolio" level="warn" additivity="false">
+      <appender-ref ref="Console"/>
+    </logger>
+    <logger name="MACD" level="error" additivity="false">
+      <appender-ref ref="Console"/>
+    </logger>
+    <logger name="RequestManager" level="info" additivity="false">
+      <appender-ref ref="Console"/>
+    </logger>
+    <logger name="MarketData" level="warn" additivity="false">
       <appender-ref ref="Console"/>
     </logger>
     <root level="trace">

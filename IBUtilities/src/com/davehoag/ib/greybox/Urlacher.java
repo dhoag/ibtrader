@@ -14,6 +14,7 @@ import javax.swing.JToggleButton;
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.ResponseHandler;
+import com.davehoag.ib.dataTypes.DoubleCache;
 import com.davehoag.ib.strategies.DefenseStrategy;
 import com.ib.client.EClientSocket;
 
@@ -40,8 +41,10 @@ public class Urlacher {
 	Stack<String> status = new Stack<String>();
 	private JCheckBox chckbxMkt;
 	private final JButton btnNewButton = new JButton("Stats");
+	private final RegressionLine lineWindow = new RegressionLine();
 	private JButton btnOff;
 	private JButton btnOn;
+	DoubleCache dc;
 	/**
 	 * Launch the application.
 	 */
@@ -114,6 +117,8 @@ public class Urlacher {
 		//router.addStrategy(dis);
 
 		defense = new DefenseStrategy();
+		dc = defense.getPriceHistory();
+		lineWindow.setPriceHistory(dc);
 		router.addStrategy(defense);
 		//Need to request quotes after the router is created and strategies set
 		clientInterface.requestQuotes();
@@ -202,7 +207,7 @@ public class Urlacher {
 		panel_1.setLayout(new BorderLayout(0, 0));
 		
 		JPanel panel_3 = new JPanel();
-		panel_1.add(panel_3);
+		panel_1.add(panel_3, BorderLayout.CENTER);
 		
 		JLabel lblExpirationDateYyyymm = new JLabel("Expiration Date: YYYYMM");
 		panel_3.add(lblExpirationDateYyyymm);
@@ -221,6 +226,8 @@ public class Urlacher {
 		
 		JPanel panel_4 = new JPanel();
 		panel_1.add(panel_4, BorderLayout.NORTH);
+		
+		panel_4.add(lineWindow);
 		
 		chckbxMkt = new JCheckBox("mkt");
 		chckbxMkt.setEnabled(false);

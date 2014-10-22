@@ -29,7 +29,12 @@ public class DefenseStrategy extends AbstractStrategy {
 	ArrayList<LimitOrder> trendClosed = new ArrayList<LimitOrder>();
 	QuoteRouter esRouter;
 	double lastPrice;
+	double lastAsk;
+	double lastBid;
 	DoubleCache dc = new DoubleCache();
+	public DoubleCache getPriceHistory(){
+		return dc;
+	}
 	/**
 	 * Enter a long position with a stop 1 tick below entry price
 	 */
@@ -100,9 +105,11 @@ public class DefenseStrategy extends AbstractStrategy {
 			lastPrice = price;
 			dc.pushPrice(price);
 			double r2 = dc.getRSquared();
-			if(r2 > .5)
-			System.out.println("Price " + price + "R^2 " + r2 + " Slope: " + dc.getSlope());
+			//if(r2 > .5)
+			System.out.println("Price: " + price + " R^2: " + r2 + " Slope: " + dc.getSlope());
 		}
+		else if(TickType.ASK == field) lastAsk= price;
+		else if(TickType.BID == field) lastBid = price;
 
 		//TODO figure out better pricing for buy or sell
 		if(playDefense){
@@ -153,13 +160,14 @@ public class DefenseStrategy extends AbstractStrategy {
 	protected void createAndExecuteOrder() {
 		//got a decent price
 		LimitOrder order;
+		System.out.println("Last bid " + lastBid + " " + lastAsk);
 		if(upBias) {				
-			order = createBuyOrder(lastPrice);
+			order = createBuyOrder(lastBid);
 		}
 		else{
-			order = createSellOrder(lastPrice);
+			order = createSellOrder(lastAsk);
 		}
-		order.setProfitTaker(null);
+		
 		order.setMkt(mkt);
 		executeOrder(esRouter, order);
 	}
@@ -202,22 +210,22 @@ public class DefenseStrategy extends AbstractStrategy {
 	protected LimitOrder createSellOrder(double price) {
 		LimitOrder sellOrder = new LimitOrder(contractQty, price , sell);
 		// Put a safety net out
-		LimitOrder stopLoss = new LimitOrder(contractQty, price + .5, buy);
+		LimitOrder stopLoss = new LimitOrder(contractQty, price + .75, buy);
 		sellOrder.setStopLoss(stopLoss);
 
-		LimitOrder profitTaker = new LimitOrder(contractQty, price - .25, buy);
+/*		LimitOrder profitTaker = new LimitOrder(contractQty, price - .25, buy);
 		sellOrder.setProfitTaker(profitTaker);
-		
+	*/	
 		return sellOrder;
 	}
 	protected LimitOrder createBuyOrder(double price) {
 		LimitOrder buyOrder = new LimitOrder(contractQty, price , buy);
 		// Put a safety net out
-		LimitOrder stopLoss = new LimitOrder(contractQty, price - .5, sell);
+		LimitOrder stopLoss = new LimitOrder(contractQty, price - .75, sell);
 		buyOrder.setStopLoss(stopLoss);
-		LimitOrder profitTaker = new LimitOrder(contractQty, price + .25, sell);
+/*		LimitOrder profitTaker = new LimitOrder(contractQty, price + .25, sell);
 		buyOrder.setProfitTaker(profitTaker);
-		
+	*/ 	
 		return buyOrder;
 	}
 	synchronized void sleep(int time){

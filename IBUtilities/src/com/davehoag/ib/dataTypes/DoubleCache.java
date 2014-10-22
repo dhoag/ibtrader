@@ -11,7 +11,16 @@ public class DoubleCache {
 	int countSinceChange = 0;
 	double priorDifferentPrice;
 	SimpleRegression regression = new SimpleRegression();
+	double tickSize = .25;
 	
+	/**
+	 * Value from 1 to -1 as a measure of % change of a slope 
+	 * @return
+	 */
+	public double getPercentageSlope(){
+		double slope = getSlope();
+		return slope/tickSize;
+	}
 	//really only works once we have a full set of data
 	Iterable iter = new Iterable<Double>(){
 		@Override
