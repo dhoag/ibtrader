@@ -84,7 +84,7 @@ public class DefenseStrategy extends AbstractStrategy {
 	}
 	@Override
 	public void newBar(Bar bar, Portfolio holdings, QuoteRouter executionEngine) {
-		// TODO Auto-generated method stub
+		System.out.println(bar);
 	}
 	/**
 	 * Defensive tick driving trading. 

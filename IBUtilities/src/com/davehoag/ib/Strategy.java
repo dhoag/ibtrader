@@ -1,6 +1,7 @@
 package com.davehoag.ib;
 import com.davehoag.ib.dataTypes.Bar;
 import com.davehoag.ib.dataTypes.Portfolio;
+import com.ib.client.Contract;
 import com.ib.client.Execution;
 
 
@@ -40,5 +41,11 @@ public interface Strategy {
 			QuoteRouter quoteRouter);
 
 	public void cancelOrder(int id, int errorCode, Portfolio portfolio, QuoteRouter quoteRouter);
+
+	public void tickString(Contract m_contract, int tickType, String value, Portfolio portfolio,
+			QuoteRouter quoteRouter);
+
+	public void tickSize(Contract m_contract, int field, int size, Portfolio portfolio,
+			QuoteRouter quoteRouter);
 
 }

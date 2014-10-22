@@ -9,6 +9,7 @@ import com.ib.client.EWrapper;
 import com.ib.client.Execution;
 import com.ib.client.Order;
 import com.ib.client.OrderState;
+import com.ib.client.TickType;
 import com.ib.client.UnderComp;
 
 abstract class ResponseHandlerDelegate implements EWrapper {
@@ -137,22 +138,30 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	}
 
 	@Override
-	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {	}
+	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {
+		System.out.println("TickPrice [" + tickerId +"] "+ TickType.getField(field) + price);
+	}
 
 	@Override
-	public void tickSize(int tickerId, int field, int size) {	}
+	public void tickSize(int tickerId, int field, int size) {
+		System.out.println("TickSize [" + tickerId +"] "  + TickType.getField(field) + size);
+	}
 
 	@Override
 	public void tickOptionComputation(int tickerId, int field, double impliedVol, double delta,
 			double optPrice, double pvDividend, double gamma, double vega, double theta, double undPrice) {
-		// TODO Auto-generated method stub
+
+		System.out.println("TickOption [" + tickerId +"] " + TickType.getField(field));
 
 	}
 
 	@Override
 	public void tickGeneric(int tickerId, int tickType, double value) {
-		// TODO Auto-generated method stub
-
+		if(tickType == TickType.HALTED && value != 0.0){
+			error("[" + tickerId + "] Got a market halted generic tick. 1 general halt, 2 Volatility halt: " + value);
+		}
+		else 
+			System.out.println("TickGeneric [" + tickerId +"] " + TickType.getField(tickType) + " " + value);
 	}
 
 	@Override
@@ -162,7 +171,7 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 	public void tickEFP(int tickerId, int tickType, double basisPoints, String formattedBasisPoints,
 			double impliedFuture, int holdDays, String futureExpiry, double dividendImpact,
 			double dividendsToExpiry) {
-		// TODO Auto-generated method stub
+		System.out.println("TickEFP [" + tickerId +"] " + TickType.getField(tickType));
 
 	}
 
@@ -343,7 +352,7 @@ abstract class ResponseHandlerDelegate implements EWrapper {
 
 	@Override
 	public void tickSnapshotEnd(int reqId) {
-		// TODO Auto-generated method stub
+		System.out.println("TickSnapshotEnd[" + reqId +"] "  );
 
 	}
 

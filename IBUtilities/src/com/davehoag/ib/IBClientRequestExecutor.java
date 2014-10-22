@@ -10,6 +10,7 @@ import java.util.Vector;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.logging.Logger;
 
 import org.apache.logging.log4j.LogManager;
 
@@ -594,20 +595,21 @@ public class IBClientRequestExecutor {
 			public void run() {
 				final int reqId = pushRequest();
 				rh.setReqId(reqId);
+				
 				pushResponseHandler(reqId, rh);
 				LogManager.getLogger("RequestManager").info(
 						"Submitting request for real time bars [" + reqId + "] " + stock);
 				Vector<TagValue> notUsed = null;
 				//true means RTH only
 				//5 is the only legal value for realTimeBars - resulting in 5 second bars
-				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, true, notUsed);
+				client.reqRealTimeBars(reqId, stock, 5, IBConstants.showTrades, false, notUsed);
 				final boolean snapshot = false;
 				final int tickReqId = pushRequest();
 				rh.setTickerRequestId(tickReqId);
 				pushResponseHandler(tickReqId, rh);
 				LogManager.getLogger("RequestManager").info(
 						"Submitting request for tick data [" + tickReqId + "] " + stock);
-				client.reqMktData(tickReqId, stock, "", snapshot, notUsed);
+				client.reqMktData(tickReqId, stock, "100,101,106,233", snapshot, notUsed);
 
 			}
 		};
@@ -663,8 +665,9 @@ public class IBClientRequestExecutor {
 	}
 	public void cancelMktData(){
 		for (QuoteRouter strat : quoteRouters.values()) {
+			Logger.getLogger("MarketData").info("Cancelling ticker market data " + strat.getTickerRequestId());
 			client.cancelMktData(strat.getTickerRequestId());
-
+			Logger.getLogger("MarketData").info("Cancelling realtime bar market data " + strat.getBarRequestId());
 			client.cancelMktData(strat.getBarRequestId());
 		}
 		

@@ -7,6 +7,7 @@ import java.util.Date;
 import org.apache.logging.log4j.LogManager;
 
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.IntegerCache;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.davehoag.ib.dataTypes.StockContract;
@@ -35,6 +36,15 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	String date;
 	Portfolio portfolio;
 	boolean requestedHistoricalData = false;
+	IntegerCache lastSize = new IntegerCache();
+	IntegerCache bidSize = new IntegerCache();
+	IntegerCache askSize = new IntegerCache();
+	IntegerCache volume = new IntegerCache();
+	
+	public IntegerCache getLastSize(){ return lastSize; }
+	public IntegerCache getBidSize(){ return bidSize; }
+	public IntegerCache getAskSize(){ return askSize; }
+	public IntegerCache getVolume(){ return volume; }
 	public Portfolio getPortfolio(){
 		return portfolio;
 	}
@@ -190,8 +200,11 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 
 	@Override
 	public void tickString(int tickerId, int tickType, String value) {
-		//ignore for now
-		//System.out.println("Symbol " + symbol + "tickString " + tickerId + " " + tickType + " " + value);
+		for (Strategy strat : strategies) {
+			strat.tickString(m_contract, tickType, value, portfolio, this);
+		}
+		
+		//System.out.println("TickString: " + getContract() + " [" + tickerId + "] " + TickType.getField(tickType) + " " + value);
 	}
 	@Override
 	public void tickPrice(int tickerId, int field, double price, int canAutoExecute) {
@@ -205,8 +218,14 @@ public class QuoteRouter extends ResponseHandlerDelegate {
 	}
 	@Override
 	public void tickSize(int tickerId, int field, int size) {
-		//ignore for now
-		//System.out.println("Symbol " + symbol + " tickSize " + tickerId + " " + field + " " + size );
+		if(TickType.ASK_SIZE == field) askSize.pushPrice(size);
+		if(TickType.BID_SIZE == field) bidSize.pushPrice(size);
+		if(TickType.VOLUME == field) volume.pushPrice(size);
+		if(TickType.LAST_SIZE == field) lastSize.pushPrice(size);
+		for (Strategy strat : strategies) {
+			strat.tickSize(m_contract, field, size, portfolio, this);
+		}
+		//System.out.println("TickSize " + getContract() + " [" + tickerId + "] " + TickType.getField(field) + " " + size );
 	}
 	@Override
 	public void error(final int id, final int errorCode, final String errorMsg) {

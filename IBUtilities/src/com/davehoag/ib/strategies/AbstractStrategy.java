@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import com.davehoag.ib.QuoteRouter;
 import com.davehoag.ib.Strategy;
 import com.davehoag.ib.dataTypes.Bar;
+import com.davehoag.ib.dataTypes.IntegerCache;
 import com.davehoag.ib.dataTypes.LimitOrder;
 import com.davehoag.ib.dataTypes.Portfolio;
 import com.ib.client.Contract;
@@ -18,7 +19,7 @@ public abstract class AbstractStrategy implements Strategy {
 	boolean maxQty;
 	int qty = 100;
 	Portfolio port;
-
+	
 	String convertTickType(int field){
 		String priceType;
 		switch(field){
@@ -167,6 +168,16 @@ public abstract class AbstractStrategy implements Strategy {
 		// do nothing
 	}
 	public void cancelOrder(int id, int errorCode, Portfolio portfolio, QuoteRouter quoteRouter){
+		//do nothing
+	}
+
+	public void tickString(Contract m_contract, int tickType, String value, Portfolio portfolio,
+			QuoteRouter quoteRouter){
+		//do nothing
+	}
+
+	public void tickSize(Contract m_contract, int field, int size, Portfolio portfolio,
+			QuoteRouter quoteRouter){
 		//do nothing
 	}
 }
