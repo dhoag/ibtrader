@@ -141,7 +141,10 @@ public class IBClientRequestExecutor {
 	 * Connect to the default host/ports through the TWS client. It doesn't
 	 * actually validate the clientId until the first request is made
 	 */
-	public void connect() {
+	public void connect(){
+		connect(true);
+	}
+	public void connect(boolean exitOnFailure){
 		System.out.println(IBConstants.blah);
 		client.eConnect(IBConstants.host, IBConstants.port, IBConstants.clientId);
 		if (client.isConnected()) {
@@ -151,8 +154,21 @@ public class IBClientRequestExecutor {
 		} else {
 			LogManager.getLogger("RequestManager").error(
 					"Failed to connect " + IBConstants.host + " " + IBConstants.port);
-			System.exit(1);
+			if(exitOnFailure) System.exit(1);
 		}
+	}
+	public boolean reconnect() {
+		try {
+			Thread.currentThread().sleep(1000);
+			connectionConfirmed = false;
+			connect(false);
+			waitOnConfirmation();
+			return true;
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
 	}
 	/**
 	 * Pass right through, no delay on this one

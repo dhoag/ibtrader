@@ -136,12 +136,15 @@ public class ResponseHandler implements EWrapper {
 	}
 	/**
 	 * Told by client that we are closed
+	 * TODO handle automatically reconnecting to TWS.
 	 */
 	@Override
 	public void connectionClosed() {
 		LogManager.getLogger("ResponseHandler").error("Connection Closed!!!");
 		portfolio.displayValue();
-		requester.forcedClose();
+		if(! requester.reconnect())
+			requester.forcedClose();
+		
 	}
 
 	@Override
