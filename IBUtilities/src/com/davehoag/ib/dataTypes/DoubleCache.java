@@ -12,14 +12,24 @@ public class DoubleCache {
 	double priorDifferentPrice;
 	SimpleRegression regression = new SimpleRegression();
 	double tickSize = .25;
-	
+	public static void main(String [] args){
+		double value = 15.0;
+		SimpleRegression reg = new SimpleRegression();
+		for(int i = 0; i < 20; i++){
+			reg.addData(i+1, value + (i * .5));
+		}
+		System.out.println(reg.getSlope());
+	}
 	/**
 	 * Value from 1 to -1 as a measure of % change of a slope 
 	 * @return
 	 */
 	public double getPercentageSlope(){
 		double slope = getSlope();
-		return slope/tickSize;
+		double sd = Math.sqrt(regression.getRegressionSumSquares() / regression.getN());
+		//System.out.println("SD " + sd + " " + tickSize + "  " + slope);
+		//return Math.min(slope/tickSize, 1.0);
+		return Math.min((Math.abs(slope)/ slope)*(sd/tickSize), 1.0);
 	}
 	//really only works once we have a full set of data
 	Iterable iter = new Iterable<Double>(){

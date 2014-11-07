@@ -105,8 +105,8 @@ public class DefenseStrategy extends AbstractStrategy {
 			lastPrice = price;
 			dc.pushPrice(price);
 			double r2 = dc.getRSquared();
-			//if(r2 > .5)
-			System.out.println("Price: " + price + " R^2: " + r2 + " Slope: " + dc.getSlope());
+			if(r2 > .5)
+				System.out.println("Price: " + price + " R^2: " + r2 + " Slope: " + dc.getSlope());
 		}
 		else if(TickType.ASK == field) lastAsk= price;
 		else if(TickType.BID == field) lastBid = price;
