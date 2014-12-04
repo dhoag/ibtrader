@@ -33,7 +33,7 @@ public class FutureContract extends Contract {
 		if(obj != this) {
 			if(obj.getClass() == Contract.class){
 				final Contract aContract = (Contract)obj;
-				return aContract.m_symbol.equals(m_symbol) & aContract.m_expiry.startsWith(m_expiry);
+				return aContract.m_symbol.equals(m_symbol) && aContract.m_expiry.startsWith(m_expiry);
 			}
 			return obj.toString().equals(toString());
 		}
