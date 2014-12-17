@@ -34,6 +34,7 @@ public class Urlacher {
 	private JFrame frame;
 	IBClientRequestExecutor clientInterface;
 	private JTextField tfContractExpiration;
+	private JTextField tfStopDistance;
 	private JTextPane tpStatus;
 	private DefenseStrategy defense;
 	private JToggleButton btnPlayDefense;
@@ -44,6 +45,7 @@ public class Urlacher {
 	private final RegressionLine lineWindow = new RegressionLine();
 	private JButton btnOff;
 	private JButton btnOn;
+	private JButton btnConnect;
 	DoubleCache dc;
 	/**
 	 * Launch the application.
@@ -106,6 +108,7 @@ public class Urlacher {
 		
 		tpStatus.setText("Connected!");
 		btnOn.setEnabled(true);
+		btnConnect.setEnabled(false);
 	}
 	/**
 	 * Get the market data for the given contract.
@@ -239,7 +242,7 @@ public class Urlacher {
 			}
 		});
 		
-		JButton btnConnect = new JButton("Connect");
+		btnConnect = new JButton("Connect");
 		panel_4.add(btnConnect);
 		btnConnect.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
