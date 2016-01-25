@@ -7,6 +7,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.LinkedList;
+import java.util.Random;
 
 import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.dataTypes.Bar;
@@ -25,17 +26,23 @@ public class DumpData {
 		final String endTime = args[i++];
 		PrintStream out = getOutputStream();
 		
-		writeDailyDataHeader(out);
 		
-		boolean dailyDataOnly = "bar1day".equals(barSize); 		
+		boolean dailyDataOnly = "bar1day".equals(barSize);
+		boolean random = "rnd".equals(barSize);
 		if(dailyDataOnly) {
+			writeDailyDataHeader(out);
 			out.println("");
 		}
 		else {
-			out.print(",");
+			if(! random ){
+				writeDailyDataHeader(out);
+				out.print(",");
+			}
 			writeIntradayHeader(out);
 			out.println("");
 		}
+		//Need same seed for each symbol
+		long rndSeed = System.currentTimeMillis();
 
 		for( ; i< args.length;)
 		try 
@@ -48,6 +55,32 @@ public class DumpData {
 			if(dailyDataOnly) {
 				final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, start, finish, "bar1day");
 				dailyDataOnly(logMsgs, dailyDataIterator);
+			}
+			else if(random){
+				Random rnd = new Random( rndSeed );
+				System.out.println("Start " + start);
+				long range = finish - start;
+				for(int j = 0; j < 25; j++){
+
+					double d = rnd.nextDouble();
+					long offset = (long)(range * d);
+					long newStart = start + offset;
+					long newFinish = newStart + 60*60*24;
+					final BarIterator data = CassandraDao.getInstance().getData(symbol, newStart, newFinish, "bar5sec");
+
+					for(Bar aBar: data){
+						final StringBuffer buffer = new StringBuffer();
+						buffer.append( "," + HistoricalDateManipulation.getDateAsStr(aBar.originalTime) );
+						buffer.append( "," + nf.format(aBar.open) );
+						buffer.append( "," + nf.format(aBar.high) );
+						buffer.append( "," + nf.format(aBar.low) );
+						buffer.append( "," + nf.format(aBar.close) );
+						buffer.append( "," + nf.format(aBar.volume) );
+						buffer.append( "," + nf.format(aBar.wap) );
+						buffer.append( "," + nf.format(aBar.tradeCount) );
+						logMsgs.add(buffer);
+					}
+				}
 			}
 			else{ 
 				final BarIterator dailyDataIterator = CassandraDao.getInstance().getData(symbol, 365, finish, "bar1day");
