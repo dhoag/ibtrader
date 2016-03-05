@@ -38,6 +38,9 @@ public class DumpData {
 				writeDailyDataHeader(out);
 				out.print(",");
 			}
+			else {
+				out.print("symbol,");
+			}
 			writeIntradayHeader(out);
 			out.println("");
 		}
@@ -70,6 +73,7 @@ public class DumpData {
 
 					for(Bar aBar: data){
 						final StringBuffer buffer = new StringBuffer();
+						buffer.append(aBar.symbol);
 						buffer.append( "," + HistoricalDateManipulation.getDateAsStr(aBar.originalTime) );
 						buffer.append( "," + nf.format(aBar.open) );
 						buffer.append( "," + nf.format(aBar.high) );

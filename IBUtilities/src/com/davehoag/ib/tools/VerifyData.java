@@ -13,8 +13,9 @@ import com.davehoag.ib.dataTypes.StockContract;
 import com.davehoag.ib.util.HistoricalDateManipulation;
 
 public class VerifyData {
-	static String [] bars = { "bar1day", "bar5sec" };
+	static String[] bars = { "bar1day", "bar5sec" };
 	static String[] symbols = { "QQQ", "SPY", "TIP", "AGG", "AAPL", "DDD" };
+
 	/**
 	 * @param args
 	 */
@@ -23,9 +24,10 @@ public class VerifyData {
 			symbols = args;
 			System.out.println("Changing symbols to " + args);
 		}
-		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor.connectToAPI();
+		final IBClientRequestExecutor clientInterface = IBClientRequestExecutor
+				.connectToAPI();
 		pullLatestMarketData(clientInterface);
-		if(System.getProperty("updateOnly") == null)
+		if (System.getProperty("updateOnly") == null)
 			cleanupMissingData(clientInterface);
 		clientInterface.close();
 	}
@@ -33,50 +35,57 @@ public class VerifyData {
 	/**
 	 * @param clientInterface
 	 */
-	protected static void cleanupMissingData(final IBClientRequestExecutor clientInterface) {
+	protected static void cleanupMissingData(
+			final IBClientRequestExecutor clientInterface) {
 		final Calendar today = Calendar.getInstance();
 		today.add(Calendar.MONTH, -8);
-		final String startingDateStr = HistoricalDateManipulation.getDateAsStr(today.getTime());
-		for(String symbol: symbols )
-		try{
-				ArrayList<String> missingData = getDatesMissingData(startingDateStr, symbol);
-				clientInterface.reqHistoricalData(missingData, new StockContract(symbol));
+		final String startingDateStr = HistoricalDateManipulation
+				.getDateAsStr(today.getTime());
+		for (String symbol : symbols)
+			try {
+				ArrayList<String> missingData = getDatesMissingData(
+						startingDateStr, symbol);
+				clientInterface.reqHistoricalData(missingData,
+						new StockContract(symbol));
 				clientInterface.waitForCompletion();
-		}
-		catch(Exception ex){
-			ex.printStackTrace();
-		}
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
 	}
 
 	/**
 	 * 
 	 */
-	private static void pullLatestMarketData(final IBClientRequestExecutor clientInterface) {
+	private static void pullLatestMarketData(
+			final IBClientRequestExecutor clientInterface) {
 		final DateFormat df = new SimpleDateFormat("yyyyMMdd");
-		
-		for( String barSize: bars){
-			for(String symbol: symbols )
-			try{
-				System.out.println(Thread.currentThread() +"Checking " + barSize + " for " + symbol);
-				long date = CassandraDao.getInstance().findMostRecentDate(symbol, barSize);
-				if(date > 1000){
-					System.out.println(" " + new Date(date*1000));
-					String dateStr = df.format(new Date(date*1000));
-					PullStockData.pullData(dateStr, barSize, clientInterface,0, symbol );
-					clientInterface.waitForCompletion();
+
+		for (String barSize : bars) {
+			for (String symbol : symbols)
+				try {
+					System.out.println(Thread.currentThread() + "Checking "
+							+ barSize + " for " + symbol);
+					long date = CassandraDao.getInstance().findMostRecentDate(
+							symbol, barSize);
+					if (date > 1000) {
+						System.out.println(" " + new Date(date * 1000));
+						String dateStr = df.format(new Date(date * 1000));
+						PullStockData.pullData(dateStr, barSize,
+								clientInterface, 0, symbol);
+						clientInterface.waitForCompletion();
+					} else { // No prior data
+						Calendar c = Calendar.getInstance();
+						c.add(Calendar.MONTH, -10);
+						String dateStr = df.format(c.getTime());
+						PullStockData.pullData(dateStr, barSize,
+								clientInterface, 0, symbol);
+						clientInterface.waitForCompletion();
+					}
+				} catch (Exception ex) {
+					System.err.println("Skipping verification of " + symbol
+							+ " " + barSize + " due to " + ex);
+					ex.printStackTrace(System.err);
 				}
-				else { //No prior data
-					Calendar c = Calendar.getInstance();
-					c.add(Calendar.MONTH, -10);
-					String dateStr = df.format(c.getTime());
-					PullStockData.pullData(dateStr, barSize, clientInterface,0, symbol );
-					clientInterface.waitForCompletion();
-				}
-			}
-			catch(Exception ex){
-				System.err.println("Skipping verification of " + symbol + " " + barSize + " due to " + ex);
-				ex.printStackTrace(System.err);
-			}
 		}
 	}
 
@@ -89,25 +98,32 @@ public class VerifyData {
 	 * @return
 	 * @throws ParseException
 	 */
-	static ArrayList<String> getDatesMissingData(final String startingDateStr, final String symbol) throws ParseException{
+	static ArrayList<String> getDatesMissingData(final String startingDateStr,
+			final String symbol) throws ParseException {
 		final ArrayList<String> result = new ArrayList<String>();
 		final Calendar today = Calendar.getInstance();
-		final ArrayList<String> tradingDays = HistoricalDateManipulation.getWeekDays(startingDateStr, today);
-		for(String dateStr : tradingDays ){
+		final ArrayList<String> tradingDays = HistoricalDateManipulation
+				.getWeekDays(startingDateStr, today);
+		for (String dateStr : tradingDays) {
 			final long day = HistoricalDateManipulation.getTime(dateStr);
-			
-			final int barDayCount = CassandraDao.getInstance().countRecordsForCurrentDay(symbol, "bar1day", day);
-			final int bar5SecCount = CassandraDao.getInstance().countRecordsForCurrentDay(symbol, "bar5sec", day);
-			if (barDayCount == 1 && (bar5SecCount != 4680 & bar5SecCount != 2520)) {
-				String justDateValues = dateStr.substring(0, dateStr.indexOf(' '));
+
+			final int barDayCount = CassandraDao.getInstance()
+					.countRecordsForCurrentDay(symbol, "bar1day", day);
+			final int bar5SecCount = CassandraDao.getInstance()
+					.countRecordsForCurrentDay(symbol, "bar5sec", day);
+			if (barDayCount == 1
+					&& (bar5SecCount != 4680 & bar5SecCount != 2520)) {
+				String justDateValues = dateStr.substring(0,
+						dateStr.indexOf(' '));
 				DateFormat df = new SimpleDateFormat("yyyyMMdd");
 				Date d = df.parse(justDateValues);
 				Calendar sameDay = Calendar.getInstance();
 				sameDay.setTime(d);
-				ArrayList<String> hoursToGet = HistoricalDateManipulation.getDatesBrokenIntoHours(
-						justDateValues, sameDay);
+				ArrayList<String> hoursToGet = HistoricalDateManipulation
+						.getDatesBrokenIntoHours(justDateValues, sameDay);
 				result.addAll(hoursToGet);
-				System.out.println(symbol + ' ' + dateStr+ ' ' + barDayCount + ' ' + bar5SecCount);
+				System.out.println(symbol + ' ' + dateStr + ' ' + barDayCount
+						+ ' ' + bar5SecCount);
 			}
 		}
 		return result;

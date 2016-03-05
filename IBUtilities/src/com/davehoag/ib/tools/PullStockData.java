@@ -11,7 +11,9 @@ import com.davehoag.ib.CassandraDao;
 import com.davehoag.ib.IBClientRequestExecutor;
 import com.davehoag.ib.ResponseHandler;
 import com.davehoag.ib.StoreHistoricalData;
+import com.davehoag.ib.dataTypes.FutureContract;
 import com.davehoag.ib.dataTypes.StockContract;
+import com.ib.client.Contract;
 import com.ib.client.EClientSocket;
 /**
  * http://individuals.interactivebrokers.com/php/apiguide/interoperability/dde_excel/tabhistorical.htm
@@ -52,8 +54,17 @@ public class PullStockData {
 	public static void pullData(String startDateStr, String barSize,
 			IBClientRequestExecutor clientInterface, int i, String... args) throws ParseException {
 			for(; i < args.length;i++){
-				final String symbol = args[i];
-				final StoreHistoricalData sh = new StoreHistoricalData(new StockContract(symbol), clientInterface);
+				String symbol = args[i];
+				Contract c = new StockContract(symbol);
+
+				int idx = symbol.indexOf('_');
+				if (idx > 0) {
+					String expiration = symbol.substring(idx);
+					symbol = symbol.substring(0, idx);
+					c = new FutureContract(symbol, expiration);
+				}
+				
+				final StoreHistoricalData sh = new StoreHistoricalData(c, clientInterface);
 				if( ! sh.isValidSize(barSize) ) throw new IllegalArgumentException("Bar size unknown " + barSize );
 				sh.setBarSize( barSize );
 				

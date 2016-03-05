@@ -478,8 +478,15 @@ public class IBClientRequestExecutor {
 	 * @param rh For now, force to be the ResponseHandlerDelegate that writes the data out
 	 */
 	public void reqHistoricalData(final String symbol, final String date, final StoreHistoricalData rh) throws ParseException {
-		final StockContract stock = new StockContract(symbol);
-		reqHisData(date, stock, rh );
+		Contract c = null;
+		int idx = symbol.indexOf('_');
+		if(idx > 0){
+			c = new FutureContract(symbol.substring(0, idx), symbol.substring(idx));
+		}
+		else {
+			c = new StockContract(symbol);
+		}
+		reqHisData(date, c, rh );
 		rh.info( "History data request(s) starting " + date + " " + symbol);
 	}
 	
@@ -538,7 +545,7 @@ public class IBClientRequestExecutor {
 	 * @param stock
 	 * @throws ParseException
 	 */
-	protected void reqHisData(final String startingDate, final StockContract stock, final StoreHistoricalData rh)
+	protected void reqHisData(final String startingDate, final Contract stock, final StoreHistoricalData rh)
 			throws ParseException {
 		
 		// Get dates one hour apart that will retrieve the historical data
